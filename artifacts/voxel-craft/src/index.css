@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+body, html {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #000;
+}
+
+.text-shadow-sm {
+  text-shadow: 1px 1px 0px rgba(0,0,0,0.8);
+}

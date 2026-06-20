@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "VoxelCraft"
+version = "1.0.0"
+id = "artifacts/voxel-craft"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25902
+
+[services.development]
+run = "pnpm --filter @workspace/voxel-craft run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/voxel-craft", "run", "build" ]
+publicDir = "artifacts/voxel-craft/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25902"
+BASE_PATH = "/"
