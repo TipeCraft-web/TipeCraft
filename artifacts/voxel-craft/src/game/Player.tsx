@@ -7,7 +7,7 @@ import { worldManager, CHUNK_SIZE } from './worldGen';
 import { BlockType, isSolid, HOTBAR_CREATIVE, HOTBAR_SURVIVAL } from './blocks';
 
 const SPEED = 5;
-const CREATIVE_SPEED = 1000000000;
+const CREATIVE_SPEED = 8;
 const FLY_SPEED = 12;
 const JUMP_FORCE = 7;
 const GRAVITY = 22;
