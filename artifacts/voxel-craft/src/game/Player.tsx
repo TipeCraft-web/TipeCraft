@@ -108,10 +108,21 @@ export default function Player({ mode, setMode, playerChunkRef, onStateChange, t
   // Pointer lock
   useEffect(() => {
     const el = gl.domElement;
-    const lock = () => { if (document.pointerLockElement !== el) el.requestPointerLock(); };
+
+    const lock = () => {
+      if (document.pointerLockElement !== el) {
+        el.requestPointerLock();
+      }
+    };
+
     el.addEventListener('click', lock);
-    return () => el.removeEventListener('click', lock);
-  }, [gl]);
+    el.addEventListener('touchstart', lock);
+
+    return () => {
+      el.removeEventListener('click', lock);
+      el.removeEventListener('touchstart', lock);
+    };
+  }, [gl.domElement]);
 
   // Mouse look
   useEffect(() => {
