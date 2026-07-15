@@ -6,8 +6,10 @@ import { BlockType, HOTBAR_CREATIVE } from './blocks';
 import World from './World';
 import Player from './Player';
 import Animals from './Animals';
+import Mobs from './Mobs';
 import HUD from './HUD';
-import TouchControls, { TouchState } from './TouchControls';
+import TouchControls, { TouchState, createTouchState } from './TouchControls';
+import Crafting from './Crafting';
 
 export enum Controls {
   forward = 'forward',
@@ -28,17 +30,16 @@ const KEY_MAP = [
 ];
 
 interface UIState {
-  health: number;
-  hunger: number;
-  hotbar: BlockType[];
-  selectedSlot: number;
+  health: number; hunger: number;
+  hotbar: BlockType[]; selectedSlot: number;
   pos: { x: number; y: number; z: number };
   mode: 'CREATIVE' | 'SURVIVAL';
 }
 
 export default function Game() {
-  const [started, setStarted] = useState(false);
-  const [uiState, setUiState] = useState<UIState>({
+  const [started, setStarted]       = useState(false);
+  const [craftingOpen, setCraftingOpen] = useState(false);
+  const [uiState, setUiState]       = useState<UIState>({
     health: 20, hunger: 20,
     hotbar: [...HOTBAR_CREATIVE], selectedSlot: 0,
     pos: { x: 0, y: 0, z: 0 },
@@ -46,36 +47,63 @@ export default function Game() {
   });
 
   const playerChunkRef = useRef({ x: 0, z: 0 });
-  const touchRef = useRef<TouchState>({ dx: 0, dz: 0, jump: false, doBreak: false, doPlace: false });
-  const modeRef = useRef<'CREATIVE' | 'SURVIVAL'>('CREATIVE');
+  const touchRef       = useRef<TouchState>(createTouchState());
+  const playerPos      = useRef(new THREE.Vector3(8, 30, 8));
 
-  // Tab key for mode toggle
+  // Tab → mode toggle (keyboard)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.code === 'Tab') {
-        e.preventDefault();
-        setUiState(prev => {
-          const next = prev.mode === 'CREATIVE' ? 'SURVIVAL' : 'CREATIVE';
-          modeRef.current = next;
-          return { ...prev, mode: next };
-        });
-      }
+      if (e.code === 'Tab')  { e.preventDefault(); setUiState(prev => ({ ...prev, mode: prev.mode === 'CREATIVE' ? 'SURVIVAL' : 'CREATIVE' })); }
+      if (e.code === 'KeyE') { e.preventDefault(); if (started) setCraftingOpen(o => !o); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [started]);
 
   const handleStateChange = useCallback((s: {
     health: number; hunger: number;
     hotbar: BlockType[]; selectedSlot: number;
     pos: THREE.Vector3;
   }) => {
+    playerPos.current.copy(s.pos);
     setUiState(prev => ({
       ...prev,
       health: s.health, hunger: s.hunger,
       hotbar: s.hotbar, selectedSlot: s.selectedSlot,
       pos: { x: s.pos.x, y: s.pos.y, z: s.pos.z },
     }));
+  }, []);
+
+  const handleMobDamage = useCallback((amount: number) => {
+    setUiState(prev => {
+      if (prev.mode !== 'SURVIVAL') return prev;
+      return { ...prev, health: Math.max(0, prev.health - amount) };
+    });
+  }, []);
+
+  const handleSetMode = useCallback((m: 'CREATIVE' | 'SURVIVAL') => {
+    setUiState(prev => ({ ...prev, mode: m }));
+  }, []);
+
+  const handleCraft = useCallback((result: BlockType, count: number, consume: { type: BlockType; count: number }[]) => {
+    setUiState(prev => {
+      const hotbar = [...prev.hotbar];
+      // Consume ingredients from hotbar
+      consume.forEach(ing => {
+        let need = ing.count;
+        for (let i = 0; i < hotbar.length && need > 0; i++) {
+          if (hotbar[i] === ing.type) { hotbar[i] = BlockType.AIR; need--; }
+        }
+      });
+      // Add result to first empty slot
+      let placed = false;
+      for (let i = 0; i < hotbar.length; i++) {
+        if (hotbar[i] === BlockType.AIR) { hotbar[i] = result; placed = true; break; }
+      }
+      // If hotbar full, replace selected slot
+      if (!placed) hotbar[prev.selectedSlot] = result;
+      return { ...prev, hotbar };
+    });
   }, []);
 
   return (
@@ -90,30 +118,17 @@ export default function Game() {
           flexDirection:'column', color:'#fff', cursor:'pointer',
           fontFamily:'"Courier New", monospace',
         }}>
-          <div style={{
-            fontSize:56, fontWeight:'bold',
-            color:'#5cb85c', textShadow:'0 0 20px rgba(92,184,92,0.6), 0 4px 8px rgba(0,0,0,0.5)',
-            letterSpacing:4, marginBottom:8,
-          }}>
+          <div style={{ fontSize:52, fontWeight:'bold', color:'#5cb85c', textShadow:'0 0 20px rgba(92,184,92,0.6)', letterSpacing:4, marginBottom:8 }}>
             VoxelCraft
           </div>
-          <div style={{ fontSize:13, color:'#aaa', marginBottom:40, letterSpacing:1 }}>
-            A 3D Voxel World
-          </div>
-          <div style={{
-            background:'rgba(92,184,92,0.2)', border:'2px solid #5cb85c',
-            borderRadius:8, padding:'12px 32px', fontSize:18, color:'#5cb85c',
-            letterSpacing:2, boxShadow:'0 0 16px rgba(92,184,92,0.3)',
-          }}>
+          <div style={{ fontSize:13, color:'#aaa', marginBottom:40, letterSpacing:1 }}>A 3D Voxel World — 226 Blocks · 10 Biomes · Mobs · Crafting</div>
+          <div style={{ background:'rgba(92,184,92,0.2)', border:'2px solid #5cb85c', borderRadius:8, padding:'12px 32px', fontSize:18, color:'#5cb85c', letterSpacing:2 }}>
             ▶  CLICK TO PLAY
           </div>
-          <div style={{
-            marginTop:40, fontSize:11, color:'rgba(255,255,255,0.4)',
-            lineHeight:2, textAlign:'center',
-          }}>
-            WASD — Move &nbsp;|&nbsp; SPACE — Jump &nbsp;|&nbsp; SHIFT — Sneak (fly down)<br/>
-            LMB — Break Block &nbsp;|&nbsp; RMB — Place Block &nbsp;|&nbsp; Scroll — Hotbar<br/>
-            1-9 — Select Slot &nbsp;|&nbsp; Tab — Toggle Mode &nbsp;|&nbsp; Double-Space — Toggle Fly (Creative)
+          <div style={{ marginTop:40, fontSize:11, color:'rgba(255,255,255,0.4)', lineHeight:2, textAlign:'center' }}>
+            WASD — Move &nbsp;|&nbsp; SPACE — Jump &nbsp;|&nbsp; SHIFT — Fly Down<br/>
+            LMB — Break / Hit Mob &nbsp;|&nbsp; RMB — Place Block &nbsp;|&nbsp; Scroll — Hotbar<br/>
+            E — Crafting &nbsp;|&nbsp; Tab — Toggle Creative/Survival &nbsp;|&nbsp; Double-Space — Fly
           </div>
         </div>
       )}
@@ -130,6 +145,31 @@ export default function Game() {
         />
       )}
 
+      {/* Crafting button (mobile) */}
+      {started && (
+        <div
+          onClick={() => setCraftingOpen(o => !o)}
+          style={{
+            position:'absolute', top:14, left:'50%', transform:'translateX(-50%)',
+            zIndex:30, padding:'6px 14px', borderRadius:16,
+            background:'rgba(50,50,80,0.8)', border:'1px solid rgba(100,100,180,0.6)',
+            color:'#aac', fontSize:11, fontWeight:700, cursor:'pointer',
+            userSelect:'none', pointerEvents:'auto',
+          }}
+        >
+          ⚒ E — Craft
+        </div>
+      )}
+
+      {/* Crafting overlay */}
+      {craftingOpen && (
+        <Crafting
+          hotbar={uiState.hotbar}
+          onCraft={handleCraft}
+          onClose={() => setCraftingOpen(false)}
+        />
+      )}
+
       {/* Touch controls */}
       {started && <TouchControls stateRef={touchRef} />}
 
@@ -142,27 +182,23 @@ export default function Game() {
         >
           <color attach="background" args={['#87CEEB']} />
           <fog attach="fog" args={['#aadcf0', 50, 110]} />
-
           <ambientLight intensity={0.45} />
-          <directionalLight
-            position={[50, 100, 30]}
-            intensity={1.2}
-            castShadow
-            shadow-mapSize-width={1024}
-            shadow-mapSize-height={1024}
-          />
+          <directionalLight position={[50, 100, 30]} intensity={1.2} />
 
           <World playerChunkRef={playerChunkRef} />
           <Animals />
 
           {started && (
-            <Player
-              mode={uiState.mode}
-              setMode={(m) => setUiState(prev => ({ ...prev, mode: m }))}
-              playerChunkRef={playerChunkRef}
-              onStateChange={handleStateChange}
-              touchRef={touchRef}
-            />
+            <>
+              <Mobs playerPos={playerPos.current} onPlayerDamage={handleMobDamage} />
+              <Player
+                mode={uiState.mode}
+                setMode={handleSetMode}
+                playerChunkRef={playerChunkRef}
+                onStateChange={handleStateChange}
+                touchRef={touchRef}
+              />
+            </>
           )}
         </Canvas>
       </KeyboardControls>

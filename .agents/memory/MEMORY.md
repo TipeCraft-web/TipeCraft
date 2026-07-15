@@ -1,0 +1,3 @@
+- [R3F Mob Rendering](r3f-mob-rendering.md) — use useFrame inside each mesh for imperative position updates; React state only for spawn/despawn.
+- [Touch Look Zone](touch-look.md) — right-side look requires document-level listeners + data-touch-btn guard to avoid conflicting with buttons.
+- [Joystick Fix](joystick-fix.md) — correct formula: mx = sinY*dz + cosY*dx; mz = cosY*dz - sinY*dx (dz positive = screen-down = backward).
