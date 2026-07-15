@@ -37,6 +37,32 @@ function getTerrainHeightAtPoint(wx: number, wz: number, def: BiomeDef): number 
   return Math.floor(def.baseHeight + (n1 + n2 + n3) * def.heightVariation);
 }
 
+// Blend terrain height from nearby biomes to eliminate hard edges at biome boundaries
+function getBlendedHeight(wx: number, wz: number): number {
+  const n1 = terrainNoise(wx * 0.012, wz * 0.012);
+  const n2 = terrainNoise2(wx * 0.04, wz * 0.04) * 0.5;
+  const n3 = terrainNoise3(wx * 0.09, wz * 0.09) * 0.25;
+  const noiseVal = n1 + n2 + n3;
+
+  // Sample biome parameters from center + 8 surrounding points (Gaussian-like weights)
+  const D = 16;
+  const pts: [number, number, number][] = [
+    [wx,     wz,     2.5],
+    [wx-D,   wz,     1.0], [wx+D,   wz,     1.0],
+    [wx,     wz-D,   1.0], [wx,     wz+D,   1.0],
+    [wx-D,   wz-D,   0.5], [wx+D,   wz-D,   0.5],
+    [wx-D,   wz+D,   0.5], [wx+D,   wz+D,   0.5],
+  ];
+  let totalW = 0, blendBase = 0, blendVar = 0;
+  for (const [sx, sz, w] of pts) {
+    const def = BIOME_DEFS[getBiome(sx, sz)];
+    blendBase += def.baseHeight      * w;
+    blendVar  += def.heightVariation * w;
+    totalW    += w;
+  }
+  return Math.max(1, Math.floor(blendBase / totalW + noiseVal * (blendVar / totalW)));
+}
+
 // Biome structures mapping
 const BIOME_STRUCTURES: Record<Biome, StructureKey[]> = {
   [Biome.PLAINS]:    ['OAK_HOUSE','VILLAGE_WELL','STONE_CIRCLE','GRAVEYARD','OUTPOST_TOWER'],
@@ -66,7 +92,7 @@ function generateChunk(cx: number, cz: number): ChunkData {
       const wz = cz * CHUNK_SIZE + lz;
       const biome = getBiome(wx, wz);
       const bd = BIOME_DEFS[biome];
-      const height = Math.max(1, getTerrainHeightAtPoint(wx, wz, bd));
+      const height = getBlendedHeight(wx, wz);
 
       for (let y = 0; y < WORLD_HEIGHT; y++) {
         const idx = blockIndex(lx, y, lz);

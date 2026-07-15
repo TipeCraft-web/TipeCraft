@@ -74,9 +74,9 @@ export default function TouchControls({ stateRef }: Props) {
         const t = e.changedTouches[i];
         if (t.clientX < window.innerWidth * 0.38) continue; // left side = joystick
         if (lookTouchId.current !== null) continue;
-        // Ignore touches on button elements
+        // Ignore touches on buttons and UI modals
         const el = document.elementFromPoint(t.clientX, t.clientY) as HTMLElement | null;
-        if (el?.closest('[data-touch-btn]')) continue;
+        if (el?.closest('[data-touch-btn]') || el?.closest('[data-no-look]')) continue;
         lookTouchId.current = t.identifier;
         lookPrev.current = { x: t.clientX, y: t.clientY };
       }

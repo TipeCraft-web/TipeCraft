@@ -58,23 +58,18 @@ function colorStr(t: BlockType): string {
 }
 
 interface Props {
-  hotbar: BlockType[];
+  counts: Record<number, number>;
   onCraft: (result: BlockType, count: number, consume: { type: BlockType; count: number }[]) => void;
   onClose: () => void;
 }
 
 type Category = 'all' | 'building' | 'tools' | 'food' | 'misc';
 
-export default function Crafting({ hotbar, onCraft, onClose }: Props) {
+export default function Crafting({ counts, onCraft, onClose }: Props) {
   const [category, setCategory] = useState<Category>('all');
   const [crafted,  setCrafted]  = useState<string | null>(null);
 
-  // Count items in hotbar
-  const inventory = useMemo(() => {
-    const map: Record<number, number> = {};
-    hotbar.forEach(t => { if (t !== BlockType.AIR) map[t] = (map[t] || 0) + 1; });
-    return map;
-  }, [hotbar]);
+  const inventory = useMemo(() => counts, [counts]);
 
   const canCraft = (r: Recipe) =>
     r.ingredients.every(ing => (inventory[ing.type] || 0) >= ing.count);
@@ -94,7 +89,7 @@ export default function Crafting({ hotbar, onCraft, onClose }: Props) {
   const cats: Category[] = ['all','building','tools','misc'];
 
   return (
-    <div style={{
+    <div data-no-look="1" style={{
       position:'fixed', inset:0, zIndex:50,
       background:'rgba(0,0,0,0.78)',
       display:'flex', alignItems:'center', justifyContent:'center',
