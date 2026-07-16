@@ -211,7 +211,7 @@ export default function Player({
       const { x, y, z } = props.tpRef.current;
       props.tpRef.current = null;
       pos.current.set(x, y, z);
-      vel.current.set(0, 0, 0);
+      vel.current.set(0, 50, 0);
     }
 
     const dt = Math.min(delta, 0.05);
