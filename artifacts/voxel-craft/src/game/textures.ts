@@ -66,6 +66,14 @@ function wave(): Pat {
   return p;
 }
 
+function stillWater(): Pat {
+  const p: Pat = [];
+  for (let y = 0; y < 8; y++)
+    for (let x = 0; x < 8; x++)
+      p.push(0.93 + (y % 4 === 0 ? -0.06 : 0.03));
+  return p;
+}
+
 function cracked(seed: number): Pat {
   const p = noisePat(seed, 0.14);
   [9, 18, 19, 26, 35, 44, 37].forEach(i => { if (i < 64) p[i] = 0.36; });
@@ -121,12 +129,12 @@ function chest(): Pat {
 const PATS: Record<number, Pat> = {
   [BlockType.GRASS]:          noisePat(1, 0.28),
   [BlockType.DIRT]:           noisePat(2, 0.20, 0.95),
-  [BlockType.STONE]:          cracked(3),
+  [BlockType.STONE]:          noisePat(3, 0.07),
   [BlockType.BEDROCK]:        spots(4, 0.32, 0.18, 0.10),
   [BlockType.WOOD]:           vStripes(),
   [BlockType.LEAF]:           spots(6, 0.42, 0.10, 0.30),
   [BlockType.SAND]:           noisePat(7, 0.13),
-  [BlockType.WATER]:          wave(),
+  [BlockType.WATER]:          stillWater(),
   [BlockType.COAL_ORE]:       spots(9, 0.10, 0.20, 0.15),
   [BlockType.IRON_ORE]:       spots(10, 1.55, 0.20, 0.15),
   [BlockType.GLASS]:          noisePat(11, 0.05, 1.06),
