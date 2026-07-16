@@ -21,21 +21,23 @@ const MAX_REACH_SURVIVAL = 4;
 const BREAK_TIME_MS  = 900;
 
 interface PlayerProps {
-  mode: 'CREATIVE' | 'SURVIVAL';
-  setMode: (m: 'CREATIVE' | 'SURVIVAL') => void;
+  mode:           'CREATIVE' | 'SURVIVAL';
+  setMode:        (m: 'CREATIVE' | 'SURVIVAL') => void;
   playerChunkRef: React.MutableRefObject<{ x: number; z: number }>;
-  onStateChange: (s: {
+  onStateChange:  (s: {
     health: number; hunger: number;
     hotbar: BlockType[]; selectedSlot: number;
     pos: THREE.Vector3;
   }) => void;
-  touchRef: React.MutableRefObject<TouchState>;
+  touchRef:       React.MutableRefObject<TouchState>;
   externalSlot:   number;
   externalHotbar: BlockType[];
-  // Inventory callbacks (survival mode)
-  canPlace:      (type: BlockType) => boolean;
-  onBlockBreak:  (type: BlockType) => void;
-  onBlockPlace:  (type: BlockType) => void;
+  canPlace:       (type: BlockType) => boolean;
+  onBlockBreak:   (type: BlockType) => void;
+  onBlockPlace:   (type: BlockType) => void;
+  onChestOpen?:   (x: number, y: number, z: number) => void;
+  isDead?:        boolean;
+  respawnTrigger?: number;
 }
 
 function collidesAt(pos: THREE.Vector3): boolean {
@@ -66,9 +68,9 @@ function castRay(origin: THREE.Vector3, dir: THREE.Vector3, maxD: number) {
     if (isSolid(worldManager.getBlock(bx, by, bz)))
       return { hit:true, hitPos:new THREE.Vector3(bx,by,bz), prevPos:new THREE.Vector3(pbx,pby,pbz), normal:new THREE.Vector3(nx,ny,nz), dist:t };
     pbx=bx; pby=by; pbz=bz;
-    if (tmx<tmy && tmx<tmz) { t=tmx; bx+=sx; tmx+=dtx; nx=-sx; ny=0; nz=0; }
-    else if (tmy<tmz)        { t=tmy; by+=sy; tmy+=dty; nx=0; ny=-sy; nz=0; }
-    else                      { t=tmz; bz+=sz; tmz+=dtz; nx=0; ny=0; nz=-sz; }
+    if (tmx<tmy && tmx<tmz) { t=tmx; bx+=sx; tmx+=dtx; nx=-sx; ny=0;  nz=0; }
+    else if (tmy<tmz)        { t=tmy; by+=sy; tmy+=dty; nx=0;  ny=-sy; nz=0; }
+    else                      { t=tmz; bz+=sz; tmz+=dtz; nx=0;  ny=0;  nz=-sz; }
   }
   return { hit:false, hitPos:null, prevPos:null, normal:null, dist:maxD };
 }
@@ -76,7 +78,8 @@ function castRay(origin: THREE.Vector3, dir: THREE.Vector3, maxD: number) {
 export default function Player({
   mode, setMode, playerChunkRef, onStateChange,
   touchRef, externalSlot, externalHotbar,
-  canPlace, onBlockBreak, onBlockPlace,
+  canPlace, onBlockBreak, onBlockPlace, onChestOpen,
+  isDead = false, respawnTrigger = 0,
 }: PlayerProps) {
   const { camera, gl } = useThree();
   const [, getKeys] = useKeyboardControls<Controls>();
@@ -104,27 +107,32 @@ export default function Player({
   const eyePos       = useRef(new THREE.Vector3());
   const tmpPos       = useRef(new THREE.Vector3());
   const lastHit      = useRef(0);
-  const prevToggleMode = useRef(false);
+  const prevToggle   = useRef(false);
+  const isDeadRef    = useRef(isDead);
 
-  // Spawn
+  useEffect(() => { isDeadRef.current = isDead; }, [isDead]);
+
   useEffect(() => {
     camera.rotation.order = 'YXZ';
     const spawnY = worldManager.getTerrainHeight(8, 8) + 3;
     pos.current.set(8, spawnY, 8);
-    console.log('[VoxelCraft] Player spawned at y=', spawnY);
   }, [camera]);
 
-  // Sync external hotbar (from crafting / inventory / mode-switch)
+  // Respawn trigger — reset position and vitals
   useEffect(() => {
-    hotbar.current = [...externalHotbar];
-  }, [externalHotbar]);
+    if (respawnTrigger === 0) return;
+    const spawnY = worldManager.getTerrainHeight(8, 8) + 3;
+    pos.current.set(8, spawnY, 8);
+    vel.current.set(0, 0, 0);
+    health.current = 20;
+    hunger.current = 20;
+    breakPos.current = null;
+    breakStart.current = 0;
+  }, [respawnTrigger]);
 
-  // Sync external slot (from HUD tap)
-  useEffect(() => {
-    slot.current = externalSlot;
-  }, [externalSlot]);
+  useEffect(() => { hotbar.current = [...externalHotbar]; }, [externalHotbar]);
+  useEffect(() => { slot.current = externalSlot; }, [externalSlot]);
 
-  // Sync mode
   useEffect(() => {
     modeRef.current = mode;
     if (mode !== prevMode.current) {
@@ -133,19 +141,17 @@ export default function Player({
     }
   }, [mode]);
 
-  // Pointer lock
   useEffect(() => {
     const el = gl.domElement;
-    const lock = () => { if (document.pointerLockElement !== el) el.requestPointerLock?.(); };
+    const lock = () => { if (document.pointerLockElement !== el && !isDeadRef.current) el.requestPointerLock?.(); };
     el.addEventListener('click', lock);
     return () => el.removeEventListener('click', lock);
   }, [gl.domElement]);
 
-  // Mouse look
   useEffect(() => {
     const el = gl.domElement;
     const onMove = (e: MouseEvent) => {
-      if (document.pointerLockElement !== el) return;
+      if (document.pointerLockElement !== el || isDeadRef.current) return;
       yaw.current   -= e.movementX * 0.002;
       pitch.current -= e.movementY * 0.002;
       pitch.current  = Math.max(-1.5, Math.min(1.5, pitch.current));
@@ -154,7 +160,6 @@ export default function Player({
     return () => document.removeEventListener('mousemove', onMove);
   }, [gl]);
 
-  // Mouse buttons
   useEffect(() => {
     const el = gl.domElement;
     const dn = (e: MouseEvent) => {
@@ -177,9 +182,9 @@ export default function Player({
     };
   }, [gl]);
 
-  // Keyboard: slot select, scroll, double-space fly
   useEffect(() => {
     const dn = (e: KeyboardEvent) => {
+      if (isDeadRef.current) return;
       const n = parseInt(e.code.replace('Digit',''));
       if (n >= 1 && n <= 9) slot.current = n - 1;
       if (e.code === 'Space' && modeRef.current === 'CREATIVE') {
@@ -188,20 +193,24 @@ export default function Player({
         spaceLastTap.current = now;
       }
     };
-    const wh = (e: WheelEvent) => { slot.current = ((slot.current + (e.deltaY > 0 ? 1 : -1)) + 9) % 9; };
+    const wh = (e: WheelEvent) => {
+      if (isDeadRef.current) return;
+      slot.current = ((slot.current + (e.deltaY > 0 ? 1 : -1)) + 9) % 9;
+    };
     window.addEventListener('keydown', dn);
     window.addEventListener('wheel', wh);
     return () => { window.removeEventListener('keydown', dn); window.removeEventListener('wheel', wh); };
   }, []);
 
   useFrame((_, delta) => {
+    if (isDeadRef.current) return;
+
     const dt = Math.min(delta, 0.05);
     const k  = getKeys();
     const t  = touchRef.current;
     const locked  = document.pointerLockElement === gl.domElement;
     const curMode = modeRef.current;
 
-    // ── Touch look ─────────────────────────────────────────────────────
     if (t.lookDx !== 0 || t.lookDy !== 0) {
       yaw.current   -= t.lookDx * 0.004;
       pitch.current -= t.lookDy * 0.004;
@@ -209,13 +218,11 @@ export default function Player({
       t.lookDx = 0; t.lookDy = 0;
     }
 
-    // ── Touch mode toggle (edge-triggered) ─────────────────────────────
-    if (t.toggleMode && !prevToggleMode.current) {
+    if (t.toggleMode && !prevToggle.current) {
       setMode(curMode === 'CREATIVE' ? 'SURVIVAL' : 'CREATIVE');
     }
-    prevToggleMode.current = t.toggleMode;
+    prevToggle.current = t.toggleMode;
 
-    // ── Movement ───────────────────────────────────────────────────────
     const isFlying = flying.current && curMode === 'CREATIVE';
     const spd = isFlying ? FLY_SPEED : (curMode === 'CREATIVE' ? CREATIVE_SPEED : SPEED);
     const sinY = Math.sin(yaw.current), cosY = Math.cos(yaw.current);
@@ -229,7 +236,6 @@ export default function Player({
     if (bk)  { mx += sinY; mz += cosY; }
     if (lft) { mx -= cosY; mz += sinY; }
     if (rgt) { mx += cosY; mz -= sinY; }
-
     if (t.dx !== 0 || t.dz !== 0) {
       mx = sinY * t.dz + cosY * t.dx;
       mz = cosY * t.dz - sinY * t.dx;
@@ -250,9 +256,7 @@ export default function Player({
       vel.current.y  = Math.max(vel.current.y, -50);
     }
 
-    // ── AABB collision ─────────────────────────────────────────────────
     const p = pos.current, v = vel.current;
-
     tmpPos.current.set(p.x + v.x * dt, p.y, p.z);
     if (!collidesAt(tmpPos.current)) p.x = tmpPos.current.x; else v.x = 0;
 
@@ -263,7 +267,8 @@ export default function Player({
     } else {
       if (v.y < 0 && !isFlying) {
         grounded.current = true;
-        if (curMode === 'SURVIVAL' && v.y < -12) health.current = Math.max(0, health.current - Math.floor((-v.y - 12) * 0.6));
+        if (curMode === 'SURVIVAL' && v.y < -12)
+          health.current = Math.max(0, health.current - Math.floor((-v.y - 12) * 0.6));
       }
       v.y = 0;
     }
@@ -277,14 +282,12 @@ export default function Player({
       if (curMode === 'SURVIVAL') health.current = Math.max(0, health.current - 4);
     }
 
-    // ── Camera ─────────────────────────────────────────────────────────
     camera.rotation.y = yaw.current;
     camera.rotation.x = pitch.current;
     eyePos.current.set(p.x, p.y + EYE_H, p.z);
     camera.position.copy(eyePos.current);
     playerChunkRef.current = { x: Math.floor(p.x / CHUNK_SIZE), z: Math.floor(p.z / CHUNK_SIZE) };
 
-    // ── Block + mob interaction ─────────────────────────────────────────
     const doBreak = lmbDown.current || t.doBreak;
     const doPlace = rmbDown.current || t.doPlace;
 
@@ -326,16 +329,21 @@ export default function Player({
           }
         } else { breakPos.current = null; breakStart.current = 0; }
 
-        if (doPlace && ray.prevPos) {
+        if (doPlace && ray.hitPos) {
+          const hitBlock = worldManager.getBlock(ray.hitPos.x, ray.hitPos.y, ray.hitPos.z);
           const now = Date.now();
-          if (now - lastPlace.current > 250) {
+          if (hitBlock === BlockType.CHEST && onChestOpen) {
+            if (now - lastPlace.current > 400) {
+              onChestOpen(ray.hitPos.x, ray.hitPos.y, ray.hitPos.z);
+              lastPlace.current = now;
+            }
+          } else if (ray.prevPos && now - lastPlace.current > 250) {
             const pp  = ray.prevPos;
             const blk = hotbar.current[slot.current];
             if (blk !== BlockType.AIR) {
-              // Survival: check inventory
               const canPl = curMode !== 'SURVIVAL' || canPlace(blk);
               if (canPl) {
-                const hw  = PLAYER_W / 2;
+                const hw = PLAYER_W / 2;
                 const inside = pp.x >= Math.floor(p.x-hw) && pp.x <= Math.floor(p.x+hw-0.001)
                             && pp.y >= Math.floor(p.y)      && pp.y <= Math.floor(p.y+PLAYER_H-0.001)
                             && pp.z >= Math.floor(p.z-hw)   && pp.z <= Math.floor(p.z+hw-0.001);
@@ -351,7 +359,6 @@ export default function Player({
       } else { breakPos.current = null; breakStart.current = 0; }
     }
 
-    // ── HUD sync ───────────────────────────────────────────────────────
     stateT.current += dt;
     if (stateT.current > 0.1) {
       stateT.current = 0;

@@ -93,30 +93,44 @@ export default function Crafting({ counts, onCraft, onClose }: Props) {
       position:'fixed', inset:0, zIndex:50,
       background:'rgba(0,0,0,0.78)',
       display:'flex', alignItems:'center', justifyContent:'center',
+      touchAction:'none',
     }} onClick={onClose}>
       <div
         onClick={e => e.stopPropagation()}
+        onTouchStart={e => e.stopPropagation()}
         style={{
           background:'#1a1a2e', border:'2px solid #5cb85c',
           borderRadius:12, padding:20, width:420, maxWidth:'96vw', maxHeight:'88vh',
           overflow:'hidden', display:'flex', flexDirection:'column', gap:12,
           color:'#fff', fontFamily:'"Courier New",monospace',
+          touchAction:'manipulation',
         }}
       >
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div style={{ fontSize:20, fontWeight:700, color:'#5cb85c', letterSpacing:2 }}>⚒ CRAFTING</div>
-          <div onClick={onClose} style={{ cursor:'pointer', fontSize:20, color:'#aaa', padding:'0 4px' }}>✕</div>
+          <div
+            data-touch-btn="1"
+            onTouchStart={e => { e.stopPropagation(); e.preventDefault(); onClose(); }}
+            onClick={onClose}
+            style={{ cursor:'pointer', fontSize:20, color:'#aaa', padding:'4px 8px' }}
+          >✕</div>
         </div>
 
         {/* Category tabs */}
         <div style={{ display:'flex', gap:6 }}>
           {cats.map(c => (
-            <div key={c} onClick={() => setCategory(c)} style={{
-              padding:'4px 10px', borderRadius:6, fontSize:11, cursor:'pointer',
-              background: category === c ? '#5cb85c' : '#333',
-              color: category === c ? '#000' : '#ccc',
-              fontWeight:700, textTransform:'uppercase',
-            }}>
+            <div
+              key={c}
+              data-touch-btn="1"
+              onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setCategory(c); }}
+              onClick={() => setCategory(c)}
+              style={{
+                padding:'6px 10px', borderRadius:6, fontSize:11, cursor:'pointer',
+                background: category === c ? '#5cb85c' : '#333',
+                color: category === c ? '#000' : '#ccc',
+                fontWeight:700, textTransform:'uppercase',
+              }}
+            >
               {c}
             </div>
           ))}
@@ -135,10 +149,16 @@ export default function Crafting({ counts, onCraft, onClose }: Props) {
             return (
               <div
                 key={r.id}
+                data-touch-btn="1"
+                onTouchStart={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  doCraft(r);
+                }}
                 onClick={() => doCraft(r)}
                 style={{
                   display:'flex', alignItems:'center', gap:10,
-                  padding:'8px 10px', borderRadius:8,
+                  padding:'10px 10px', borderRadius:8,
                   background: justCrafted ? '#1e5e1e' : can ? '#1a2e1a' : '#1a1a2a',
                   border: `1px solid ${justCrafted ? '#5cb85c' : can ? '#3d6b3d' : '#333'}`,
                   cursor: can ? 'pointer' : 'default',
@@ -166,7 +186,7 @@ export default function Crafting({ counts, onCraft, onClose }: Props) {
                 </div>
                 {can && (
                   <div style={{
-                    fontSize:11, padding:'3px 8px', borderRadius:4,
+                    fontSize:11, padding:'5px 10px', borderRadius:4,
                     background: justCrafted ? '#5cb85c' : '#3d6b3d',
                     color:'#fff', fontWeight:700,
                   }}>

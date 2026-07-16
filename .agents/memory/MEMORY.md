@@ -1,3 +1,6 @@
 - [R3F Mob Rendering](r3f-mob-rendering.md) — use useFrame inside each mesh for imperative position updates; React state only for spawn/despawn.
 - [Touch Look Zone](touch-look.md) — right-side look requires document-level listeners + data-touch-btn guard to avoid conflicting with buttons.
 - [Joystick Fix](joystick-fix.md) — correct formula: mx = sinY*dz + cosY*dx; mz = cosY*dz - sinY*dx (dz positive = screen-down = backward).
+- [Inventory Architecture](inventory-arch.md) — countsRef (mutable) for sync Player access; uiState.counts (React state) for rendering. Both must stay in sync.
+- [Pixel Atlas Textures](pixel-atlas.md) — 8×8 tiles in 128×128 atlas; vertexColors = grayscale light factor, map = atlas texture; NearestFilter for pixel-art look.
+- [Mobile UI Touch Fix](mobile-touch.md) — onTouchStart+preventDefault on interactive elements; data-no-look on modal root; touchAction:manipulation on scrollable containers.
