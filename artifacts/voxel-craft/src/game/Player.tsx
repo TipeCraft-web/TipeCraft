@@ -35,9 +35,10 @@ interface PlayerProps {
   canPlace:       (type: BlockType) => boolean;
   onBlockBreak:   (type: BlockType) => void;
   onBlockPlace:   (type: BlockType) => void;
-  onChestOpen?:   (x: number, y: number, z: number) => void;
-  isDead?:        boolean;
+  onChestOpen?:    (x: number, y: number, z: number) => void;
+  isDead?:         boolean;
   respawnTrigger?: number;
+  tpRef?:          React.MutableRefObject<{ x: number; y: number; z: number } | null>;
 }
 
 function collidesAt(pos: THREE.Vector3): boolean {
@@ -204,6 +205,14 @@ export default function Player({
 
   useFrame((_, delta) => {
     if (isDeadRef.current) return;
+
+    // Teleport command from chat
+    if (props.tpRef?.current) {
+      const { x, y, z } = props.tpRef.current;
+      props.tpRef.current = null;
+      pos.current.set(x, y, z);
+      vel.current.set(0, 0, 0);
+    }
 
     const dt = Math.min(delta, 0.05);
     const k  = getKeys();

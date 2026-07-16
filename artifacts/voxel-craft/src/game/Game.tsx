@@ -8,10 +8,12 @@ import Player from './Player';
 import Animals from './Animals';
 import Mobs from './Mobs';
 import HUD from './HUD';
+import DayNight from './DayNight';
 import TouchControls, { TouchState, createTouchState } from './TouchControls';
 import Crafting from './Crafting';
 import Inventory from './Inventory';
 import ChestUI from './ChestUI';
+import Chat from './Chat';
 
 export enum Controls {
   forward = 'forward',
@@ -35,22 +37,22 @@ const SURVIVAL_HOTBAR: BlockType[] = Array(9).fill(BlockType.AIR);
 const CHEST_SLOTS = 27;
 
 interface UIState {
-  health:      number;
-  hunger:      number;
-  hotbar:      BlockType[];
+  health:       number;
+  hunger:       number;
+  hotbar:       BlockType[];
   selectedSlot: number;
-  pos:         { x: number; y: number; z: number };
-  mode:        'CREATIVE' | 'SURVIVAL';
-  counts:      Record<number, number>;
+  pos:          { x: number; y: number; z: number };
+  mode:         'CREATIVE' | 'SURVIVAL';
+  counts:       Record<number, number>;
 }
 
 export default function Game() {
-  const [started,       setStarted]       = useState(false);
-  const [craftingOpen,  setCraftingOpen]  = useState(false);
-  const [inventoryOpen, setInventoryOpen] = useState(false);
-  const [dead,          setDead]          = useState(false);
+  const [started,        setStarted]        = useState(false);
+  const [craftingOpen,   setCraftingOpen]   = useState(false);
+  const [inventoryOpen,  setInventoryOpen]  = useState(false);
+  const [dead,           setDead]           = useState(false);
   const [respawnTrigger, setRespawnTrigger] = useState(0);
-  const [openChest,     setOpenChest]     = useState<{ x: number; y: number; z: number } | null>(null);
+  const [openChest,      setOpenChest]      = useState<{ x: number; y: number; z: number } | null>(null);
 
   const [uiState, setUiState] = useState<UIState>({
     health: 20, hunger: 20,
@@ -62,10 +64,12 @@ export default function Game() {
 
   const playerChunkRef = useRef({ x: 0, z: 0 });
   const touchRef       = useRef<TouchState>(createTouchState());
-  const playerPos      = useRef(new THREE.Vector3(8, 30, 8));
+  const playerPosRef   = useRef(new THREE.Vector3(8, 30, 8));
   const countsRef      = useRef<Record<number, number>>({});
-  // Chest storage: "x,y,z" → BlockType[27]
   const chestsRef      = useRef<Map<string, BlockType[]>>(new Map());
+  // Shared refs for Chat ↔ Player/DayNight communication
+  const tpRef          = useRef<{ x: number; y: number; z: number } | null>(null);
+  const dayTimeRef     = useRef<number>(0.5);
 
   // Death detection
   useEffect(() => {
@@ -81,6 +85,10 @@ export default function Game() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!started || dead) return;
+      // Don't intercept T (chat uses it) or when typing in an input
+      const target = e.target as HTMLElement;
+      const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+      if (isTyping) return;
       if (e.code === 'KeyE') { e.preventDefault(); setCraftingOpen(o => !o); setInventoryOpen(false); }
       if (e.code === 'KeyI') { e.preventDefault(); setInventoryOpen(o => !o); setCraftingOpen(false); }
       if (e.code === 'Escape') { setCraftingOpen(false); setInventoryOpen(false); setOpenChest(null); }
@@ -102,7 +110,7 @@ export default function Game() {
     hotbar: BlockType[]; selectedSlot: number;
     pos: THREE.Vector3;
   }) => {
-    playerPos.current.copy(s.pos);
+    playerPosRef.current.copy(s.pos);
     setUiState(prev => ({
       ...prev,
       health: s.health, hunger: s.hunger,
@@ -127,16 +135,13 @@ export default function Game() {
     }));
   }, []);
 
-  const canPlace = useCallback((type: BlockType) => (countsRef.current[type] || 0) > 0, []);
+  const canPlace    = useCallback((type: BlockType) => (countsRef.current[type] || 0) > 0, []);
 
   const onBlockBreak = useCallback((type: BlockType) => {
     countsRef.current[type] = (countsRef.current[type] || 0) + 1;
     setUiState(prev => {
       const hotbar = [...prev.hotbar];
-      if (!hotbar.includes(type)) {
-        const ei = hotbar.indexOf(BlockType.AIR);
-        if (ei !== -1) hotbar[ei] = type;
-      }
+      if (!hotbar.includes(type)) { const ei = hotbar.indexOf(BlockType.AIR); if (ei !== -1) hotbar[ei] = type; }
       return { ...prev, hotbar, counts: { ...countsRef.current } };
     });
   }, []);
@@ -146,10 +151,7 @@ export default function Game() {
     countsRef.current[type] = newCnt;
     setUiState(prev => {
       const hotbar = [...prev.hotbar];
-      if (newCnt === 0) {
-        const i = hotbar.indexOf(type);
-        if (i !== -1) hotbar[i] = BlockType.AIR;
-      }
+      if (newCnt === 0) { const i = hotbar.indexOf(type); if (i !== -1) hotbar[i] = BlockType.AIR; }
       return { ...prev, hotbar, counts: { ...countsRef.current } };
     });
   }, []);
@@ -167,15 +169,9 @@ export default function Game() {
     setUiState(prev => {
       const hotbar = [...prev.hotbar];
       consume.forEach(ing => {
-        if ((countsRef.current[ing.type] || 0) === 0) {
-          const idx = hotbar.indexOf(ing.type);
-          if (idx !== -1) hotbar[idx] = BlockType.AIR;
-        }
+        if ((countsRef.current[ing.type] || 0) === 0) { const idx = hotbar.indexOf(ing.type); if (idx !== -1) hotbar[idx] = BlockType.AIR; }
       });
-      if (!hotbar.includes(result)) {
-        const ei = hotbar.indexOf(BlockType.AIR);
-        if (ei !== -1) hotbar[ei] = result;
-      }
+      if (!hotbar.includes(result)) { const ei = hotbar.indexOf(BlockType.AIR); if (ei !== -1) hotbar[ei] = result; }
       return { ...prev, hotbar, counts: { ...countsRef.current } };
     });
   }, []);
@@ -188,12 +184,9 @@ export default function Game() {
     });
   }, []);
 
-  // Chest interaction
   const handleChestOpen = useCallback((x: number, y: number, z: number) => {
     const key = `${x},${y},${z}`;
-    if (!chestsRef.current.has(key)) {
-      chestsRef.current.set(key, Array(CHEST_SLOTS).fill(BlockType.AIR));
-    }
+    if (!chestsRef.current.has(key)) chestsRef.current.set(key, Array(CHEST_SLOTS).fill(BlockType.AIR));
     setOpenChest({ x, y, z });
     setCraftingOpen(false);
     setInventoryOpen(false);
@@ -201,21 +194,15 @@ export default function Game() {
 
   const handleChestChange = useCallback((newContents: BlockType[], newCounts: Record<number, number>) => {
     if (!openChest) return;
-    const key = `${openChest.x},${openChest.y},${openChest.z}`;
-    chestsRef.current.set(key, newContents);
+    chestsRef.current.set(`${openChest.x},${openChest.y},${openChest.z}`, newContents);
     countsRef.current = { ...newCounts };
     setUiState(prev => ({ ...prev, counts: { ...newCounts } }));
   }, [openChest]);
 
-  // Respawn
   const handleRespawn = useCallback(() => {
     setDead(false);
     setRespawnTrigger(t => t + 1);
-    setUiState(prev => ({
-      ...prev,
-      health: 20, hunger: 20,
-      hotbar: [...SURVIVAL_HOTBAR], counts: {},
-    }));
+    setUiState(prev => ({ ...prev, health: 20, hunger: 20, hotbar: [...SURVIVAL_HOTBAR], counts: {} }));
     countsRef.current = {};
   }, []);
 
@@ -241,15 +228,15 @@ export default function Game() {
             VoxelCraft
           </div>
           <div style={{ fontSize:13, color:'#aaa', marginBottom:40, letterSpacing:1 }}>
-            226 Blocks · 10 Biomes · Crafting · Mobs · Pixel Textures
+            226 Blöcke · 10 Biome · Crafting · Mobs · Tag/Nacht · Chat
           </div>
           <div style={{ background:'rgba(92,184,92,0.2)', border:'2px solid #5cb85c', borderRadius:8, padding:'12px 32px', fontSize:18, color:'#5cb85c', letterSpacing:2 }}>
-            ▶  CLICK TO PLAY
+            ▶  KLICKEN ZUM SPIELEN
           </div>
           <div style={{ marginTop:40, fontSize:11, color:'rgba(255,255,255,0.4)', lineHeight:2, textAlign:'center' }}>
-            WASD — Move &nbsp;|&nbsp; SPACE — Jump &nbsp;|&nbsp; SHIFT — Fly Down<br/>
-            LMB — Break &nbsp;|&nbsp; RMB — Place / Open Chest &nbsp;|&nbsp; 1–9 — Hotbar<br/>
-            E — Crafting &nbsp;|&nbsp; I — Inventory &nbsp;|&nbsp; Tab — Creative/Survival
+            WASD — Bewegen &nbsp;|&nbsp; SPACE — Springen &nbsp;|&nbsp; SHIFT — Runter fliegen<br/>
+            LMB — Abbauen &nbsp;|&nbsp; RMB — Platzieren / Truhe öffnen &nbsp;|&nbsp; 1–9 — Hotbar<br/>
+            E — Crafting &nbsp;|&nbsp; I — Inventar &nbsp;|&nbsp; T — Chat &nbsp;|&nbsp; Tab — Modus
           </div>
         </div>
       )}
@@ -266,7 +253,7 @@ export default function Game() {
             YOU DIED
           </div>
           <div style={{ fontSize:14, color:'#cc9999', marginBottom:40 }}>
-            Better luck next time, adventurer.
+            Viel Glück beim nächsten Versuch, Abenteurer.
           </div>
           <div
             data-touch-btn="1"
@@ -295,6 +282,16 @@ export default function Game() {
         />
       )}
 
+      {/* ── Chat ─────────────────────────────────────────────── */}
+      {started && !dead && (
+        <Chat
+          tpRef={tpRef}
+          dayTimeRef={dayTimeRef}
+          onSetMode={handleSetMode}
+          currentMode={mode}
+        />
+      )}
+
       {/* ── Top toolbar (mobile) ─────────────────────────────── */}
       {started && !dead && (
         <div style={{
@@ -305,21 +302,13 @@ export default function Game() {
             data-touch-btn="1"
             onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setCraftingOpen(o => !o); setInventoryOpen(false); }}
             onClick={() => { setCraftingOpen(o => !o); setInventoryOpen(false); }}
-            style={{
-              padding:'6px 14px', borderRadius:16,
-              background:'rgba(50,50,80,0.8)', border:'1px solid rgba(100,100,180,0.6)',
-              color:'#aac', fontSize:11, fontWeight:700, cursor:'pointer', userSelect:'none',
-            }}
+            style={{ padding:'6px 14px', borderRadius:16, background:'rgba(50,50,80,0.8)', border:'1px solid rgba(100,100,180,0.6)', color:'#aac', fontSize:11, fontWeight:700, cursor:'pointer', userSelect:'none' }}
           >⚒ Craft</div>
           <div
             data-touch-btn="1"
             onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setInventoryOpen(o => !o); setCraftingOpen(false); }}
             onClick={() => { setInventoryOpen(o => !o); setCraftingOpen(false); }}
-            style={{
-              padding:'6px 14px', borderRadius:16,
-              background:'rgba(30,60,80,0.8)', border:'1px solid rgba(68,136,204,0.6)',
-              color:'#7ac', fontSize:11, fontWeight:700, cursor:'pointer', userSelect:'none',
-            }}
+            style={{ padding:'6px 14px', borderRadius:16, background:'rgba(30,60,80,0.8)', border:'1px solid rgba(68,136,204,0.6)', color:'#7ac', fontSize:11, fontWeight:700, cursor:'pointer', userSelect:'none' }}
           >📦 Bag</div>
         </div>
       )}
@@ -327,9 +316,7 @@ export default function Game() {
       {/* ── Modals ───────────────────────────────────────────── */}
       {craftingOpen && (
         <Crafting
-          counts={mode === 'CREATIVE'
-            ? (() => { const c: Record<number,number> = {}; for (let i=1;i<=225;i++) c[i]=99; return c; })()
-            : counts}
+          counts={mode === 'CREATIVE' ? (() => { const c: Record<number,number> = {}; for (let i=1;i<=225;i++) c[i]=99; return c; })() : counts}
           onCraft={handleCraft}
           onClose={() => setCraftingOpen(false)}
         />
@@ -345,9 +332,7 @@ export default function Game() {
       {openChest && chestContents && (
         <ChestUI
           contents={chestContents}
-          counts={mode === 'CREATIVE'
-            ? (() => { const c: Record<number,number> = {}; for (let i=1;i<=225;i++) c[i]=99; return c; })()
-            : counts}
+          counts={mode === 'CREATIVE' ? (() => { const c: Record<number,number> = {}; for (let i=1;i<=225;i++) c[i]=99; return c; })() : counts}
           onContentsChange={handleChestChange}
           onClose={() => setOpenChest(null)}
         />
@@ -359,21 +344,24 @@ export default function Game() {
       {/* ── 3D Canvas ────────────────────────────────────────── */}
       <KeyboardControls map={KEY_MAP}>
         <Canvas
+          shadows
           camera={{ fov: 75, near: 0.05, far: 220 }}
           gl={{ antialias: false }}
           style={{ width:'100%', height:'100%' }}
         >
-          <color attach="background" args={['#87CEEB']} />
-          <fog attach="fog" args={['#aadcf0', 50, 110]} />
-          <ambientLight intensity={0.45} />
-          <directionalLight position={[50, 100, 30]} intensity={1.2} />
+          <fog attach="fog" args={['#9dcde8', 50, 110]} />
 
+          <DayNight playerPosRef={playerPosRef} dayTimeRef={dayTimeRef} />
           <World playerChunkRef={playerChunkRef} />
           <Animals />
 
           {started && (
             <>
-              <Mobs playerPos={playerPos.current} onPlayerDamage={handleMobDamage} />
+              <Mobs
+                playerPos={playerPosRef.current}
+                onPlayerDamage={handleMobDamage}
+                dayTimeRef={dayTimeRef}
+              />
               <Player
                 mode={mode}
                 setMode={handleSetMode}
@@ -388,6 +376,7 @@ export default function Game() {
                 onChestOpen={handleChestOpen}
                 isDead={dead}
                 respawnTrigger={respawnTrigger}
+                tpRef={tpRef}
               />
             </>
           )}
