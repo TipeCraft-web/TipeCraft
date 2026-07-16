@@ -206,13 +206,7 @@ export default function Player({
   useFrame((_, delta) => {
     if (isDeadRef.current) return;
 
-    // Teleport command from chat
-    if (props.tpRef?.current) {
-      const { x, y, z } = props.tpRef.current;
-      props.tpRef.current = null;
-      pos.current.set(x, y, z);
-      vel.current.set(0, 50, 0);
-    }
+    // Teleport command from 
 
     const dt = Math.min(delta, 0.05);
     const k  = getKeys();
