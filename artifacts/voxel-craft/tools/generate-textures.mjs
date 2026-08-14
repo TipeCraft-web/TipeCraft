@@ -19,6 +19,9 @@ const blockDir = path.join(root, 'public/textures/blocks');
 const mobDir = path.join(root, 'public/textures/mobs');
 fs.mkdirSync(blockDir, { recursive: true });
 fs.mkdirSync(mobDir, { recursive: true });
+for (const file of fs.readdirSync(blockDir)) {
+  if (file.endsWith('.png')) fs.unlinkSync(path.join(blockDir, file));
+}
 
 function clamp(value) {
   return Math.max(0, Math.min(255, Math.round(value)));
@@ -87,13 +90,14 @@ function drawRect(pixels, width, x, y, w, h, color, alpha = 255) {
   for (let py = y; py < y + h; py++) for (let px = x; px < x + w; px++) setPixel(pixels, width, px, py, color, alpha);
 }
 
-function makeBlockTexture(id, key) {
+function makeBlockTexture(id, key, variant) {
   const size = 16;
   const pixels = new Uint8Array(size * size * 4);
   const color = blockColors.get(key) ?? 0x888888;
-  const base = shade(color, 1);
-  const dark = shade(color, 0.72);
-  const light = shade(color, 1.22);
+  const variantColor = key === 'GRASS' && variant === 2 ? 0x8b6914 : color;
+  const base = shade(variantColor, variant === 0 ? 1.05 : variant === 2 ? 0.88 : 1);
+  const dark = shade(variantColor, variant === 2 ? 0.62 : 0.72);
+  const light = shade(variantColor, variant === 0 ? 1.28 : 1.22);
   const lower = key.toLowerCase();
   const stone = /(stone|andesite|diorite|granite|deepslate|tuff|calcite|basalt|blackstone|obsidian|bedrock|cobble|brick|raw_stone)/.test(lower);
   const wood = /(wood|log|plank|stem|bamboo|fence|bookshelf|bookcase)/.test(lower);
@@ -115,7 +119,15 @@ function makeBlockTexture(id, key) {
         pixel = (x === y || x + y === 15) ? light : shade(color, 0.92);
         alpha = 150;
       } else if (key === 'GRASS' || key === 'ROOTED_GRASS') {
-        pixel = y > 11 ? shade(0x8b6914, 0.92) : (x + y * 7) % 13 === 0 ? light : base;
+        if (key === 'GRASS' && variant === 1) {
+          pixel = y < 4
+            ? ((x + y * 7) % 13 === 0 ? light : shade(0x567d46, 1))
+            : ((x * 5 + y * 3 + id) % 11 === 0 ? shade(0x8b6914, 1.12) : shade(0x8b6914, 0.92));
+        } else if (variant === 2) {
+          pixel = (x * 5 + y * 3 + id) % 11 === 0 ? light : base;
+        } else {
+          pixel = (x + y * 7) % 13 === 0 ? light : base;
+        }
       } else if (key === 'TNT') {
         pixel = y < 3 || y > 12 ? light : ((x + y) % 5 === 0 ? dark : base);
       } else if (key === 'LAVA' || key === 'MAGMA' || key === 'SOUL_FIRE') {
@@ -171,13 +183,19 @@ function mobTexture(kind) {
   return pixels;
 }
 
+function pascalCase(key) {
+  return key.toLowerCase().split('_').map(part => part[0].toUpperCase() + part.slice(1)).join('');
+}
+
 for (const [id, key] of [...blockTypes.entries()].filter(([value]) => value > 0 && value < 256)) {
-  const name = `${String(id).padStart(3, '0')}-${key.toLowerCase()}.png`;
-  fs.writeFileSync(path.join(blockDir, name), encodePng(16, 16, makeBlockTexture(id, key)));
+  const prefix = pascalCase(key);
+  for (const [variant, suffix] of [[0, 'Top'], [1, 'Side'], [2, 'Down']]) {
+    fs.writeFileSync(path.join(blockDir, `${prefix}${suffix}.png`), encodePng(16, 16, makeBlockTexture(id, key, variant)));
+  }
 }
 
 for (const kind of ['zombie', 'skeleton', 'creeper', 'spider', 'slime', 'cow', 'pig', 'sheep']) {
   fs.writeFileSync(path.join(mobDir, `${kind}.png`), encodePng(64, 64, mobTexture(kind)));
 }
 
-console.log(`Generated ${blockTypes.size - 1} block textures and 8 mob textures.`);
+console.log(`Generated ${(blockTypes.size - 1) * 3} block textures (Top/Side/Down) and 8 mob textures.`);

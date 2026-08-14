@@ -37,7 +37,6 @@ function buildChunkGeometry(cx: number, cz: number): {
         if (block === BlockType.AIR) continue;
 
         const transparent = isTransparent(block);
-        const [u, v, uw, vh] = blockUV(block as number);
 
         for (let fi = 0; fi < 6; fi++) {
           const face = FACES[fi];
@@ -51,6 +50,7 @@ function buildChunkGeometry(cx: number, cz: number): {
 
           const lit = face.light;
           const [nx, ny, nz] = face.dir;
+          const [u, v, uw, vh] = blockUV(block as number, fi);
 
           // UV corners: V0→(u,v), V1→(u,v+vh), V2→(u+uw,v+vh), V3→(u+uw,v)
           const uvCorners = [

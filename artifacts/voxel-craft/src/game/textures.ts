@@ -2,9 +2,11 @@ import * as THREE from 'three';
 import { BlockType, BLOCK_COLORS } from './blocks';
 
 const TILE = 16;
-const COLS = 16;
+const BLOCK_COLS = 16;
+const VARIANTS = 3;
+const ATLAS_COLS = BLOCK_COLS * VARIANTS;
 const ROWS = 16;
-const ATW  = TILE * COLS;
+const ATW  = TILE * ATLAS_COLS;
 const ATH  = TILE * ROWS;
 
 type Pat = number[];
@@ -194,12 +196,21 @@ function assetUrl(path: string): string {
   return new URL(`${import.meta.env.BASE_URL}textures/${path}`, window.location.href).toString();
 }
 
-export function blockTextureFile(bt: number): string {
-  return `${String(bt).padStart(3, '0')}-${blockKeys[bt] ?? 'block'}.png`;
+type BlockTextureVariant = 'top' | 'side' | 'down';
+
+function variantName(variant: BlockTextureVariant): string {
+  return variant[0].toUpperCase() + variant.slice(1);
 }
 
-export function blockTextureUrl(bt: number): string {
-  return assetUrl(`blocks/${blockTextureFile(bt)}`);
+export function blockTextureFile(bt: number, variant: BlockTextureVariant = 'side'): string {
+  const key = (blockKeys[bt] ?? 'block').split('_')
+    .map(part => part[0].toUpperCase() + part.slice(1))
+    .join('');
+  return `${key}${variantName(variant)}.png`;
+}
+
+export function blockTextureUrl(bt: number, variant: BlockTextureVariant = 'side'): string {
+  return assetUrl(`blocks/${blockTextureFile(bt, variant)}`);
 }
 
 export function getMobTexture(kind: string): THREE.Texture {
@@ -214,7 +225,7 @@ export function getMobTexture(kind: string): THREE.Texture {
   return texture;
 }
 
-function drawFallback(ctx: CanvasRenderingContext2D, bt: number) {
+function drawFallback(ctx: CanvasRenderingContext2D, bt: number, variant: 0 | 1 | 2) {
   const baseColor = BLOCK_COLORS[bt as BlockType] ?? [0.5, 0.5, 0.5];
   const pat: Pat = PATS[bt] ?? noisePat(bt * 1337 + 7, 0.18);
   const [br, bg, bb] = baseColor;
@@ -225,7 +236,8 @@ function drawFallback(ctx: CanvasRenderingContext2D, bt: number) {
       const g = Math.min(255, Math.round(bg * 255 * m));
       const b = Math.min(255, Math.round(bb * 255 * m));
       ctx.fillStyle = `rgb(${r},${g},${b})`;
-      ctx.fillRect((bt % COLS) * TILE + px, Math.floor(bt / COLS) * TILE + py, 1, 1);
+      const col = (bt % BLOCK_COLS) * VARIANTS + variant;
+      ctx.fillRect(col * TILE + px, Math.floor(bt / BLOCK_COLS) * TILE + py, 1, 1);
     }
   }
 }
@@ -236,15 +248,17 @@ function loadBlockImages(canvas: HTMLCanvasElement, texture: THREE.CanvasTexture
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  for (let bt = 1; bt < COLS * ROWS; bt++) {
-    const image = new Image();
-    image.onload = () => {
-      const col = bt % COLS;
-      const row = Math.floor(bt / COLS);
-      ctx.drawImage(image, col * TILE, row * TILE, TILE, TILE);
-      texture.needsUpdate = true;
-    };
-    image.src = blockTextureUrl(bt);
+  for (let bt = 1; bt < BLOCK_COLS * ROWS; bt++) {
+    for (const [variant, name] of [[0, 'top'], [1, 'side'], [2, 'down']] as const) {
+      const image = new Image();
+      image.onload = () => {
+        const col = (bt % BLOCK_COLS) * VARIANTS + variant;
+        const row = Math.floor(bt / BLOCK_COLS);
+        ctx.drawImage(image, col * TILE, row * TILE, TILE, TILE);
+        texture.needsUpdate = true;
+      };
+      image.src = blockTextureUrl(bt, name);
+    }
   }
 }
 
@@ -258,8 +272,12 @@ export function getAtlas(): THREE.CanvasTexture {
   ctx.fillStyle = '#808080';
   ctx.fillRect(0, 0, ATW, ATH);
 
-  for (let bt = 1; bt < COLS * ROWS; bt++) {
-    if (BLOCK_COLORS[bt as BlockType]) drawFallback(ctx, bt);
+  for (let bt = 1; bt < BLOCK_COLS * ROWS; bt++) {
+    if (BLOCK_COLORS[bt as BlockType]) {
+      drawFallback(ctx, bt, 0);
+      drawFallback(ctx, bt, 1);
+      drawFallback(ctx, bt, 2);
+    }
   }
 
   const tex = new THREE.CanvasTexture(canvas);
@@ -272,8 +290,9 @@ export function getAtlas(): THREE.CanvasTexture {
   return tex;
 }
 
-export function blockUV(bt: number): [number, number, number, number] {
-  const col = bt % COLS;
-  const row = Math.floor(bt / COLS);
-  return [col / COLS, 1 - (row + 1) / ROWS, 1 / COLS, 1 / ROWS];
+export function blockUV(bt: number, faceIndex = 1): [number, number, number, number] {
+  const variant = faceIndex === 0 ? 0 : faceIndex === 1 ? 2 : 1;
+  const col = (bt % BLOCK_COLS) * VARIANTS + variant;
+  const row = Math.floor(bt / BLOCK_COLS);
+  return [col / ATLAS_COLS, 1 - (row + 1) / ROWS, 1 / ATLAS_COLS, 1 / ROWS];
 }
