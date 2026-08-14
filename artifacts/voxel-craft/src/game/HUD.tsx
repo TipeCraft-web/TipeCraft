@@ -1,4 +1,5 @@
 import { BlockType, BLOCK_COLORS, BLOCK_NAMES } from './blocks';
+import { blockTextureUrl } from './textures';
 
 interface HUDProps {
   mode: 'CREATIVE' | 'SURVIVAL';
@@ -122,6 +123,11 @@ export default function HUD({ mode, health, hunger, hotbar, counts, selectedSlot
               <div style={{
                 width: 30, height: 30, borderRadius: 3,
                 background: colorStyle(block),
+                 ...(block !== BlockType.AIR ? {
+                   backgroundImage: `url(${blockTextureUrl(block)})`,
+                   backgroundSize: 'cover',
+                   imageRendering: 'pixelated' as const,
+                 } : {}),
                 border: '1px solid rgba(0,0,0,0.4)',
                 boxShadow: block !== BlockType.AIR ? 'inset -2px -2px 4px rgba(0,0,0,0.3), inset 2px 2px 4px rgba(255,255,255,0.15)' : 'none',
               }} />

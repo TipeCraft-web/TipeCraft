@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { BlockType, BLOCK_NAMES, BLOCK_COLORS } from './blocks';
+import { blockTextureUrl } from './textures';
 
 interface Recipe {
   id: string;
@@ -150,12 +151,8 @@ export default function Crafting({ counts, onCraft, onClose }: Props) {
               <div
                 key={r.id}
                 data-touch-btn="1"
-                onTouchStart={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  doCraft(r);
-                }}
-                onClick={() => doCraft(r)}
+                onTouchStart={e => e.stopPropagation()}
+                onClick={e => { e.stopPropagation(); doCraft(r); }}
                 style={{
                   display:'flex', alignItems:'center', gap:10,
                   padding:'10px 10px', borderRadius:8,
@@ -170,6 +167,9 @@ export default function Crafting({ counts, onCraft, onClose }: Props) {
                 <div style={{
                   width:28, height:28, borderRadius:4, flexShrink:0,
                   background:colorStr(r.result.type),
+                   backgroundImage:`url(${blockTextureUrl(r.result.type)})`,
+                   backgroundSize:'cover',
+                   imageRendering:'pixelated',
                   border:'1px solid rgba(255,255,255,0.2)',
                   display:'flex', alignItems:'center', justifyContent:'center',
                   fontSize:11, color:'rgba(255,255,255,0.7)',

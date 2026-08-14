@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { worldManager } from './worldGen';
 import { isSolid } from './blocks';
 import { getMobs, spawnMob, cleanDeadMobs, MOB_SPECS, MobType } from './mobSystem';
+import { getMobTexture } from './textures';
 
 const SPAWN_DIST     = 24;
 const DESPAWN_DIST   = 48;
@@ -19,10 +20,10 @@ function pseudoRand(n: number) {
 // ─── Humanoid (Zombie / Skeleton) ────────────────────────────────────────────
 function HumanoidMesh({
   bodyColor, headColor, eyeColor, legColor, armColor,
-  mobId,
+  mobId, mobTexture,
 }: {
   bodyColor: number; headColor: number; eyeColor: number;
-  legColor: number; armColor: number; mobId: number;
+  legColor: number; armColor: number; mobId: number; mobTexture: string;
 }) {
   const rootRef  = useRef<THREE.Group>(null);
   const lLegRef  = useRef<THREE.Group>(null);
@@ -32,6 +33,7 @@ function HumanoidMesh({
   const bodyMat  = useRef<THREE.MeshLambertMaterial>(null);
   const headMat  = useRef<THREE.MeshLambertMaterial>(null);
   const walkPh   = useRef(0);
+  const texture = getMobTexture(mobTexture);
 
   useFrame((_, delta) => {
     const mobs = getMobs();
@@ -68,12 +70,12 @@ function HumanoidMesh({
       {/* Torso */}
       <mesh castShadow receiveShadow position={[0, 1.2, 0]}>
         <boxGeometry args={[0.52, 0.68, 0.28]} />
-        <meshLambertMaterial ref={bodyMat} color={bodyColor} />
+        <meshLambertMaterial ref={bodyMat} color={bodyColor} map={texture} />
       </mesh>
       {/* Head */}
       <mesh castShadow receiveShadow position={[0, 1.74, 0]}>
         <boxGeometry args={[0.54, 0.54, 0.54]} />
-        <meshLambertMaterial ref={headMat} color={headColor} />
+        <meshLambertMaterial ref={headMat} color={headColor} map={texture} />
       </mesh>
       {/* Eyes */}
       <mesh position={[ 0.14, 1.82, -0.285]}>
@@ -88,28 +90,28 @@ function HumanoidMesh({
       <group ref={lLegRef} position={[-0.13, 0.85, 0]}>
         <mesh castShadow receiveShadow position={[0, -0.42, 0]}>
           <boxGeometry args={[0.24, 0.84, 0.24]} />
-          <meshLambertMaterial color={legColor} />
+          <meshLambertMaterial color={legColor} map={texture} />
         </mesh>
       </group>
       {/* Right leg */}
       <group ref={rLegRef} position={[0.13, 0.85, 0]}>
         <mesh castShadow receiveShadow position={[0, -0.42, 0]}>
           <boxGeometry args={[0.24, 0.84, 0.24]} />
-          <meshLambertMaterial color={legColor} />
+          <meshLambertMaterial color={legColor} map={texture} />
         </mesh>
       </group>
       {/* Left arm (pivot at shoulder = y 1.55) */}
       <group ref={lArmRef} position={[-0.38, 1.55, 0]}>
         <mesh castShadow receiveShadow position={[0, -0.28, 0]}>
           <boxGeometry args={[0.22, 0.56, 0.22]} />
-          <meshLambertMaterial color={armColor} />
+          <meshLambertMaterial color={armColor} map={texture} />
         </mesh>
       </group>
       {/* Right arm */}
       <group ref={rArmRef} position={[0.38, 1.55, 0]}>
         <mesh castShadow receiveShadow position={[0, -0.28, 0]}>
           <boxGeometry args={[0.22, 0.56, 0.22]} />
-          <meshLambertMaterial color={armColor} />
+          <meshLambertMaterial color={armColor} map={texture} />
         </mesh>
       </group>
     </group>
@@ -122,6 +124,7 @@ function CreeperMesh({ mobId }: { mobId: number }) {
   const legRefs = [useRef<THREE.Group>(null), useRef<THREE.Group>(null), useRef<THREE.Group>(null), useRef<THREE.Group>(null)];
   const bodyMat = useRef<THREE.MeshLambertMaterial>(null);
   const walkPh  = useRef(0);
+  const texture = getMobTexture('creeper');
 
   useFrame((_, delta) => {
     const mobs = getMobs();
@@ -149,11 +152,11 @@ function CreeperMesh({ mobId }: { mobId: number }) {
     <group ref={rootRef}>
       <mesh castShadow receiveShadow position={[0, 1.15, 0]}>
         <boxGeometry args={[0.46, 0.78, 0.40]} />
-        <meshLambertMaterial ref={bodyMat} color={0x3a7a2a} />
+        <meshLambertMaterial ref={bodyMat} color={0x3a7a2a} map={texture} />
       </mesh>
       <mesh castShadow receiveShadow position={[0, 1.72, 0]}>
         <boxGeometry args={[0.50, 0.50, 0.50]} />
-        <meshLambertMaterial color={0x4a9a36} />
+        <meshLambertMaterial color={0x4a9a36} map={texture} />
       </mesh>
       {/* Face marks */}
       <mesh position={[ 0.13, 1.77, -0.26]}><boxGeometry args={[0.10, 0.08, 0.02]}/><meshLambertMaterial color={0x1a1a1a}/></mesh>
@@ -164,7 +167,7 @@ function CreeperMesh({ mobId }: { mobId: number }) {
         <group key={i} ref={legRefs[i]} position={pos}>
           <mesh castShadow position={[0, -0.15, 0]}>
             <boxGeometry args={[0.20, 0.30, 0.20]} />
-            <meshLambertMaterial color={0x3a7a2a} />
+            <meshLambertMaterial color={0x3a7a2a} map={texture} />
           </mesh>
         </group>
       ))}
@@ -178,6 +181,7 @@ function SpiderMesh({ mobId }: { mobId: number }) {
   const legRefs = [useRef<THREE.Group>(null), useRef<THREE.Group>(null), useRef<THREE.Group>(null), useRef<THREE.Group>(null)];
   const bodyMat = useRef<THREE.MeshLambertMaterial>(null);
   const walkPh  = useRef(0);
+  const texture = getMobTexture('spider');
 
   useFrame((_, delta) => {
     const mobs = getMobs();
@@ -202,11 +206,11 @@ function SpiderMesh({ mobId }: { mobId: number }) {
     <group ref={rootRef}>
       <mesh castShadow receiveShadow position={[0, 0.38, 0]}>
         <boxGeometry args={[0.72, 0.36, 0.44]} />
-        <meshLambertMaterial ref={bodyMat} color={0x1a0a0a} />
+        <meshLambertMaterial ref={bodyMat} color={0x1a0a0a} map={texture} />
       </mesh>
       <mesh castShadow receiveShadow position={[0, 0.55, -0.36]}>
         <boxGeometry args={[0.36, 0.30, 0.36]} />
-        <meshLambertMaterial color={0x2a1a1a} />
+        <meshLambertMaterial color={0x2a1a1a} map={texture} />
       </mesh>
       <mesh position={[0.10, 0.64, -0.52]}><boxGeometry args={[0.09,0.07,0.02]}/><meshLambertMaterial color={0xff0000}/></mesh>
       <mesh position={[-0.10, 0.64, -0.52]}><boxGeometry args={[0.09,0.07,0.02]}/><meshLambertMaterial color={0xff0000}/></mesh>
@@ -214,7 +218,7 @@ function SpiderMesh({ mobId }: { mobId: number }) {
         <group key={i} ref={legRefs[i]} position={pos}>
           <mesh castShadow>
             <boxGeometry args={[0.42, 0.07, 0.07]} />
-            <meshLambertMaterial color={0x1a0a0a} />
+            <meshLambertMaterial color={0x1a0a0a} map={texture} />
           </mesh>
         </group>
       ))}
@@ -227,6 +231,7 @@ function SlimeMesh({ mobId }: { mobId: number }) {
   const rootRef  = useRef<THREE.Group>(null);
   const outerRef = useRef<THREE.Mesh>(null);
   const bodyMat  = useRef<THREE.MeshLambertMaterial>(null);
+  const texture = getMobTexture('slime');
 
   useFrame(() => {
     const mobs = getMobs();
@@ -247,11 +252,11 @@ function SlimeMesh({ mobId }: { mobId: number }) {
     <group ref={rootRef}>
       <mesh ref={outerRef} castShadow receiveShadow position={[0, 0.4, 0]}>
         <boxGeometry args={[0.82, 0.82, 0.82]} />
-        <meshLambertMaterial ref={bodyMat} color={0x4cbe4c} transparent opacity={0.88} />
+        <meshLambertMaterial ref={bodyMat} color={0x4cbe4c} map={texture} transparent opacity={0.88} />
       </mesh>
       <mesh castShadow position={[0, 0.4, 0]}>
         <boxGeometry args={[0.48, 0.48, 0.48]} />
-        <meshLambertMaterial color={0x7aee7a} />
+        <meshLambertMaterial color={0x7aee7a} map={texture} />
       </mesh>
       <mesh position={[0.14, 0.52, -0.42]}><boxGeometry args={[0.11,0.09,0.02]}/><meshLambertMaterial color={0x1a2a1a}/></mesh>
       <mesh position={[-0.14, 0.52, -0.42]}><boxGeometry args={[0.11,0.09,0.02]}/><meshLambertMaterial color={0x1a2a1a}/></mesh>
@@ -265,11 +270,11 @@ function MobMesh({ mobId, mobType }: { mobId: number; mobType: MobType }) {
     case 'zombie':
       return <HumanoidMesh mobId={mobId}
         bodyColor={0x3a6e2a} headColor={0x4d8c3a} eyeColor={0xff1a1a}
-        legColor={0x2a4a6e} armColor={0x3a6e2a} />;
+        legColor={0x2a4a6e} armColor={0x3a6e2a} mobTexture="zombie" />;
     case 'skeleton':
       return <HumanoidMesh mobId={mobId}
         bodyColor={0xd8d0c0} headColor={0xe8e0d0} eyeColor={0x222222}
-        legColor={0xd0c8b8} armColor={0xc8c0b0} />;
+        legColor={0xd0c8b8} armColor={0xc8c0b0} mobTexture="skeleton" />;
     case 'creeper':
       return <CreeperMesh mobId={mobId} />;
     case 'spider':
@@ -279,7 +284,7 @@ function MobMesh({ mobId, mobType }: { mobId: number; mobType: MobType }) {
     default:
       return <HumanoidMesh mobId={mobId}
         bodyColor={0x5a3a2a} headColor={0x7a5a4a} eyeColor={0xff2020}
-        legColor={0x3a2a1a} armColor={0x5a3a2a} />;
+        legColor={0x3a2a1a} armColor={0x5a3a2a} mobTexture="zombie" />;
   }
 }
 

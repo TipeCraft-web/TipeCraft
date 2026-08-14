@@ -161,10 +161,13 @@ export default function Game() {
   }, []);
 
   const handleCraft = useCallback((result: BlockType, count: number, consume: { type: BlockType; count: number }[]) => {
-    consume.forEach(ing => {
-      countsRef.current[ing.type] = Math.max(0, (countsRef.current[ing.type] || 0) - ing.count);
-      if (countsRef.current[ing.type] === 0) delete countsRef.current[ing.type];
-    });
+    if (uiState.mode === 'SURVIVAL' && !consume.every(ing => (countsRef.current[ing.type] || 0) >= ing.count)) return;
+    if (uiState.mode === 'SURVIVAL') {
+      consume.forEach(ing => {
+        countsRef.current[ing.type] = (countsRef.current[ing.type] || 0) - ing.count;
+        if (countsRef.current[ing.type] <= 0) delete countsRef.current[ing.type];
+      });
+    }
     countsRef.current[result] = (countsRef.current[result] || 0) + count;
     setUiState(prev => {
       const hotbar = [...prev.hotbar];
@@ -174,7 +177,7 @@ export default function Game() {
       if (!hotbar.includes(result)) { const ei = hotbar.indexOf(BlockType.AIR); if (ei !== -1) hotbar[ei] = result; }
       return { ...prev, hotbar, counts: { ...countsRef.current } };
     });
-  }, []);
+  }, [uiState.mode]);
 
   const handleInventoryAssign = useCallback((slotIdx: number, type: BlockType) => {
     setUiState(prev => {

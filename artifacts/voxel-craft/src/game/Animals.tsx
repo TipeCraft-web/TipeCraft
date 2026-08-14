@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { worldManager, WORLD_HEIGHT } from './worldGen';
 import { isSolid } from './blocks';
+import { getMobTexture } from './textures';
 
 const GRAVITY = 18;
 const SPEED = 1.2;
@@ -136,11 +137,11 @@ export default function Animals() {
           <group key={a.id}>
             <mesh ref={(r) => { bodyRefs.current[i] = r; }}>
               <boxGeometry args={[spec.w, spec.h, spec.d]} />
-              <meshLambertMaterial color={spec.color} />
+              <meshLambertMaterial color={spec.color} map={getMobTexture(a.type)} />
             </mesh>
             <mesh ref={(r) => { headRefs.current[i] = r; }}>
               <boxGeometry args={[spec.w * 0.7, spec.h * 0.6, spec.w * 0.7]} />
-              <meshLambertMaterial color={spec.headColor ?? spec.color} />
+              <meshLambertMaterial color={spec.headColor ?? spec.color} map={getMobTexture(a.type)} />
             </mesh>
           </group>
         );

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BlockType, BLOCK_COLORS } from './blocks';
 
-const TILE = 8;
+const TILE = 16;
 const COLS = 16;
 const ROWS = 16;
 const ATW  = TILE * COLS;
@@ -182,6 +182,71 @@ const PATS: Record<number, Pat> = {
 };
 
 let _atlas: THREE.CanvasTexture | null = null;
+let _atlasLoading = false;
+const mobTextures = new Map<string, THREE.Texture>();
+
+const blockKeys: Record<number, string> = {};
+for (const [key, value] of Object.entries(BlockType)) {
+  if (typeof value === 'number') blockKeys[value] = key.toLowerCase();
+}
+
+function assetUrl(path: string): string {
+  return new URL(`${import.meta.env.BASE_URL}textures/${path}`, window.location.href).toString();
+}
+
+export function blockTextureFile(bt: number): string {
+  return `${String(bt).padStart(3, '0')}-${blockKeys[bt] ?? 'block'}.png`;
+}
+
+export function blockTextureUrl(bt: number): string {
+  return assetUrl(`blocks/${blockTextureFile(bt)}`);
+}
+
+export function getMobTexture(kind: string): THREE.Texture {
+  const cached = mobTextures.get(kind);
+  if (cached) return cached;
+
+  const texture = new THREE.TextureLoader().load(assetUrl(`mobs/${kind}.png`));
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestFilter;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  mobTextures.set(kind, texture);
+  return texture;
+}
+
+function drawFallback(ctx: CanvasRenderingContext2D, bt: number) {
+  const baseColor = BLOCK_COLORS[bt as BlockType] ?? [0.5, 0.5, 0.5];
+  const pat: Pat = PATS[bt] ?? noisePat(bt * 1337 + 7, 0.18);
+  const [br, bg, bb] = baseColor;
+  for (let py = 0; py < TILE; py++) {
+    for (let px = 0; px < TILE; px++) {
+      const m = Math.max(0, Math.min(2, pat[Math.floor(py / 2) * 8 + Math.floor(px / 2)] ?? 1));
+      const r = Math.min(255, Math.round(br * 255 * m));
+      const g = Math.min(255, Math.round(bg * 255 * m));
+      const b = Math.min(255, Math.round(bb * 255 * m));
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect((bt % COLS) * TILE + px, Math.floor(bt / COLS) * TILE + py, 1, 1);
+    }
+  }
+}
+
+function loadBlockImages(canvas: HTMLCanvasElement, texture: THREE.CanvasTexture) {
+  if (_atlasLoading) return;
+  _atlasLoading = true;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  for (let bt = 1; bt < COLS * ROWS; bt++) {
+    const image = new Image();
+    image.onload = () => {
+      const col = bt % COLS;
+      const row = Math.floor(bt / COLS);
+      ctx.drawImage(image, col * TILE, row * TILE, TILE, TILE);
+      texture.needsUpdate = true;
+    };
+    image.src = blockTextureUrl(bt);
+  }
+}
 
 export function getAtlas(): THREE.CanvasTexture {
   if (_atlas) return _atlas;
@@ -194,34 +259,16 @@ export function getAtlas(): THREE.CanvasTexture {
   ctx.fillRect(0, 0, ATW, ATH);
 
   for (let bt = 1; bt < COLS * ROWS; bt++) {
-    const baseColor = BLOCK_COLORS[bt as BlockType];
-    if (!baseColor) continue;
-
-    const col = bt % COLS;
-    const row = Math.floor(bt / COLS);
-    const ox = col * TILE;
-    const oy = row * TILE;
-
-    const pat: Pat = PATS[bt] ?? noisePat(bt * 1337 + 7, 0.18);
-    const [br, bg, bb] = baseColor;
-
-    for (let py = 0; py < TILE; py++) {
-      for (let px = 0; px < TILE; px++) {
-        const m = Math.max(0, Math.min(2, pat[py * TILE + px]));
-        const r = Math.min(255, Math.round(br * 255 * m));
-        const g = Math.min(255, Math.round(bg * 255 * m));
-        const b = Math.min(255, Math.round(bb * 255 * m));
-        ctx.fillStyle = `rgb(${r},${g},${b})`;
-        ctx.fillRect(ox + px, oy + py, 1, 1);
-      }
-    }
+    if (BLOCK_COLORS[bt as BlockType]) drawFallback(ctx, bt);
   }
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.magFilter = THREE.NearestFilter;
   tex.minFilter  = THREE.NearestFilter;
+  tex.colorSpace = THREE.SRGBColorSpace;
   tex.needsUpdate = true;
   _atlas = tex;
+  loadBlockImages(canvas, tex);
   return tex;
 }
 

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { BlockType, BLOCK_COLORS, BLOCK_NAMES } from './blocks';
+import { blockTextureUrl } from './textures';
 
 interface Props {
   mode: 'CREATIVE' | 'SURVIVAL';
@@ -174,6 +175,9 @@ export default function Inventory({ mode, counts, hotbar, selectedSlot, onAssign
                 <div style={{
                   width:36, height:36, borderRadius:5,
                   background: colorStr(t),
+                 backgroundImage: `url(${blockTextureUrl(t)})`,
+                 backgroundSize:'cover',
+                 imageRendering:'pixelated',
                   border:'1px solid rgba(0,0,0,0.5)',
                   boxShadow:'inset -2px -2px 5px rgba(0,0,0,0.3), inset 2px 2px 5px rgba(255,255,255,0.15)',
                   position:'relative',
