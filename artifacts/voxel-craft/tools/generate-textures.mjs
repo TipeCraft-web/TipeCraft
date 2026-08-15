@@ -90,14 +90,43 @@ function drawRect(pixels, width, x, y, w, h, color, alpha = 255) {
   for (let py = y; py < y + h; py++) for (let px = x; px < x + w; px++) setPixel(pixels, width, px, py, color, alpha);
 }
 
+function blend(a, b, amount) {
+  return [
+    clamp(a[0] + (b[0] - a[0]) * amount),
+    clamp(a[1] + (b[1] - a[1]) * amount),
+    clamp(a[2] + (b[2] - a[2]) * amount),
+  ];
+}
+
+function cell(pixels, size, x, y, color, width = 2, alpha = 255) {
+  drawRect(pixels, size, x * width, y * width, width, width, color, alpha);
+}
+
+function paintGrid(pixels, size, id, baseColor, variant, painter) {
+  const width = 2;
+  const dark = shade(baseColor, variant === 0 ? 0.62 : 0.52);
+  const midDark = shade(baseColor, variant === 0 ? 0.80 : 0.70);
+  const base = shade(baseColor, variant === 0 ? 1.08 : variant === 2 ? 0.90 : 1);
+  const light = shade(baseColor, variant === 0 ? 1.32 : 1.18);
+  const highlight = shade(baseColor, variant === 0 ? 1.48 : 1.30);
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      const n = hash(id * 4099 + x * 131 + y * 977);
+      const color = painter({ x, y, n, dark, midDark, base, light, highlight });
+      cell(pixels, size, x, y, color, width);
+    }
+  }
+  for (let i = 0; i < 8; i++) {
+    const x = (i * 5 + id) % 8;
+    const y = (i * 3 + id * 2) % 8;
+    cell(pixels, size, x, y, dark, width);
+  }
+}
+
 function makeBlockTexture(id, key, variant) {
   const size = 16;
   const pixels = new Uint8Array(size * size * 4);
   const color = blockColors.get(key) ?? 0x888888;
-  const variantColor = key === 'GRASS' && variant === 2 ? 0x8b6914 : color;
-  const base = shade(variantColor, variant === 0 ? 1.05 : variant === 2 ? 0.88 : 1);
-  const dark = shade(variantColor, variant === 2 ? 0.62 : 0.72);
-  const light = shade(variantColor, variant === 0 ? 1.28 : 1.22);
   const lower = key.toLowerCase();
   const stone = /(stone|andesite|diorite|granite|deepslate|tuff|calcite|basalt|blackstone|obsidian|bedrock|cobble|brick|raw_stone)/.test(lower);
   const wood = /(wood|log|plank|stem|bamboo|fence|bookshelf|bookcase)/.test(lower);
@@ -105,53 +134,80 @@ function makeBlockTexture(id, key, variant) {
   const leaves = /(leaf|leaves|moss|grass|mycelium|podzol|nylium|wart|mushroom)/.test(lower);
   const glass = lower.includes('glass');
 
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const edge = x === 0 || y === 0 || x === 15 || y === 15;
-      let pixel = base;
-      let alpha = 255;
-
-      if (key === 'WATER') {
-        pixel = y % 5 === 1 ? shade(color, 1.16) : y % 5 === 2 ? shade(color, 0.94) : shade(color, 1.04);
-        if ((x + y * 3) % 11 === 0) pixel = shade(color, 1.2);
-        alpha = 220;
-      } else if (glass) {
-        pixel = (x === y || x + y === 15) ? light : shade(color, 0.92);
-        alpha = 150;
-      } else if (key === 'GRASS' || key === 'ROOTED_GRASS') {
-        if (key === 'GRASS' && variant === 1) {
-          pixel = y < 4
-            ? ((x + y * 7) % 13 === 0 ? light : shade(0x567d46, 1))
-            : ((x * 5 + y * 3 + id) % 11 === 0 ? shade(0x8b6914, 1.12) : shade(0x8b6914, 0.92));
-        } else if (variant === 2) {
-          pixel = (x * 5 + y * 3 + id) % 11 === 0 ? light : base;
-        } else {
-          pixel = (x + y * 7) % 13 === 0 ? light : base;
+  if (key === 'GRASS' || key === 'ROOTED_GRASS') {
+    const dirt = 0x8b5a32;
+    const grass = 0x58a83b;
+    const grassDark = 0x2e702d;
+    const grassLight = 0x79c94b;
+    if (variant === 0) {
+      paintGrid(pixels, size, id, grass, variant, ({ n, dark, base, light, highlight }) =>
+        n < 0.16 ? dark : n < 0.34 ? light : n < 0.40 ? highlight : base);
+    } else if (variant === 1) {
+      for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 8; x++) {
+          const n = hash(id * 101 + x * 17 + y * 43);
+          const grassLine = y < 2 || (y === 2 && hash(id * 7 + x * 23) > 0.42);
+          const pixel = grassLine
+            ? n < 0.20 ? grassDark : n < 0.40 ? grassLight : grass
+            : n < 0.18 ? shade(dirt, 0.65) : n < 0.37 ? shade(dirt, 1.18) : shade(dirt, 0.90);
+          cell(pixels, size, x, y, pixel);
         }
-      } else if (key === 'TNT') {
-        pixel = y < 3 || y > 12 ? light : ((x + y) % 5 === 0 ? dark : base);
-      } else if (key === 'LAVA' || key === 'MAGMA' || key === 'SOUL_FIRE') {
-        pixel = (x + y * 2) % 7 === 0 ? light : (x + y) % 4 === 0 ? dark : base;
-      } else if (wood) {
-        pixel = x % 5 === 0 ? dark : x % 5 === 1 ? light : base;
-        if (lower.includes('plank') && y % 5 === 0) pixel = dark;
-      } else if (ore) {
-        pixel = (x * 7 + y * 11 + id) % 17 < 3 ? light : base;
-        if ((x + y + id) % 19 === 0) pixel = dark;
-      } else if (stone) {
-        const n = (hash(id * 4099 + x * 31 + y * 97) - 0.5) * 0.18;
-        pixel = shade(color, 1 + n);
-        if ((x * 3 + y * 5 + id) % 29 === 0) pixel = light;
-      } else if (leaves) {
-        pixel = (x * 5 + y * 3 + id) % 9 === 0 ? light : (x + y) % 11 === 0 ? dark : base;
-      } else {
-        pixel = (x + y + id) % 17 === 0 ? light : (x * 2 + y + id) % 23 === 0 ? dark : base;
       }
-
-      setPixel(pixels, size, x, y, edge ? dark : pixel, alpha);
+      for (let x = 0; x < 8; x++) {
+        if (hash(id * 31 + x * 19) > 0.62) cell(pixels, size, x, 3, grassDark);
+      }
+    } else {
+      paintGrid(pixels, size, id + 17, dirt, variant, ({ n, dark, base, light, highlight }) =>
+        n < 0.16 ? dark : n < 0.32 ? light : n < 0.38 ? highlight : base);
     }
+  } else if (key === 'WATER') {
+    paintGrid(pixels, size, id, color, variant, ({ x, y, dark, base, light, highlight }) =>
+      y % 3 === 0 ? light : (x + y) % 7 === 0 ? highlight : (x + y) % 5 === 0 ? dark : base);
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4;
+      pixels[i + 3] = 220;
+    }
+  } else if (glass) {
+    paintGrid(pixels, size, id, color, variant, ({ x, y, base, light, highlight }) =>
+      x === y || x + y === 7 ? highlight : (x + y) % 5 === 0 ? light : base);
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) pixels[(y * size + x) * 4 + 3] = 150;
+  } else if (key === 'TNT') {
+    paintGrid(pixels, size, id, color, variant, ({ y, dark, base, light, highlight }) =>
+      y === 0 || y === 7 ? highlight : y === 1 || y === 6 ? light : y === 3 || y === 4 ? dark : base);
+    drawRect(pixels, size, 0, 6, size, 2, shade(color, 0.38));
+    drawRect(pixels, size, 4, 6, 8, 2, [240, 228, 180]);
+  } else if (key === 'LAVA' || key === 'MAGMA' || key === 'SOUL_FIRE') {
+    paintGrid(pixels, size, id, color, variant, ({ n, dark, base, light, highlight }) =>
+      n < 0.13 ? highlight : n < 0.28 ? light : n < 0.44 ? dark : base);
+  } else if (wood) {
+    paintGrid(pixels, size, id, color, variant, ({ x, y, n, dark, base, light }) =>
+      n < 0.16 ? dark : n < 0.32 ? light : (x + (lower.includes('plank') ? y : 0)) % 4 === 0 ? dark : base);
+    if (lower.includes('plank')) {
+      for (let y = 1; y < 8; y += 3) drawRect(pixels, size, 0, y * 2, size, 1, shade(color, 0.52));
+    }
+  } else if (ore) {
+    const oreColor = shade(color, variant === 0 ? 1.45 : 1.30);
+    paintGrid(pixels, size, id, blend(shade(color, 0.62), color, 0.45), variant, ({ n, dark, base, light }) =>
+      n < 0.18 ? oreColor : n < 0.25 ? light : n < 0.38 ? dark : base);
+  } else if (stone) {
+    paintGrid(pixels, size, id, color, variant, ({ n, dark, midDark, base, light }) =>
+      n < 0.12 ? dark : n < 0.24 ? midDark : n < 0.34 ? light : base);
+  } else if (leaves) {
+    paintGrid(pixels, size, id, color, variant, ({ n, dark, base, light, highlight }) =>
+      n < 0.15 ? dark : n < 0.28 ? highlight : n < 0.42 ? light : base);
+  } else {
+    paintGrid(pixels, size, id, color, variant, ({ n, dark, base, light, highlight }) =>
+      n < 0.14 ? dark : n < 0.28 ? light : n < 0.34 ? highlight : base);
   }
 
+  // A restrained one-pixel border gives the same readable silhouette as the reference.
+  const edge = shade(color, variant === 0 ? 0.66 : 0.48);
+  for (let i = 0; i < size; i++) {
+    setPixel(pixels, size, i, 0, edge);
+    setPixel(pixels, size, i, size - 1, edge);
+    setPixel(pixels, size, 0, i, edge);
+    setPixel(pixels, size, size - 1, i, edge);
+  }
   return pixels;
 }
 
@@ -170,16 +226,36 @@ function mobTexture(kind) {
   };
   const [main, secondary, detail] = palettes[kind] ?? palettes.slime;
   const c = value => shade(value, 1);
-  drawRect(pixels, size, 6, 6, 52, 52, c(main), 255);
-  drawRect(pixels, size, 10, 10, 44, 44, c(secondary), 255);
-  for (let y = 12; y < 52; y += 5) {
-    for (let x = 12; x < 52; x += 5) {
-      if ((x * 13 + y * 7 + kind.length) % 11 < 3) drawRect(pixels, size, x, y, 3, 3, c(main), 255);
+  const dark = shade(main, 0.48);
+  const mid = shade(main, 0.78);
+  const light = shade(main, 1.25);
+  const bright = shade(secondary, 1.15);
+  drawRect(pixels, size, 4, 4, 56, 56, dark);
+  drawRect(pixels, size, 8, 8, 48, 48, c(secondary));
+  for (let y = 4; y < 60; y += 4) {
+    for (let x = 4; x < 60; x += 4) {
+      const n = hash(x * 97 + y * 193 + kind.length * 409);
+      const patch = n < 0.16 ? dark : n < 0.31 ? light : n < 0.46 ? c(main) : n < 0.53 ? mid : c(secondary);
+      drawRect(pixels, size, x, y, 4, 4, patch);
     }
   }
-  drawRect(pixels, size, 18, 18, 8, 8, c(detail), 255);
-  drawRect(pixels, size, 38, 18, 8, 8, c(detail), 255);
-  drawRect(pixels, size, 24, 38, 16, 7, c(detail), 255);
+  // Keep the facial details as chunky 4×4 pixel-art clusters.
+  drawRect(pixels, size, 16, 16, 12, 12, c(detail));
+  drawRect(pixels, size, 36, 16, 12, 12, c(detail));
+  drawRect(pixels, size, 24, 40, 16, 8, c(detail));
+  drawRect(pixels, size, 20, 12, 8, 4, bright);
+  drawRect(pixels, size, 40, 12, 8, 4, bright);
+  for (let i = 0; i < 6; i++) {
+    const x = 8 + ((i * 17 + kind.length * 3) % 12) * 4;
+    const y = 8 + ((i * 11 + kind.length * 5) % 12) * 4;
+    drawRect(pixels, size, x, y, 4, 4, i % 2 ? light : dark);
+  }
+  for (let i = 0; i < size; i++) {
+    setPixel(pixels, size, i, 0, dark);
+    setPixel(pixels, size, i, size - 1, dark);
+    setPixel(pixels, size, 0, i, dark);
+    setPixel(pixels, size, size - 1, i, dark);
+  }
   return pixels;
 }
 
