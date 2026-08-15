@@ -231,7 +231,7 @@ function drawFallback(ctx: CanvasRenderingContext2D, bt: number, variant: 0 | 1 
   const [br, bg, bb] = baseColor;
   for (let py = 0; py < TILE; py++) {
     for (let px = 0; px < TILE; px++) {
-      const m = Math.max(0, Math.min(2, pat[Math.floor(py / 2) * 8 + Math.floor(px / 2)] ?? 1));
+      const m = Math.max(0.78, Math.min(1.35, pat[Math.floor(py / 2) * 8 + Math.floor(px / 2)] ?? 1));
       const r = Math.min(255, Math.round(br * 255 * m));
       const g = Math.min(255, Math.round(bg * 255 * m));
       const b = Math.min(255, Math.round(bb * 255 * m));

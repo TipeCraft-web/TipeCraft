@@ -10,11 +10,11 @@ const MAX_CHUNKS_PER_FRAME = 2;
 
 const FACES: { dir: [number,number,number]; corners: [number,number,number][]; light: number }[] = [
   { dir: [0, 1, 0],  corners: [[0,1,0],[0,1,1],[1,1,1],[1,1,0]], light: 1.0 },
-  { dir: [0,-1, 0],  corners: [[0,0,0],[1,0,0],[1,0,1],[0,0,1]], light: 0.6 },
-  { dir: [1, 0, 0],  corners: [[1,0,0],[1,1,0],[1,1,1],[1,0,1]], light: 0.8 },
-  { dir: [-1,0, 0],  corners: [[0,0,1],[0,1,1],[0,1,0],[0,0,0]], light: 0.8 },
-  { dir: [0, 0, 1],  corners: [[0,0,1],[1,0,1],[1,1,1],[0,1,1]], light: 0.7 },
-  { dir: [0, 0,-1],  corners: [[1,0,0],[0,0,0],[0,1,0],[1,1,0]], light: 0.7 },
+  { dir: [0,-1, 0],  corners: [[0,0,0],[1,0,0],[1,0,1],[0,0,1]], light: 0.78 },
+  { dir: [1, 0, 0],  corners: [[1,0,0],[1,1,0],[1,1,1],[1,0,1]], light: 0.90 },
+  { dir: [-1,0, 0],  corners: [[0,0,1],[0,1,1],[0,1,0],[0,0,0]], light: 0.90 },
+  { dir: [0, 0, 1],  corners: [[0,0,1],[1,0,1],[1,1,1],[0,1,1]], light: 0.84 },
+  { dir: [0, 0,-1],  corners: [[1,0,0],[0,0,0],[0,1,0],[1,1,0]], light: 0.84 },
 ];
 
 function buildChunkGeometry(cx: number, cz: number): {

@@ -110,11 +110,11 @@ function cell(pixels, size, x, y, color, width = 2, alpha = 255) {
 
 function paintGrid(pixels, size, id, baseColor, variant, painter) {
   const width = 2;
-  const dark = shade(baseColor, variant === 0 ? 0.70 : 0.62);
-  const midDark = shade(baseColor, variant === 0 ? 0.86 : 0.78);
-  const base = shade(baseColor, variant === 0 ? 1.02 : variant === 2 ? 0.96 : 1);
-  const light = shade(baseColor, variant === 0 ? 1.16 : 1.10);
-  const highlight = shade(baseColor, variant === 0 ? 1.24 : 1.18);
+  const dark = shade(baseColor, variant === 0 ? 0.82 : 0.76);
+  const midDark = shade(baseColor, variant === 0 ? 0.92 : 0.86);
+  const base = shade(baseColor, variant === 0 ? 1.04 : variant === 2 ? 0.99 : 1.02);
+  const light = shade(baseColor, variant === 0 ? 1.15 : 1.11);
+  const highlight = shade(baseColor, variant === 0 ? 1.22 : 1.17);
   for (let y = 0; y < 8; y++) {
     for (let x = 0; x < 8; x++) {
       const n = hash(id * 4099 + x * 131 + y * 977);
@@ -142,11 +142,12 @@ function makeBlockTexture(id, key, variant) {
 
   if (key === 'GRASS' || key === 'ROOTED_GRASS') {
     const dirt = 0x8f6544;
-    const grass = 0x5f9849;
-    const grassDark = 0x486d3c;
-    const grassLight = 0x82ad61;
+    const grassBase = 0x5f9849;
+    const grass = shade(grassBase, 1);
+    const grassDark = shade(0x5d8050, 1);
+    const grassLight = shade(0x8caf6c, 1);
     if (variant === 0) {
-      paintGrid(pixels, size, id, grass, variant, ({ n, dark, base, light, highlight }) =>
+      paintGrid(pixels, size, id, grassBase, variant, ({ n, dark, base, light, highlight }) =>
         n < 0.16 ? dark : n < 0.34 ? light : n < 0.40 ? highlight : base);
     } else if (variant === 1) {
       for (let y = 0; y < 8; y++) {
@@ -155,7 +156,7 @@ function makeBlockTexture(id, key, variant) {
           const grassLine = y < 2 || (y === 2 && hash(id * 7 + x * 23) > 0.42);
           const pixel = grassLine
             ? n < 0.20 ? grassDark : n < 0.40 ? grassLight : grass
-            : n < 0.18 ? shade(dirt, 0.65) : n < 0.37 ? shade(dirt, 1.18) : shade(dirt, 0.90);
+            : n < 0.18 ? shade(dirt, 0.82) : n < 0.37 ? shade(dirt, 1.15) : shade(dirt, 0.94);
           cell(pixels, size, x, y, pixel);
         }
       }
@@ -180,7 +181,7 @@ function makeBlockTexture(id, key, variant) {
   } else if (key === 'TNT') {
     paintGrid(pixels, size, id, color, variant, ({ y, dark, base, light, highlight }) =>
       y === 0 || y === 7 ? highlight : y === 1 || y === 6 ? light : y === 3 || y === 4 ? dark : base);
-    drawRect(pixels, size, 0, 6, size, 2, shade(color, 0.38));
+    drawRect(pixels, size, 0, 6, size, 2, shade(color, 0.76));
     drawRect(pixels, size, 4, 6, 8, 2, [240, 228, 180]);
   } else if (key === 'LAVA' || key === 'MAGMA' || key === 'SOUL_FIRE') {
     paintGrid(pixels, size, id, color, variant, ({ n, dark, base, light, highlight }) =>
@@ -189,11 +190,11 @@ function makeBlockTexture(id, key, variant) {
     paintGrid(pixels, size, id, color, variant, ({ x, y, n, dark, base, light }) =>
       n < 0.16 ? dark : n < 0.32 ? light : (x + (lower.includes('plank') ? y : 0)) % 4 === 0 ? dark : base);
     if (lower.includes('plank')) {
-      for (let y = 1; y < 8; y += 3) drawRect(pixels, size, 0, y * 2, size, 1, shade(color, 0.52));
+      for (let y = 1; y < 8; y += 3) drawRect(pixels, size, 0, y * 2, size, 1, shade(color, 0.78));
     }
   } else if (ore) {
     const oreColor = shade(color, variant === 0 ? 1.45 : 1.30);
-    paintGrid(pixels, size, id, blend(shade(color, 0.62), color, 0.45), variant, ({ n, dark, base, light }) =>
+    paintGrid(pixels, size, id, blend(shade(color, 0.82), color, 0.45), variant, ({ n, dark, base, light }) =>
       n < 0.18 ? oreColor : n < 0.25 ? light : n < 0.38 ? dark : base);
   } else if (stone) {
     paintGrid(pixels, size, id, color, variant, ({ n, dark, midDark, base, light }) =>
@@ -227,10 +228,10 @@ function mobTexture(kind) {
   secondary = warmMatteHex(secondary, 0.08);
   detail = warmMatteHex(detail, 0.06);
   const c = value => shade(value, 1);
-  const dark = shade(main, 0.48);
-  const mid = shade(main, 0.78);
-  const light = shade(main, 1.25);
-  const bright = shade(secondary, 1.15);
+  const dark = shade(main, 0.78);
+  const mid = shade(main, 0.90);
+  const light = shade(main, 1.18);
+  const bright = shade(secondary, 1.12);
   drawRect(pixels, size, 4, 4, 56, 56, dark);
   drawRect(pixels, size, 8, 8, 48, 48, c(secondary));
   for (let y = 4; y < 60; y += 4) {
