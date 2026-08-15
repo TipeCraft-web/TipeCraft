@@ -98,17 +98,23 @@ function blend(a, b, amount) {
   ];
 }
 
+function warmMatteHex(color, amount = 0.12) {
+  const softened = shade(color, 0.96);
+  const warmed = blend(softened, [186, 158, 124], amount);
+  return (warmed[0] << 16) | (warmed[1] << 8) | warmed[2];
+}
+
 function cell(pixels, size, x, y, color, width = 2, alpha = 255) {
   drawRect(pixels, size, x * width, y * width, width, width, color, alpha);
 }
 
 function paintGrid(pixels, size, id, baseColor, variant, painter) {
   const width = 2;
-  const dark = shade(baseColor, variant === 0 ? 0.62 : 0.52);
-  const midDark = shade(baseColor, variant === 0 ? 0.80 : 0.70);
-  const base = shade(baseColor, variant === 0 ? 1.08 : variant === 2 ? 0.90 : 1);
-  const light = shade(baseColor, variant === 0 ? 1.32 : 1.18);
-  const highlight = shade(baseColor, variant === 0 ? 1.48 : 1.30);
+  const dark = shade(baseColor, variant === 0 ? 0.70 : 0.62);
+  const midDark = shade(baseColor, variant === 0 ? 0.86 : 0.78);
+  const base = shade(baseColor, variant === 0 ? 1.02 : variant === 2 ? 0.96 : 1);
+  const light = shade(baseColor, variant === 0 ? 1.16 : 1.10);
+  const highlight = shade(baseColor, variant === 0 ? 1.24 : 1.18);
   for (let y = 0; y < 8; y++) {
     for (let x = 0; x < 8; x++) {
       const n = hash(id * 4099 + x * 131 + y * 977);
@@ -116,17 +122,17 @@ function paintGrid(pixels, size, id, baseColor, variant, painter) {
       cell(pixels, size, x, y, color, width);
     }
   }
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 4; i++) {
     const x = (i * 5 + id) % 8;
     const y = (i * 3 + id * 2) % 8;
-    cell(pixels, size, x, y, dark, width);
+    cell(pixels, size, x, y, midDark, width);
   }
 }
 
 function makeBlockTexture(id, key, variant) {
   const size = 16;
   const pixels = new Uint8Array(size * size * 4);
-  const color = blockColors.get(key) ?? 0x888888;
+  const color = warmMatteHex(blockColors.get(key) ?? 0x888888);
   const lower = key.toLowerCase();
   const stone = /(stone|andesite|diorite|granite|deepslate|tuff|calcite|basalt|blackstone|obsidian|bedrock|cobble|brick|raw_stone)/.test(lower);
   const wood = /(wood|log|plank|stem|bamboo|fence|bookshelf|bookcase)/.test(lower);
@@ -135,10 +141,10 @@ function makeBlockTexture(id, key, variant) {
   const glass = lower.includes('glass');
 
   if (key === 'GRASS' || key === 'ROOTED_GRASS') {
-    const dirt = 0x8b5a32;
-    const grass = 0x58a83b;
-    const grassDark = 0x2e702d;
-    const grassLight = 0x79c94b;
+    const dirt = 0x8f6544;
+    const grass = 0x5f9849;
+    const grassDark = 0x486d3c;
+    const grassLight = 0x82ad61;
     if (variant === 0) {
       paintGrid(pixels, size, id, grass, variant, ({ n, dark, base, light, highlight }) =>
         n < 0.16 ? dark : n < 0.34 ? light : n < 0.40 ? highlight : base);
@@ -200,14 +206,6 @@ function makeBlockTexture(id, key, variant) {
       n < 0.14 ? dark : n < 0.28 ? light : n < 0.34 ? highlight : base);
   }
 
-  // A restrained one-pixel border gives the same readable silhouette as the reference.
-  const edge = shade(color, variant === 0 ? 0.66 : 0.48);
-  for (let i = 0; i < size; i++) {
-    setPixel(pixels, size, i, 0, edge);
-    setPixel(pixels, size, i, size - 1, edge);
-    setPixel(pixels, size, 0, i, edge);
-    setPixel(pixels, size, size - 1, i, edge);
-  }
   return pixels;
 }
 
@@ -224,7 +222,10 @@ function mobTexture(kind) {
     pig: [0xffb6c1, 0xf09090, 0x5a3038],
     sheep: [0xeeeeee, 0xaaaaaa, 0x343434],
   };
-  const [main, secondary, detail] = palettes[kind] ?? palettes.slime;
+  let [main, secondary, detail] = palettes[kind] ?? palettes.slime;
+  main = warmMatteHex(main, 0.08);
+  secondary = warmMatteHex(secondary, 0.08);
+  detail = warmMatteHex(detail, 0.06);
   const c = value => shade(value, 1);
   const dark = shade(main, 0.48);
   const mid = shade(main, 0.78);
@@ -249,12 +250,6 @@ function mobTexture(kind) {
     const x = 8 + ((i * 17 + kind.length * 3) % 12) * 4;
     const y = 8 + ((i * 11 + kind.length * 5) % 12) * 4;
     drawRect(pixels, size, x, y, 4, 4, i % 2 ? light : dark);
-  }
-  for (let i = 0; i < size; i++) {
-    setPixel(pixels, size, i, 0, dark);
-    setPixel(pixels, size, i, size - 1, dark);
-    setPixel(pixels, size, 0, i, dark);
-    setPixel(pixels, size, size - 1, i, dark);
   }
   return pixels;
 }
