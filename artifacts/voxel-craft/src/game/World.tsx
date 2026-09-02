@@ -52,13 +52,19 @@ function buildChunkGeometry(cx: number, cz: number): {
           const [nx, ny, nz] = face.dir;
           const [u, v, uw, vh] = blockUV(block as number, fi);
 
-          // Keep the grass cap at the top of side faces while retaining the
-          // existing top/bottom atlas orientation.
-          const uvCorners = fi >= 2 ? [
+          // Keep the grass cap horizontal at the top of every side face.
+          // The z-facing faces use a different corner winding than the
+          // x-facing faces, so they need their own UV order.
+          const uvCorners = fi === 2 || fi === 3 ? [
             u,      v + vh,
             u,      v,
             u + uw, v,
             u + uw, v + vh,
+          ] : fi === 4 || fi === 5 ? [
+            u,      v + vh,
+            u + uw, v + vh,
+            u + uw, v,
+            u,      v,
           ] : [
             u,      v,
             u,      v + vh,
