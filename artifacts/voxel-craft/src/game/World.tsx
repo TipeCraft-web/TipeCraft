@@ -56,15 +56,15 @@ function buildChunkGeometry(cx: number, cz: number): {
           // The z-facing faces use a different corner winding than the
           // x-facing faces, so they need their own UV order.
           const uvCorners = fi === 2 || fi === 3 ? [
-            u,      v + vh,
             u,      v,
-            u + uw, v,
+            u,      v + vh,
             u + uw, v + vh,
+            u + uw, v,
           ] : fi === 4 || fi === 5 ? [
-            u,      v + vh,
-            u + uw, v + vh,
-            u + uw, v,
             u,      v,
+            u + uw, v,
+            u + uw, v + vh,
+            u,      v + vh,
           ] : [
             u,      v,
             u,      v + vh,
