@@ -1,7 +1,7 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { worldManager, WORLD_HEIGHT } from './worldGen';
+import { worldManager, WORLD_MIN_Y, WORLD_MAX_Y } from './worldGen';
 import { isSolid } from './blocks';
 import { getMobTexture } from './textures';
 
@@ -55,8 +55,8 @@ function spawnAnimals(): Animal[] {
 }
 
 function findGround(x: number, z: number, startY: number): number {
-  const top = Math.min(WORLD_HEIGHT - 1, Math.floor(startY) + 4);
-  for (let y = top; y >= 0; y--) {
+  const top = Math.min(WORLD_MAX_Y, Math.floor(startY) + 4);
+  for (let y = top; y >= WORLD_MIN_Y; y--) {
     if (isSolid(worldManager.getBlock(Math.floor(x), y, Math.floor(z)))) return y + 1;
   }
   return 0;
@@ -66,6 +66,17 @@ export default function Animals() {
   const animalsRef = useRef<Animal[]>(spawnAnimals());
   const bodyRefs   = useRef<(THREE.Mesh | null)[]>(new Array(COUNT).fill(null));
   const headRefs   = useRef<(THREE.Mesh | null)[]>(new Array(COUNT).fill(null));
+  const sheepHeadMaterials = useMemo(() => {
+    const wool = SPECS.sheep.headColor ?? SPECS.sheep.color;
+    return [
+      new THREE.MeshLambertMaterial({ color: wool }),
+      new THREE.MeshLambertMaterial({ color: wool }),
+      new THREE.MeshLambertMaterial({ color: wool }),
+      new THREE.MeshLambertMaterial({ color: wool }),
+      new THREE.MeshLambertMaterial({ color: wool, map: getMobTexture('sheep') }),
+      new THREE.MeshLambertMaterial({ color: wool }),
+    ];
+  }, []);
 
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05);
@@ -137,11 +148,16 @@ export default function Animals() {
           <group key={a.id}>
             <mesh ref={(r) => { bodyRefs.current[i] = r; }}>
               <boxGeometry args={[spec.w, spec.h, spec.d]} />
-              <meshLambertMaterial color={spec.color} map={getMobTexture(a.type)} />
+              <meshLambertMaterial color={spec.color} map={a.type === 'sheep' ? undefined : getMobTexture(a.type)} />
             </mesh>
-            <mesh ref={(r) => { headRefs.current[i] = r; }}>
+            <mesh
+              ref={(r) => { headRefs.current[i] = r; }}
+              material={a.type === 'sheep' ? sheepHeadMaterials : undefined}
+            >
               <boxGeometry args={[spec.w * 0.7, spec.h * 0.6, spec.w * 0.7]} />
-              <meshLambertMaterial color={spec.headColor ?? spec.color} map={getMobTexture(a.type)} />
+              {a.type !== 'sheep' && (
+                <meshLambertMaterial color={spec.headColor ?? spec.color} map={getMobTexture(a.type)} />
+              )}
             </mesh>
           </group>
         );

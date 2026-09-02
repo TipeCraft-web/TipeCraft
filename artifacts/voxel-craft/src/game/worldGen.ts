@@ -4,14 +4,16 @@ import { Biome, BIOME_DEFS, BiomeDef } from './biomes';
 import { STRUCTURE_GENERATORS, StructureKey, BP } from './structures';
 
 export const CHUNK_SIZE = 16;
-export const WORLD_HEIGHT = 64;
+export const WORLD_MIN_Y = -200;
+export const WORLD_MAX_Y = 64;
+export const WORLD_HEIGHT = WORLD_MAX_Y - WORLD_MIN_Y + 1;
 export const SEA_LEVEL = 6;
 
 export type ChunkData = Uint8Array;
 
 export function getChunkKey(cx: number, cz: number): string { return `${cx},${cz}`; }
 export function blockIndex(lx: number, y: number, lz: number): number {
-  return lx + y * CHUNK_SIZE + lz * CHUNK_SIZE * WORLD_HEIGHT;
+  return lx + (y - WORLD_MIN_Y) * CHUNK_SIZE + lz * CHUNK_SIZE * WORLD_HEIGHT;
 }
 
 const terrainNoise = createNoise2D();
@@ -94,9 +96,9 @@ function generateChunk(cx: number, cz: number): ChunkData {
       const bd = BIOME_DEFS[biome];
       const height = getBlendedHeight(wx, wz);
 
-      for (let y = 0; y < WORLD_HEIGHT; y++) {
+      for (let y = WORLD_MIN_Y; y <= WORLD_MAX_Y; y++) {
         const idx = blockIndex(lx, y, lz);
-        if (y === 0) {
+        if (y === WORLD_MIN_Y) {
           data[idx] = BlockType.BEDROCK;
         } else if (y < height - 4) {
           // Ore generation
@@ -133,14 +135,14 @@ function generateChunk(cx: number, cz: number): ChunkData {
             const cactusH = 2 + Math.floor(pseudoRand(wx + wz * 3) * 3);
             for (let ty = 1; ty <= cactusH; ty++) {
               const y = height + ty;
-              if (y < WORLD_HEIGHT) data[blockIndex(lx, y, lz)] = BlockType.CACTUS;
+              if (y <= WORLD_MAX_Y) data[blockIndex(lx, y, lz)] = BlockType.CACTUS;
             }
           } else {
             const trunkH = bd.treeTrunkMin + Math.floor(pseudoRand(wx * 3 + wz) * (bd.treeTrunkMax - bd.treeTrunkMin + 1));
             // Trunk
             for (let ty = 1; ty <= trunkH; ty++) {
               const y = height + ty;
-              if (y < WORLD_HEIGHT) data[blockIndex(lx, y, lz)] = bd.treeLog;
+              if (y <= WORLD_MAX_Y) data[blockIndex(lx, y, lz)] = bd.treeLog;
             }
             // Leaves
             if (bd.treeLeafRadius > 0) {
@@ -151,7 +153,7 @@ function generateChunk(cx: number, cz: number): ChunkData {
                     if (Math.abs(dx) === radius && Math.abs(dz2) === radius) continue;
                     const nlx = lx + dx; const nlz = lz + dz2;
                     const ny = height + ly;
-                    if (nlx >= 0 && nlx < CHUNK_SIZE && nlz >= 0 && nlz < CHUNK_SIZE && ny < WORLD_HEIGHT) {
+                    if (nlx >= 0 && nlx < CHUNK_SIZE && nlz >= 0 && nlz < CHUNK_SIZE && ny <= WORLD_MAX_Y) {
                       if (data[blockIndex(nlx, ny, nlz)] === BlockType.AIR) {
                         data[blockIndex(nlx, ny, nlz)] = bd.treeLeaf;
                       }
@@ -190,7 +192,7 @@ function generateChunk(cx: number, cz: number): ChunkData {
       const lx = wx - cx * CHUNK_SIZE;
       const lz = wz - cz * CHUNK_SIZE;
       if (lx < 0 || lx >= CHUNK_SIZE || lz < 0 || lz >= CHUNK_SIZE) return;
-      if (wy < 0 || wy >= WORLD_HEIGHT) return;
+      if (wy < WORLD_MIN_Y || wy > WORLD_MAX_Y) return;
       data[blockIndex(lx, wy, lz)] = type;
     });
   }
@@ -210,8 +212,8 @@ class WorldManager {
   }
 
   getBlock(x: number, y: number, z: number): BlockType {
-    if (y < 0) return BlockType.BEDROCK;
-    if (y >= WORLD_HEIGHT) return BlockType.AIR;
+    if (y < WORLD_MIN_Y) return BlockType.BEDROCK;
+    if (y > WORLD_MAX_Y) return BlockType.AIR;
     const cx = Math.floor(x / CHUNK_SIZE);
     const cz = Math.floor(z / CHUNK_SIZE);
     const chunk = this.getOrGenerateChunk(cx, cz);
@@ -221,7 +223,7 @@ class WorldManager {
   }
 
   setBlock(x: number, y: number, z: number, type: BlockType): void {
-    if (y < 0 || y >= WORLD_HEIGHT) return;
+    if (y < WORLD_MIN_Y || y > WORLD_MAX_Y) return;
     const cx = Math.floor(x / CHUNK_SIZE);
     const cz = Math.floor(z / CHUNK_SIZE);
     const chunk = this.getOrGenerateChunk(cx, cz);
@@ -236,7 +238,7 @@ class WorldManager {
   }
 
   getTerrainHeight(x: number, z: number): number {
-    for (let y = WORLD_HEIGHT - 1; y >= 0; y--) {
+    for (let y = WORLD_MAX_Y; y >= WORLD_MIN_Y; y--) {
       if (isSolid(this.getBlock(x, y, z))) return y;
     }
     return 0;

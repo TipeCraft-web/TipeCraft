@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { worldManager, CHUNK_SIZE, WORLD_HEIGHT, getChunkKey } from './worldGen';
+import { worldManager, CHUNK_SIZE, WORLD_MIN_Y, WORLD_MAX_Y, getChunkKey } from './worldGen';
 import { BlockType, isSolid, isTransparent } from './blocks';
 import { getAtlas, blockUV } from './textures';
 
@@ -30,7 +30,7 @@ function buildChunkGeometry(cx: number, cz: number): {
 
   for (let lx = 0; lx < CHUNK_SIZE; lx++) {
     for (let lz = 0; lz < CHUNK_SIZE; lz++) {
-      for (let y = 0; y < WORLD_HEIGHT; y++) {
+      for (let y = WORLD_MIN_Y; y <= WORLD_MAX_Y; y++) {
         const wx = ox + lx;
         const wz = oz + lz;
         const block = worldManager.getBlock(wx, y, wz);

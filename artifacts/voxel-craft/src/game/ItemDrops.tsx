@@ -71,6 +71,7 @@ export default function ItemDrops({ drops, playerPosRef, onCollect }: ItemDropsP
       if (!collectedIds.current.has(drop.id) &&
           mesh.position.distanceTo(tempPlayer.current) < 1.15) {
         collectedIds.current.add(drop.id);
+        mesh.visible = false;
         onCollect(drop);
       }
     }
