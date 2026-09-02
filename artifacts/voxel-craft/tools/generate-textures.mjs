@@ -142,10 +142,10 @@ function makeBlockTexture(id, key, variant) {
 
   if (key === 'GRASS' || key === 'ROOTED_GRASS') {
     const dirt = 0x8f6544;
-    const grassBase = 0x5f9849;
+    const grassBase = 0x709e5d;
     const grass = shade(grassBase, 1);
-    const grassDark = shade(0x5d8050, 1);
-    const grassLight = shade(0x8caf6c, 1);
+    const grassDark = shade(0x5d8054, 1);
+    const grassLight = shade(0x9ab875, 1);
     if (variant === 0) {
       paintGrid(pixels, size, id, grassBase, variant, ({ n, dark, base, light, highlight }) =>
         n < 0.16 ? dark : n < 0.34 ? light : n < 0.40 ? highlight : base);
