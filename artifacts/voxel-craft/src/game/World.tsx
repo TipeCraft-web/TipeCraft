@@ -52,8 +52,14 @@ function buildChunkGeometry(cx: number, cz: number): {
           const [nx, ny, nz] = face.dir;
           const [u, v, uw, vh] = blockUV(block as number, fi);
 
-          // UV corners: V0→(u,v), V1→(u,v+vh), V2→(u+uw,v+vh), V3→(u+uw,v)
-          const uvCorners = [
+          // Keep the grass cap at the top of side faces while retaining the
+          // existing top/bottom atlas orientation.
+          const uvCorners = fi >= 2 ? [
+            u,      v + vh,
+            u,      v,
+            u + uw, v,
+            u + uw, v + vh,
+          ] : [
             u,      v,
             u,      v + vh,
             u + uw, v + vh,

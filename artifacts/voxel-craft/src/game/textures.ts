@@ -283,9 +283,6 @@ export function getAtlas(): THREE.CanvasTexture {
   const tex = new THREE.CanvasTexture(canvas);
   tex.magFilter = THREE.NearestFilter;
   tex.minFilter  = THREE.NearestFilter;
-  // The atlas UVs are calculated from the canvas' top-left pixel origin.
-  // Disable Three's default source flip so face textures keep their vertical orientation.
-  tex.flipY = false;
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.needsUpdate = true;
   _atlas = tex;
