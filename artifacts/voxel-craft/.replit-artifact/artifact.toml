@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "VoxelCraft"
+title = "TipeCraft"
 version = "1.0.0"
 id = "artifacts/voxel-craft"
 router = "path"

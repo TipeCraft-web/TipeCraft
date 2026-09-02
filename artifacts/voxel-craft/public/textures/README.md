@@ -1,4 +1,4 @@
-# VoxelCraft texture pack
+# TipeCraft texture pack
 
 All editable textures live here:
 

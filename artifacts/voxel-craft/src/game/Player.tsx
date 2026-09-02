@@ -33,7 +33,7 @@ interface PlayerProps {
   externalSlot:   number;
   externalHotbar: BlockType[];
   canPlace:       (type: BlockType) => boolean;
-  onBlockBreak:   (type: BlockType) => void;
+  onBlockBreak:   (type: BlockType, position: THREE.Vector3) => void;
   onBlockPlace:   (type: BlockType) => void;
   onChestOpen?:    (x: number, y: number, z: number) => void;
   isDead?:         boolean;
@@ -326,7 +326,7 @@ export default function Player({
             if (now - breakStart.current >= BREAK_TIME_MS) {
               const blockType = worldManager.getBlock(hp.x, hp.y, hp.z);
               worldManager.setBlock(hp.x, hp.y, hp.z, BlockType.AIR);
-              onBlockBreak(blockType);
+              onBlockBreak(blockType, new THREE.Vector3(hp.x + 0.5, hp.y + 0.5, hp.z + 0.5));
               breakPos.current = null; breakStart.current = 0;
             }
           }

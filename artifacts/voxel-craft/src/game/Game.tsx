@@ -14,6 +14,7 @@ import Crafting from './Crafting';
 import Inventory from './Inventory';
 import ChestUI from './ChestUI';
 import Chat from './Chat';
+import ItemDrops, { type DroppedItem } from './ItemDrops';
 
 export enum Controls {
   forward = 'forward',
@@ -53,6 +54,7 @@ export default function Game() {
   const [dead,           setDead]           = useState(false);
   const [respawnTrigger, setRespawnTrigger] = useState(0);
   const [openChest,      setOpenChest]      = useState<{ x: number; y: number; z: number } | null>(null);
+  const [drops,          setDrops]          = useState<DroppedItem[]>([]);
 
   const [uiState, setUiState] = useState<UIState>({
     health: 20, hunger: 20,
@@ -66,6 +68,7 @@ export default function Game() {
   const touchRef       = useRef<TouchState>(createTouchState());
   const playerPosRef   = useRef(new THREE.Vector3(8, 30, 8));
   const countsRef      = useRef<Record<number, number>>({});
+  const nextDropIdRef  = useRef(1);
   const chestsRef      = useRef<Map<string, BlockType[]>>(new Map());
   // Shared refs for Chat ↔ Player/DayNight communication
   const tpRef          = useRef<{ x: number; y: number; z: number } | null>(null);
@@ -95,6 +98,7 @@ export default function Game() {
       if (e.code === 'Tab') {
         e.preventDefault();
         countsRef.current = {};
+        setDrops([]);
         setUiState(prev => {
           const newMode = prev.mode === 'CREATIVE' ? 'SURVIVAL' : 'CREATIVE';
           return { ...prev, mode: newMode, hotbar: newMode === 'CREATIVE' ? [...HOTBAR_CREATIVE] : [...SURVIVAL_HOTBAR], counts: {} };
@@ -128,6 +132,7 @@ export default function Game() {
 
   const handleSetMode = useCallback((m: 'CREATIVE' | 'SURVIVAL') => {
     countsRef.current = {};
+    setDrops([]);
     setUiState(prev => ({
       ...prev, mode: m,
       hotbar: m === 'CREATIVE' ? [...HOTBAR_CREATIVE] : [...SURVIVAL_HOTBAR],
@@ -137,11 +142,24 @@ export default function Game() {
 
   const canPlace    = useCallback((type: BlockType) => (countsRef.current[type] || 0) > 0, []);
 
-  const onBlockBreak = useCallback((type: BlockType) => {
-    countsRef.current[type] = (countsRef.current[type] || 0) + 1;
+  const onBlockBreak = useCallback((type: BlockType, position: THREE.Vector3) => {
+    if (type === BlockType.AIR) return;
+    setDrops(prev => [...prev, {
+      id: nextDropIdRef.current++,
+      type,
+      position: { x: position.x, y: position.y, z: position.z },
+    }]);
+  }, []);
+
+  const onCollectDrop = useCallback((drop: DroppedItem) => {
+    setDrops(prev => prev.filter(item => item.id !== drop.id));
+    countsRef.current[drop.type] = (countsRef.current[drop.type] || 0) + 1;
     setUiState(prev => {
       const hotbar = [...prev.hotbar];
-      if (!hotbar.includes(type)) { const ei = hotbar.indexOf(BlockType.AIR); if (ei !== -1) hotbar[ei] = type; }
+      if (!hotbar.includes(drop.type)) {
+        const ei = hotbar.indexOf(BlockType.AIR);
+        if (ei !== -1) hotbar[ei] = drop.type;
+      }
       return { ...prev, hotbar, counts: { ...countsRef.current } };
     });
   }, []);
@@ -207,6 +225,7 @@ export default function Game() {
     setRespawnTrigger(t => t + 1);
     setUiState(prev => ({ ...prev, health: 20, hunger: 20, hotbar: [...SURVIVAL_HOTBAR], counts: {} }));
     countsRef.current = {};
+    setDrops([]);
   }, []);
 
   const { mode, hotbar, selectedSlot, health, hunger, pos, counts } = uiState;
@@ -228,7 +247,7 @@ export default function Game() {
           fontFamily:'"Courier New", monospace',
         }}>
           <div style={{ fontSize:52, fontWeight:'bold', color:'#5cb85c', textShadow:'0 0 20px rgba(92,184,92,0.6)', letterSpacing:4, marginBottom:8 }}>
-            VoxelCraft
+             TipeCraft
           </div>
           <div style={{ fontSize:13, color:'#aaa', marginBottom:40, letterSpacing:1 }}>
             226 Blöcke · 10 Biome · Crafting · Mobs · Tag/Nacht · Chat
@@ -356,6 +375,7 @@ export default function Game() {
 
           <DayNight playerPosRef={playerPosRef} dayTimeRef={dayTimeRef} />
           <World playerChunkRef={playerChunkRef} />
+          <ItemDrops drops={drops} playerPosRef={playerPosRef} onCollect={onCollectDrop} />
           <Animals />
 
           {started && (

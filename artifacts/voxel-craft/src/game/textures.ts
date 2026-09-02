@@ -186,6 +186,7 @@ const PATS: Record<number, Pat> = {
 let _atlas: THREE.CanvasTexture | null = null;
 let _atlasLoading = false;
 const mobTextures = new Map<string, THREE.Texture>();
+const blockDropTextures = new Map<number, [THREE.Texture, THREE.Texture, THREE.Texture]>();
 
 const blockKeys: Record<number, string> = {};
 for (const [key, value] of Object.entries(BlockType)) {
@@ -223,6 +224,26 @@ export function getMobTexture(kind: string): THREE.Texture {
   texture.colorSpace = THREE.SRGBColorSpace;
   mobTextures.set(kind, texture);
   return texture;
+}
+
+function loadBlockTexture(bt: number, variant: BlockTextureVariant): THREE.Texture {
+  const texture = new THREE.TextureLoader().load(blockTextureUrl(bt, variant));
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestFilter;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+export function getBlockDropTextures(bt: number): [THREE.Texture, THREE.Texture, THREE.Texture] {
+  const cached = blockDropTextures.get(bt);
+  if (cached) return cached;
+  const textures: [THREE.Texture, THREE.Texture, THREE.Texture] = [
+    loadBlockTexture(bt, 'side'),
+    loadBlockTexture(bt, 'top'),
+    loadBlockTexture(bt, 'down'),
+  ];
+  blockDropTextures.set(bt, textures);
+  return textures;
 }
 
 function drawFallback(ctx: CanvasRenderingContext2D, bt: number, variant: 0 | 1 | 2) {
