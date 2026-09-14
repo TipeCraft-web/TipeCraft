@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { BlockType, BLOCK_COLORS, BLOCK_NAMES } from './blocks';
 import { blockTextureUrl } from './textures';
+import { getCraftOutput, type CraftOutput } from './craftingRecipes';
 
 interface Props {
   mode: 'CREATIVE' | 'SURVIVAL';
@@ -42,41 +43,6 @@ const CATS: { key: Cat; label: string }[] = [
   { key: 'building', label: 'Special'  },
 ];
 
-interface CraftOutput {
-  type: BlockType;
-  count: number;
-  consume: { type: BlockType; count: number }[];
-}
-
-const LOG_TO_PLANKS: Partial<Record<BlockType, BlockType>> = {
-  [BlockType.WOOD]: BlockType.PLANKS,
-  [BlockType.OAK_LOG]: BlockType.PLANKS,
-  [BlockType.BIRCH_LOG]: BlockType.BIRCH_PLANKS,
-  [BlockType.SPRUCE_LOG]: BlockType.SPRUCE_PLANKS,
-  [BlockType.DARK_OAK_LOG]: BlockType.DARK_OAK_PLANKS,
-  [BlockType.JUNGLE_LOG]: BlockType.JUNGLE_PLANKS,
-  [BlockType.ACACIA_LOG]: BlockType.ACACIA_PLANKS,
-  [BlockType.BAMBOO_BLOCK]: BlockType.BAMBOO_PLANKS,
-};
-
-function getCraftOutput(grid: BlockType[]): CraftOutput | null {
-  const filled = grid.filter(type => type !== BlockType.AIR);
-  if (filled.length === 1) {
-    const result = LOG_TO_PLANKS[filled[0]];
-    if (result !== undefined) {
-      return { type: result, count: 4, consume: [{ type: filled[0], count: 1 }] };
-    }
-  }
-  if (filled.length === 4 && filled.every(type => type === BlockType.PLANKS)) {
-    return {
-      type: BlockType.CRAFTING_TABLE,
-      count: 1,
-      consume: [{ type: BlockType.PLANKS, count: 4 }],
-    };
-  }
-  return null;
-}
-
 function blockSwatch(type: BlockType, size: number): React.CSSProperties {
   return {
     width: size,
@@ -111,8 +77,10 @@ export default function Inventory({ mode, counts, hotbar, selectedSlot, onAssign
     onAssign(pickedSlot, type);
   };
 
-  const addCraftItem = (type: BlockType) => {
-    const target = craftGrid.indexOf(BlockType.AIR);
+  const addCraftItem = (type: BlockType, requestedTarget?: number) => {
+    const target = requestedTarget !== undefined && craftGrid[requestedTarget] === BlockType.AIR
+      ? requestedTarget
+      : craftGrid.indexOf(BlockType.AIR);
     if (target === -1) return;
     const alreadyUsed = craftGrid.filter(item => item === type).length;
     if (mode === 'SURVIVAL' && alreadyUsed >= (counts[type] || 0)) return;
@@ -137,6 +105,15 @@ export default function Inventory({ mode, counts, hotbar, selectedSlot, onAssign
     setCraftGrid(Array(4).fill(BlockType.AIR));
   };
 
+  const handleDropOnCraftSlot = (event: React.DragEvent<HTMLDivElement>, slot: number) => {
+    event.preventDefault();
+    const rawType = event.dataTransfer.getData('text/plain');
+    const type = Number(rawType) as BlockType;
+    if (Number.isInteger(type) && type > BlockType.AIR && BLOCK_NAMES[type]) {
+      addCraftItem(type, slot);
+    }
+  };
+
   return (
     <div
       data-no-look="1"
@@ -144,7 +121,6 @@ export default function Inventory({ mode, counts, hotbar, selectedSlot, onAssign
         position:'fixed', inset:0, zIndex:60,
         background:'rgba(0,0,0,0.82)',
         display:'flex', alignItems:'center', justifyContent:'center',
-        filter:'grayscale(1)',
       }}
       onClick={onClose}
     >
@@ -180,6 +156,8 @@ export default function Inventory({ mode, counts, hotbar, selectedSlot, onAssign
                 data-touch-btn="1"
                 onClick={() => type !== BlockType.AIR && clearCraftSlot(index)}
                 onTouchStart={e => { e.stopPropagation(); if (type !== BlockType.AIR) clearCraftSlot(index); }}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => handleDropOnCraftSlot(e, index)}
                 title={type === BlockType.AIR ? 'Block über + hinzufügen' : 'Klicken zum Entfernen'}
                 style={{
                   width:42, height:42, display:'flex', alignItems:'center', justifyContent:'center',
@@ -299,6 +277,11 @@ export default function Inventory({ mode, counts, hotbar, selectedSlot, onAssign
               <div
                 key={t}
                 onClick={() => assign(t)}
+                draggable
+                onDragStart={e => {
+                  e.dataTransfer.setData('text/plain', String(t));
+                  e.dataTransfer.effectAllowed = 'copy';
+                }}
                 style={{
                   display:'flex', flexDirection:'column', alignItems:'center',
                   padding:'6px 4px', borderRadius:8, cursor:'pointer',

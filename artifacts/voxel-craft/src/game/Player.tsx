@@ -36,6 +36,7 @@ interface PlayerProps {
   onBlockBreak:   (type: BlockType, position: THREE.Vector3) => void;
   onBlockPlace:   (type: BlockType) => void;
   onChestOpen?:    (x: number, y: number, z: number) => void;
+  onCraftingTableOpen?: (x: number, y: number, z: number) => void;
   isDead?:         boolean;
   respawnTrigger?: number;
   tpRef?:          React.MutableRefObject<{ x: number; y: number; z: number } | null>;
@@ -79,7 +80,7 @@ function castRay(origin: THREE.Vector3, dir: THREE.Vector3, maxD: number) {
 export default function Player({
   mode, setMode, playerChunkRef, onStateChange,
   touchRef, externalSlot, externalHotbar,
-  canPlace, onBlockBreak, onBlockPlace, onChestOpen,
+  canPlace, onBlockBreak, onBlockPlace, onChestOpen, onCraftingTableOpen,
   isDead = false, respawnTrigger = 0,
 }: PlayerProps) {
   const { camera, gl } = useThree();
@@ -338,6 +339,11 @@ export default function Player({
           if (hitBlock === BlockType.CHEST && onChestOpen) {
             if (now - lastPlace.current > 400) {
               onChestOpen(ray.hitPos.x, ray.hitPos.y, ray.hitPos.z);
+              lastPlace.current = now;
+            }
+          } else if (hitBlock === BlockType.CRAFTING_TABLE && onCraftingTableOpen) {
+            if (now - lastPlace.current > 400) {
+              onCraftingTableOpen(ray.hitPos.x, ray.hitPos.y, ray.hitPos.z);
               lastPlace.current = now;
             }
           } else if (ray.prevPos && now - lastPlace.current > 250) {

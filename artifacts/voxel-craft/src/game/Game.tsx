@@ -15,6 +15,7 @@ import Inventory from './Inventory';
 import ChestUI from './ChestUI';
 import Chat from './Chat';
 import ItemDrops, { type DroppedItem } from './ItemDrops';
+import CraftingTable from './CraftingTable';
 
 export enum Controls {
   forward = 'forward',
@@ -54,6 +55,7 @@ export default function Game() {
   const [dead,           setDead]           = useState(false);
   const [respawnTrigger, setRespawnTrigger] = useState(0);
   const [openChest,      setOpenChest]      = useState<{ x: number; y: number; z: number } | null>(null);
+  const [openCraftingTable, setOpenCraftingTable] = useState<{ x: number; y: number; z: number } | null>(null);
   const [drops,          setDrops]          = useState<DroppedItem[]>([]);
 
   const [uiState, setUiState] = useState<UIState>({
@@ -81,6 +83,7 @@ export default function Game() {
       setCraftingOpen(false);
       setInventoryOpen(false);
       setOpenChest(null);
+      setOpenCraftingTable(null);
     }
   }, [uiState.health, uiState.mode, dead, started]);
 
@@ -94,7 +97,7 @@ export default function Game() {
       if (isTyping) return;
       if (e.code === 'KeyE') { e.preventDefault(); setCraftingOpen(o => !o); setInventoryOpen(false); }
       if (e.code === 'KeyI') { e.preventDefault(); setInventoryOpen(o => !o); setCraftingOpen(false); }
-      if (e.code === 'Escape') { setCraftingOpen(false); setInventoryOpen(false); setOpenChest(null); }
+      if (e.code === 'Escape') { setCraftingOpen(false); setInventoryOpen(false); setOpenChest(null); setOpenCraftingTable(null); }
       if (e.code === 'Tab') {
         e.preventDefault();
         countsRef.current = {};
@@ -211,6 +214,14 @@ export default function Game() {
     setOpenChest({ x, y, z });
     setCraftingOpen(false);
     setInventoryOpen(false);
+    setOpenCraftingTable(null);
+  }, []);
+
+  const handleCraftingTableOpen = useCallback((x: number, y: number, z: number) => {
+    setOpenCraftingTable({ x, y, z });
+    setCraftingOpen(false);
+    setInventoryOpen(false);
+    setOpenChest(null);
   }, []);
 
   const handleChestChange = useCallback((newContents: BlockType[], newCounts: Record<number, number>) => {
@@ -363,6 +374,14 @@ export default function Game() {
           onClose={() => setOpenChest(null)}
         />
       )}
+      {openCraftingTable && (
+        <CraftingTable
+          mode={mode}
+          counts={counts}
+          onCraft={handleCraft}
+          onClose={() => setOpenCraftingTable(null)}
+        />
+      )}
 
       {/* ── Touch controls ───────────────────────────────────── */}
       {started && <TouchControls stateRef={touchRef} />}
@@ -401,6 +420,7 @@ export default function Game() {
                 onBlockBreak={onBlockBreak}
                 onBlockPlace={onBlockPlace}
                 onChestOpen={handleChestOpen}
+                onCraftingTableOpen={handleCraftingTableOpen}
                 isDead={dead}
                 respawnTrigger={respawnTrigger}
                 tpRef={tpRef}
