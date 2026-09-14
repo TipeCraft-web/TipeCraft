@@ -128,7 +128,7 @@ export default function TouchControls({ stateRef }: Props) {
   });
 
   return (
-    <div style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex:20 }}>
+    <div style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex:20, filter:'grayscale(1)' }}>
 
       {/* Joystick */}
       <div

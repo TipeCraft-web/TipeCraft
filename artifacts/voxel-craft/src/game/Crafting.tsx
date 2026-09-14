@@ -95,6 +95,7 @@ export default function Crafting({ counts, onCraft, onClose }: Props) {
       background:'rgba(0,0,0,0.78)',
       display:'flex', alignItems:'center', justifyContent:'center',
       touchAction:'none',
+       filter:'grayscale(1)',
     }} onClick={onClose}>
       <div
         onClick={e => e.stopPropagation()}

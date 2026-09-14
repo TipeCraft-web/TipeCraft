@@ -1,12 +1,12 @@
 import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { worldManager, CHUNK_SIZE, WORLD_MIN_Y, WORLD_MAX_Y, getChunkKey } from './worldGen';
+import { worldManager, CHUNK_SIZE, WORLD_MAX_Y, getChunkKey } from './worldGen';
 import { BlockType, isSolid, isTransparent } from './blocks';
 import { getAtlas, blockUV } from './textures';
 
 const VIEW_DISTANCE = 4;
-const MAX_CHUNKS_PER_FRAME = 2;
+const MAX_CHUNKS_PER_FRAME = 1;
 
 const FACES: { dir: [number,number,number]; corners: [number,number,number][]; light: number }[] = [
   { dir: [0, 1, 0],  corners: [[0,1,0],[0,1,1],[1,1,1],[1,1,0]], light: 1.0 },
@@ -30,7 +30,8 @@ function buildChunkGeometry(cx: number, cz: number): {
 
   for (let lx = 0; lx < CHUNK_SIZE; lx++) {
     for (let lz = 0; lz < CHUNK_SIZE; lz++) {
-      for (let y = WORLD_MIN_Y; y <= WORLD_MAX_Y; y++) {
+      const minY = worldManager.getChunkRenderMinY(cx, cz);
+      for (let y = minY; y <= WORLD_MAX_Y; y++) {
         const wx = ox + lx;
         const wz = oz + lz;
         const block = worldManager.getBlock(wx, y, wz);

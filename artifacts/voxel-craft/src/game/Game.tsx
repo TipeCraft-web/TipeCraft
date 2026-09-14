@@ -245,6 +245,7 @@ export default function Game() {
           display:'flex', alignItems:'center', justifyContent:'center',
           flexDirection:'column', color:'#fff', cursor:'pointer',
           fontFamily:'"Courier New", monospace',
+          filter:'grayscale(1)',
         }}>
           <div style={{ fontSize:52, fontWeight:'bold', color:'#5cb85c', textShadow:'0 0 20px rgba(92,184,92,0.6)', letterSpacing:4, marginBottom:8 }}>
              TipeCraft
@@ -270,6 +271,7 @@ export default function Game() {
           background:'rgba(80,0,0,0.82)',
           display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
           fontFamily:'"Courier New", monospace', color:'#fff',
+          filter:'grayscale(1)',
         }}>
           <div style={{ fontSize:48, fontWeight:'bold', color:'#ff3333', textShadow:'0 0 30px #ff000088', letterSpacing:4, marginBottom:16 }}>
             YOU DIED
@@ -319,6 +321,7 @@ export default function Game() {
         <div style={{
           position:'absolute', top:14, left:'50%', transform:'translateX(-50%)',
           zIndex:30, display:'flex', gap:8, pointerEvents:'auto',
+          filter:'grayscale(1)',
         }}>
           <div
             data-touch-btn="1"
@@ -348,6 +351,7 @@ export default function Game() {
           mode={mode} counts={counts} hotbar={hotbar}
           selectedSlot={selectedSlot}
           onAssign={handleInventoryAssign}
+           onCraft={handleCraft}
           onClose={() => setInventoryOpen(false)}
         />
       )}

@@ -7,6 +7,7 @@ export const CHUNK_SIZE = 16;
 export const WORLD_MIN_Y = -200;
 export const WORLD_MAX_Y = 64;
 export const WORLD_HEIGHT = WORLD_MAX_Y - WORLD_MIN_Y + 1;
+export const DEFAULT_CHUNK_RENDER_MIN_Y = -48;
 export const SEA_LEVEL = 6;
 
 export type ChunkData = Uint8Array;
@@ -203,6 +204,18 @@ function generateChunk(cx: number, cz: number): ChunkData {
 class WorldManager {
   chunks = new Map<string, ChunkData>();
   dirtyChunks = new Set<string>();
+  private chunkRenderMinY = new Map<string, number>();
+
+  getChunkRenderMinY(cx: number, cz: number): number {
+    return this.chunkRenderMinY.get(getChunkKey(cx, cz)) ?? DEFAULT_CHUNK_RENDER_MIN_Y;
+  }
+
+  private markChunkRenderDepth(cx: number, cz: number, y: number): void {
+    const key = getChunkKey(cx, cz);
+    const nextMin = Math.max(WORLD_MIN_Y, y - 1);
+    const previous = this.chunkRenderMinY.get(key) ?? DEFAULT_CHUNK_RENDER_MIN_Y;
+    if (nextMin < previous) this.chunkRenderMinY.set(key, nextMin);
+  }
 
   getOrGenerateChunk(cx: number, cz: number): ChunkData {
     const key = getChunkKey(cx, cz);
@@ -231,10 +244,23 @@ class WorldManager {
     const lz = ((z % CHUNK_SIZE) + CHUNK_SIZE) % CHUNK_SIZE;
     chunk[blockIndex(lx, y, lz)] = type;
     this.dirtyChunks.add(getChunkKey(cx, cz));
-    if (lx === 0) this.dirtyChunks.add(getChunkKey(cx-1, cz));
-    if (lx === CHUNK_SIZE-1) this.dirtyChunks.add(getChunkKey(cx+1, cz));
-    if (lz === 0) this.dirtyChunks.add(getChunkKey(cx, cz-1));
-    if (lz === CHUNK_SIZE-1) this.dirtyChunks.add(getChunkKey(cx, cz+1));
+    this.markChunkRenderDepth(cx, cz, y);
+    if (lx === 0) {
+      this.dirtyChunks.add(getChunkKey(cx-1, cz));
+      this.markChunkRenderDepth(cx - 1, cz, y);
+    }
+    if (lx === CHUNK_SIZE-1) {
+      this.dirtyChunks.add(getChunkKey(cx+1, cz));
+      this.markChunkRenderDepth(cx + 1, cz, y);
+    }
+    if (lz === 0) {
+      this.dirtyChunks.add(getChunkKey(cx, cz-1));
+      this.markChunkRenderDepth(cx, cz - 1, y);
+    }
+    if (lz === CHUNK_SIZE-1) {
+      this.dirtyChunks.add(getChunkKey(cx, cz+1));
+      this.markChunkRenderDepth(cx, cz + 1, y);
+    }
   }
 
   getTerrainHeight(x: number, z: number): number {

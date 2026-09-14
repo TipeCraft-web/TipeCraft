@@ -42,6 +42,7 @@ export default function HUD({ mode, health, hunger, hotbar, counts, selectedSlot
       position: 'absolute', inset: 0, zIndex: 10,
       fontFamily: '"Courier New", monospace', userSelect: 'none',
       pointerEvents: 'none',
+      filter: 'grayscale(1)',
     }}>
       {/* Crosshair */}
       <div style={{

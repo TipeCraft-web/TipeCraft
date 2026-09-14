@@ -101,6 +101,7 @@ export default function Chat({ tpRef, dayTimeRef, onSetMode, currentMode }: Prop
       pointerEvents: open ? 'auto' : 'none',
       fontFamily: '"Courier New", monospace',
       maxWidth: 420,
+       filter: 'grayscale(1)',
     }}>
       {/* Message list */}
       <div ref={listRef} style={{
