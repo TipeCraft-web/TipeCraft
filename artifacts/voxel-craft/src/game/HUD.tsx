@@ -1,4 +1,4 @@
-import { BlockType, BLOCK_COLORS, BLOCK_NAMES } from './blocks';
+import { BlockType, BLOCK_COLORS } from './blocks';
 import { blockTextureUrl } from './textures';
 
 interface HUDProps {
@@ -10,7 +10,6 @@ interface HUDProps {
   selectedSlot: number;
   pos: { x: number; y: number; z: number };
   onSlotSelect: (i: number) => void;
-  onOpenInventory: () => void;
 }
 
 function colorStyle(type: BlockType): string {
@@ -19,30 +18,71 @@ function colorStyle(type: BlockType): string {
   return `rgb(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)})`;
 }
 
-function HeartRow({ val, max, color }: { val: number; max: number; color: string }) {
+function PixelHeart({ full, half }: { full: boolean; half: boolean }) {
   return (
-    <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', maxWidth: 160 }}>
+    <span
+      aria-hidden="true"
+      style={{
+        width: 16, height: 14, display: 'inline-block',
+        clipPath: 'polygon(0 18%, 25% 18%, 25% 0, 42% 0, 50% 12%, 58% 0, 75% 0, 75% 18%, 100% 18%, 100% 48%, 50% 100%, 0 48%)',
+        background: full
+          ? '#e52b32'
+          : half
+            ? 'linear-gradient(90deg, #e52b32 0 50%, #343434 50% 100%)'
+            : '#343434',
+        filter: full || half ? 'drop-shadow(1px 1px 0 #240b0b)' : 'drop-shadow(1px 1px 0 #111)',
+        imageRendering: 'pixelated',
+      }}
+    />
+  );
+}
+
+function PixelDrumstick({ full, half }: { full: boolean; half: boolean }) {
+  const fill = full
+    ? '#d59a42'
+    : half
+      ? 'linear-gradient(90deg, #d59a42 0 50%, #343434 50% 100%)'
+      : '#343434';
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        width: 16, height: 17, display: 'inline-block', position: 'relative',
+        filter: full || half ? 'drop-shadow(1px 1px 0 #2a1a0c)' : 'drop-shadow(1px 1px 0 #111)',
+      }}
+    >
+      <span style={{
+        position: 'absolute', top: 0, left: 1, width: 11, height: 10,
+        borderRadius: '55% 55% 45% 45%', background: fill,
+      }} />
+      <span style={{
+        position: 'absolute', top: 8, left: 8, width: 5, height: 8,
+        borderRadius: '2px 4px 4px 2px', transform: 'rotate(-28deg)', background: fill,
+      }} />
+    </span>
+  );
+}
+
+function StatusIcons({ val, max, kind }: { val: number; max: number; kind: 'health' | 'hunger' }) {
+  return (
+    <div style={{ display: 'flex', gap: 2, height: 18, alignItems: 'center' }}>
       {Array.from({ length: Math.ceil(max / 2) }).map((_, i) => {
-        const full = val >= (i+1)*2;
-        const half = !full && val >= i*2+1;
-        return (
-          <div key={i} style={{
-            width: 12, height: 12, borderRadius: 2, border: '1px solid rgba(0,0,0,0.5)',
-            background: full ? color : half ? color + '88' : 'rgba(0,0,0,0.5)',
-          }} />
-        );
+        const full = val >= (i + 1) * 2;
+        const half = !full && val >= i * 2 + 1;
+        return kind === 'health'
+          ? <PixelHeart key={i} full={full} half={half} />
+          : <PixelDrumstick key={i} full={full} half={half} />;
       })}
     </div>
   );
 }
 
-export default function HUD({ mode, health, hunger, hotbar, counts, selectedSlot, pos, onSlotSelect, onOpenInventory }: HUDProps) {
+export default function HUD({ mode, health, hunger, hotbar, counts, selectedSlot, pos, onSlotSelect }: HUDProps) {
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 10,
       fontFamily: '"Courier New", monospace', userSelect: 'none',
       pointerEvents: 'none',
-      filter: 'grayscale(1)',
     }}>
       {/* Crosshair */}
       <div style={{
@@ -54,29 +94,45 @@ export default function HUD({ mode, health, hunger, hotbar, counts, selectedSlot
         <div style={{ position:'absolute', left:'50%', top:0, bottom:0, width:2, background:'rgba(255,255,255,0.85)', marginLeft:-1, boxShadow:'0 0 2px #000' }} />
       </div>
 
-      {/* Top-left: health + coords */}
+      {/* Top-left: coordinates */}
       <div style={{
         position: 'absolute', top: 10, left: 10,
         color: '#fff', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 6,
         pointerEvents: 'none',
       }}>
-        {mode === 'SURVIVAL' && (
-          <>
-            <div>
-              <div style={{ fontSize: 10, color: '#ccc', marginBottom: 2 }}>HEALTH</div>
-              <HeartRow val={health} max={20} color="#ff3333" />
-            </div>
-            <div>
-              <div style={{ fontSize: 10, color: '#ccc', marginBottom: 2 }}>HUNGER</div>
-              <HeartRow val={Math.round(hunger)} max={20} color="#cc8800" />
-            </div>
-          </>
-        )}
         <div style={{
           background: 'rgba(0,0,0,0.55)', padding: '3px 6px', borderRadius: 3, fontSize: 11,
         }}>
           X:{Math.floor(pos.x)} Y:{Math.floor(pos.y)} Z:{Math.floor(pos.z)}
         </div>
+      </div>
+
+      {/* Minecraft-style status row above the experience bar */}
+      {mode === 'SURVIVAL' && (
+        <div style={{
+          position: 'absolute', bottom: 83, left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex', alignItems: 'center', gap: 20,
+          padding: '2px 6px', pointerEvents: 'none',
+        }}>
+          <StatusIcons val={health} max={20} kind="health" />
+          <StatusIcons val={Math.round(hunger)} max={20} kind="hunger" />
+        </div>
+      )}
+
+      {/* Experience bar — kept ready for future XP gains */}
+      <div style={{
+        position: 'absolute', bottom: 67, left: '50%',
+        transform: 'translateX(-50%)',
+        width: 'min(390px, 72vw)', height: 7,
+        background: '#202020', border: '2px solid #111',
+        boxShadow: 'inset 0 1px 0 #4a4a4a',
+        pointerEvents: 'none',
+      }}>
+        <div style={{
+          width: '0%', height: '100%', background: '#78d52b',
+          boxShadow: 'inset 0 1px 0 #c4ff71',
+        }} />
       </div>
 
       {/* Top-right: mode badge */}
@@ -93,11 +149,11 @@ export default function HUD({ mode, health, hunger, hotbar, counts, selectedSlot
 
       {/* Bottom: hotbar — interactive */}
       <div style={{
-        position: 'absolute', bottom: 14, left: '50%',
+        position: 'absolute', bottom: 10, left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex', gap: 3,
-        background: 'rgba(0,0,0,0.6)', padding: '4px 5px', borderRadius: 5,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+        background: '#383838', padding: 3, border: '2px solid #171717',
+        boxShadow: '0 2px 0 #606060, 0 3px 8px rgba(0,0,0,0.55)',
         pointerEvents: 'auto',
       }}>
         {hotbar.map((block, i) => {
@@ -110,19 +166,18 @@ export default function HUD({ mode, health, hunger, hotbar, counts, selectedSlot
               onTouchStart={e => { e.stopPropagation(); onSlotSelect(i); }}
               onClick={() => onSlotSelect(i)}
               style={{
-                width: 48, height: 48,
-                border: i === selectedSlot ? '2px solid #ffe030' : '2px solid rgba(255,255,255,0.25)',
-                background: i === selectedSlot ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.5)',
-                borderRadius: 4,
-                display: 'flex', flexDirection: 'column',
+                width: 42, height: 42,
+                border: i === selectedSlot ? '2px solid #f5f5f5' : '2px solid #8b8b8b',
+                background: i === selectedSlot ? '#777' : '#4b4b4b',
+                display: 'flex',
                 alignItems: 'center', justifyContent: 'center',
-                gap: 1, transition: 'border-color 0.1s',
-                boxShadow: i === selectedSlot ? '0 0 0 1px rgba(255,224,48,0.4) inset' : 'none',
+                transition: 'border-color 0.1s, background 0.1s',
+                boxShadow: i === selectedSlot ? 'inset 0 0 0 1px #222' : 'inset 0 0 0 1px #242424',
                 cursor: 'pointer', position: 'relative',
               }}
             >
               <div style={{
-                width: 30, height: 30, borderRadius: 3,
+                width: 32, height: 32,
                 background: colorStyle(block),
                  ...(block !== BlockType.AIR ? {
                    backgroundImage: `url(${blockTextureUrl(block)})`,
@@ -132,17 +187,11 @@ export default function HUD({ mode, health, hunger, hotbar, counts, selectedSlot
                 border: '1px solid rgba(0,0,0,0.4)',
                 boxShadow: block !== BlockType.AIR ? 'inset -2px -2px 4px rgba(0,0,0,0.3), inset 2px 2px 4px rgba(255,255,255,0.15)' : 'none',
               }} />
-              {block !== BlockType.AIR && (
-                <div style={{ color: '#ddd', fontSize: 7, textAlign: 'center', lineHeight: 1 }}>
-                  {(BLOCK_NAMES[block] ?? '').slice(0, 7)}
-                </div>
-              )}
-              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 7 }}>{i + 1}</div>
-              {hasCnt && (
+              {hasCnt && cnt > 0 && (
                 <div style={{
-                  position:'absolute', top:2, right:3,
-                  fontSize:8, fontWeight:700, color:'#ffe',
-                  textShadow:'0 0 3px #000',
+                  position: 'absolute', right: 2, bottom: 0,
+                  fontSize: 11, fontWeight: 700, color: '#fff',
+                  textShadow: '1px 1px 0 #000',
                 }}>
                   {cnt}
                 </div>
@@ -150,28 +199,11 @@ export default function HUD({ mode, health, hunger, hotbar, counts, selectedSlot
             </div>
           );
         })}
-
-        {/* Inventory button */}
-        <div
-          data-touch-btn="1"
-          onTouchStart={e => { e.stopPropagation(); onOpenInventory(); }}
-          onClick={onOpenInventory}
-          style={{
-            width:36, height:48, borderRadius:4, cursor:'pointer',
-            border:'2px solid rgba(68,136,204,0.6)',
-            background:'rgba(10,30,60,0.7)',
-            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-            gap:2, marginLeft:4,
-          }}
-        >
-          <div style={{ fontSize:16 }}>📦</div>
-          <div style={{ fontSize:7, color:'#7ac' }}>I</div>
-        </div>
       </div>
 
       {/* Controls hint */}
       <div style={{
-        position: 'absolute', bottom: 72, left: '50%',
+        position: 'absolute', top: 46, left: '50%',
         transform: 'translateX(-50%)',
         color: 'rgba(255,255,255,0.35)', fontSize: 9, textAlign: 'center', whiteSpace: 'nowrap',
         pointerEvents: 'none',

@@ -313,7 +313,6 @@ export default function Game() {
           hotbar={hotbar} counts={counts}
           selectedSlot={selectedSlot} pos={pos}
           onSlotSelect={handleSlotSelect}
-          onOpenInventory={() => { setInventoryOpen(o => !o); setCraftingOpen(false); }}
         />
       )}
 
