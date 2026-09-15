@@ -261,7 +261,14 @@ export default function Game() {
     : null;
 
   return (
-    <div style={{ width:'100vw', height:'100vh', overflow:'hidden', background:'#000', position:'relative' }}>
+    <div
+      onContextMenu={e => e.preventDefault()}
+      onDragStart={e => e.preventDefault()}
+      style={{
+        width:'100vw', height:'100vh', overflow:'hidden', background:'#000', position:'relative',
+        userSelect:'none', WebkitUserSelect:'none', WebkitTouchCallout:'none',
+      }}
+    >
 
       {/* ── Start screen ─────────────────────────────────────── */}
       {!started && (
@@ -451,12 +458,6 @@ export default function Game() {
         }}>
           <div
             data-touch-btn="1"
-            onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setCraftingOpen(o => !o); setInventoryOpen(false); }}
-            onClick={() => { setCraftingOpen(o => !o); setInventoryOpen(false); }}
-            style={{ padding:'6px 14px', borderRadius:16, background:'rgba(50,50,80,0.8)', border:'1px solid rgba(100,100,180,0.6)', color:'#aac', fontSize:11, fontWeight:700, cursor:'pointer', userSelect:'none' }}
-          >⚒ Craft</div>
-          <div
-            data-touch-btn="1"
             onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setInventoryOpen(o => !o); setCraftingOpen(false); }}
             onClick={() => { setInventoryOpen(o => !o); setCraftingOpen(false); }}
             style={{ padding:'6px 14px', borderRadius:16, background:'rgba(30,60,80,0.8)', border:'1px solid rgba(68,136,204,0.6)', color:'#7ac', fontSize:11, fontWeight:700, cursor:'pointer', userSelect:'none' }}
@@ -507,7 +508,11 @@ export default function Game() {
           shadows
           camera={{ fov: 75, near: 0.05, far: Math.max(220, viewDistance * 16 + 64) }}
           gl={{ antialias: false }}
-          style={{ width:'100%', height:'100%' }}
+          style={{
+            width:'100%', height:'100%',
+            userSelect:'none', WebkitUserSelect:'none',
+            WebkitTouchCallout:'none', touchAction:'none',
+          }}
         >
           <SceneSettings viewDistance={viewDistance} />
           {fogEnabled && <fog attach="fog" args={['#9dcde8', Math.max(16, viewDistance * 16 - 64), viewDistance * 16 + 16]} />}
