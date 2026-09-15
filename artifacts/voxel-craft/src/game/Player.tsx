@@ -331,24 +331,37 @@ export default function Player({
               breakStart.current = now;
             }
           } else {
-            const samePos = breakPos.current?.equals(hp);
-            if (!samePos) { breakPos.current = hp.clone(); breakStart.current = now; }
-            if (ray.normal) {
-              breakingRef.current.active = true;
-              breakingRef.current.x = hp.x;
-              breakingRef.current.y = hp.y;
-              breakingRef.current.z = hp.z;
-              breakingRef.current.nx = ray.normal.x;
-              breakingRef.current.ny = ray.normal.y;
-              breakingRef.current.nz = ray.normal.z;
-              breakingRef.current.progress = Math.min(1, Math.max(0, (now - breakStart.current) / BREAK_TIME_MS));
-            }
-            if (now - breakStart.current >= BREAK_TIME_MS) {
-              const blockType = worldManager.getBlock(hp.x, hp.y, hp.z);
-              worldManager.setBlock(hp.x, hp.y, hp.z, BlockType.AIR);
-              onBlockBreak(blockType, new THREE.Vector3(hp.x + 0.5, hp.y + 0.5, hp.z + 0.5));
-              breakPos.current = null; breakStart.current = 0;
+            const targetChanged = breakPos.current !== null && !breakPos.current.equals(hp);
+            if (targetChanged) {
+              // Do not transfer an in-progress mine to a different block.
+              breakPos.current = null;
+              breakStart.current = 0;
               breakingRef.current.active = false;
+            } else {
+              if (breakPos.current === null) {
+                breakPos.current = hp.clone();
+                breakStart.current = now;
+              }
+
+              const target = breakPos.current;
+              if (target && ray.normal) {
+                breakingRef.current.active = true;
+                breakingRef.current.x = target.x;
+                breakingRef.current.y = target.y;
+                breakingRef.current.z = target.z;
+                breakingRef.current.nx = ray.normal.x;
+                breakingRef.current.ny = ray.normal.y;
+                breakingRef.current.nz = ray.normal.z;
+                breakingRef.current.progress = Math.min(1, Math.max(0, (now - breakStart.current) / BREAK_TIME_MS));
+              }
+
+              if (now - breakStart.current >= BREAK_TIME_MS && target) {
+                const blockType = worldManager.getBlock(target.x, target.y, target.z);
+                worldManager.setBlock(target.x, target.y, target.z, BlockType.AIR);
+                onBlockBreak(blockType, new THREE.Vector3(target.x + 0.5, target.y + 0.5, target.z + 0.5));
+                breakPos.current = null; breakStart.current = 0;
+                breakingRef.current.active = false;
+              }
             }
           }
         } else {
