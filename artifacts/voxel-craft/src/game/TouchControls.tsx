@@ -14,6 +14,8 @@ export function createTouchState(): TouchState {
 interface Props { stateRef: React.MutableRefObject<TouchState>; }
 
 const RADIUS = 52;
+const LONG_PRESS_MS = 450;
+const ACTION_MOVE_TOLERANCE = 10;
 
 export default function TouchControls({ stateRef }: Props) {
   const baseRef    = useRef<HTMLDivElement>(null);
@@ -22,6 +24,12 @@ export default function TouchControls({ stateRef }: Props) {
   const joyCenter  = useRef({ x: 0, y: 0 });
   const lookTouchId = useRef<number | null>(null);
   const lookPrev    = useRef({ x: 0, y: 0 });
+  const actionTouchId = useRef<number | null>(null);
+  const actionStart   = useRef({ x: 0, y: 0 });
+  const actionMoved   = useRef(false);
+  const actionLong    = useRef(false);
+  const actionTimer   = useRef<number | null>(null);
+  const placeTimer    = useRef<number | null>(null);
 
   useEffect(() => {
     const base = baseRef.current;
@@ -72,19 +80,49 @@ export default function TouchControls({ stateRef }: Props) {
     const docStart = (e: TouchEvent) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
-        if (t.clientX < window.innerWidth * 0.38) continue; // left side = joystick
-        if (lookTouchId.current !== null) continue;
-        // Ignore touches on buttons and UI modals
         const el = document.elementFromPoint(t.clientX, t.clientY) as HTMLElement | null;
         if (el?.closest('[data-touch-btn]') || el?.closest('[data-no-look]')) continue;
-        lookTouchId.current = t.identifier;
-        lookPrev.current = { x: t.clientX, y: t.clientY };
+
+        // The joystick owns the left movement zone. Every other free screen
+        // area can be used for tap-to-place / long-press-to-break.
+        if (el?.closest('[data-joystick]')) continue;
+
+        if (actionTouchId.current === null) {
+          actionTouchId.current = t.identifier;
+          actionStart.current = { x: t.clientX, y: t.clientY };
+          actionMoved.current = false;
+          actionLong.current = false;
+          actionTimer.current = window.setTimeout(() => {
+            if (actionTouchId.current === t.identifier && !actionMoved.current) {
+              actionLong.current = true;
+              stateRef.current.doBreak = true;
+            }
+          }, LONG_PRESS_MS);
+        }
+
+        // A touch on the right side also controls the camera while it moves.
+        if (t.clientX >= window.innerWidth * 0.38 && lookTouchId.current === null) {
+          lookTouchId.current = t.identifier;
+          lookPrev.current = { x: t.clientX, y: t.clientY };
+        }
       }
     };
 
     const docMove = (e: TouchEvent) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
+        if (t.identifier === actionTouchId.current) {
+          const dx = t.clientX - actionStart.current.x;
+          const dy = t.clientY - actionStart.current.y;
+          if (Math.sqrt(dx * dx + dy * dy) > ACTION_MOVE_TOLERANCE) {
+            actionMoved.current = true;
+            if (actionTimer.current !== null) {
+              window.clearTimeout(actionTimer.current);
+              actionTimer.current = null;
+            }
+            stateRef.current.doBreak = false;
+          }
+        }
         if (t.identifier !== lookTouchId.current) continue;
         stateRef.current.lookDx += t.clientX - lookPrev.current.x;
         stateRef.current.lookDy += t.clientY - lookPrev.current.y;
@@ -94,7 +132,24 @@ export default function TouchControls({ stateRef }: Props) {
 
     const docEnd = (e: TouchEvent) => {
       for (let i = 0; i < e.changedTouches.length; i++) {
-        if (e.changedTouches[i].identifier === lookTouchId.current) lookTouchId.current = null;
+        const touchId = e.changedTouches[i].identifier;
+        if (touchId === actionTouchId.current) {
+          if (actionTimer.current !== null) {
+            window.clearTimeout(actionTimer.current);
+            actionTimer.current = null;
+          }
+          stateRef.current.doBreak = false;
+          if (!actionMoved.current && !actionLong.current) {
+            stateRef.current.doPlace = true;
+            if (placeTimer.current !== null) window.clearTimeout(placeTimer.current);
+            placeTimer.current = window.setTimeout(() => {
+              stateRef.current.doPlace = false;
+              placeTimer.current = null;
+            }, 80);
+          }
+          actionTouchId.current = null;
+        }
+        if (touchId === lookTouchId.current) lookTouchId.current = null;
       }
     };
 
@@ -112,6 +167,8 @@ export default function TouchControls({ stateRef }: Props) {
       document.removeEventListener('touchmove',  docMove);
       document.removeEventListener('touchend',   docEnd);
       document.removeEventListener('touchcancel',docEnd);
+      if (actionTimer.current !== null) window.clearTimeout(actionTimer.current);
+      if (placeTimer.current !== null) window.clearTimeout(placeTimer.current);
     };
   }, [stateRef]);
 
@@ -133,6 +190,7 @@ export default function TouchControls({ stateRef }: Props) {
       {/* Joystick */}
       <div
         ref={baseRef}
+        data-joystick="1"
         style={{
           position:'absolute', bottom:80, left:24,
           width:108, height:108, borderRadius:'50%',
@@ -148,7 +206,7 @@ export default function TouchControls({ stateRef }: Props) {
         }} />
       </div>
 
-      {/* Action buttons (bottom-right) */}
+      {/* Jump and flying controls. Block actions use screen taps/presses. */}
       <div
         data-touch-btn="1"
         style={{
@@ -159,8 +217,6 @@ export default function TouchControls({ stateRef }: Props) {
       >
         <div {...makeBtn('↑ Jump',   'jump',    '#3399ff')} />
         <div {...makeBtn('↓ Fly Dn', 'flyDown', '#9966ff')} />
-        <div {...makeBtn('⛏ Break', 'doBreak', '#ff4444')} />
-        <div {...makeBtn('📦 Place', 'doPlace', '#44cc66')} />
       </div>
 
       {/* Mode toggle (top-right) */}
