@@ -3,7 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { KeyboardControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { BlockType, HOTBAR_CREATIVE } from './blocks';
-import World from './World';
+import World, { type BreakingState } from './World';
 import Player from './Player';
 import Animals from './Animals';
 import Mobs from './Mobs';
@@ -82,6 +82,10 @@ export default function Game() {
   });
 
   const playerChunkRef = useRef({ x: 0, z: 0 });
+  const breakingRef = useRef<BreakingState>({
+    active: false, x: 0, y: 0, z: 0,
+    nx: 0, ny: 0, nz: 0, progress: 0,
+  });
   const touchRef       = useRef<TouchState>(createTouchState());
   const playerPosRef   = useRef(new THREE.Vector3(8, 30, 8));
   const countsRef      = useRef<Record<number, number>>({});
@@ -519,7 +523,7 @@ export default function Game() {
           {fogEnabled && <fog attach="fog" args={['#9dcde8', Math.max(16, viewDistance * 16 - 64), viewDistance * 16 + 16]} />}
 
           <DayNight playerPosRef={playerPosRef} dayTimeRef={dayTimeRef} />
-          <World playerChunkRef={playerChunkRef} viewDistance={viewDistance} />
+          <World playerChunkRef={playerChunkRef} viewDistance={viewDistance} breakingRef={breakingRef} />
           <ItemDrops drops={drops} playerPosRef={playerPosRef} onCollect={onCollectDrop} />
           <Animals />
 
@@ -536,6 +540,7 @@ export default function Game() {
                 playerChunkRef={playerChunkRef}
                 onStateChange={handleStateChange}
                 touchRef={touchRef}
+                breakingRef={breakingRef}
                 externalSlot={selectedSlot}
                 externalHotbar={hotbar}
                 canPlace={canPlace}

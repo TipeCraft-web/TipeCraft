@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { worldManager, CHUNK_SIZE, WORLD_MAX_Y, getChunkKey } from './worldGen';
@@ -6,6 +6,61 @@ import { BlockType, isSolid, isTransparent } from './blocks';
 import { getAtlas, blockUV } from './textures';
 
 const MAX_CHUNKS_PER_FRAME = 1;
+
+export interface BreakingState {
+  active: boolean;
+  x: number;
+  y: number;
+  z: number;
+  nx: number;
+  ny: number;
+  nz: number;
+  progress: number;
+}
+
+const CRACK_PATHS: { stage: number; points: [number, number][] }[] = [
+  { stage: 0, points: [[0.50, 0.98], [0.48, 0.78], [0.56, 0.63], [0.50, 0.48], [0.58, 0.31], [0.54, 0.08]] },
+  { stage: 1, points: [[0.50, 0.48], [0.36, 0.42], [0.24, 0.47], [0.09, 0.42]] },
+  { stage: 2, points: [[0.56, 0.63], [0.68, 0.56], [0.76, 0.44], [0.94, 0.39]] },
+  { stage: 3, points: [[0.48, 0.78], [0.35, 0.68], [0.22, 0.70], [0.08, 0.62]] },
+  { stage: 4, points: [[0.50, 0.48], [0.61, 0.38], [0.67, 0.23], [0.82, 0.13]] },
+  { stage: 5, points: [[0.36, 0.42], [0.31, 0.28], [0.19, 0.20], [0.10, 0.08]] },
+  { stage: 6, points: [[0.68, 0.56], [0.79, 0.67], [0.91, 0.72], [0.98, 0.88]] },
+  { stage: 7, points: [[0.35, 0.68], [0.45, 0.84], [0.42, 0.96]] },
+  { stage: 8, points: [[0.61, 0.38], [0.52, 0.28], [0.42, 0.25], [0.30, 0.10]] },
+  { stage: 9, points: [[0.24, 0.47], [0.31, 0.56], [0.43, 0.58], [0.54, 0.50]] },
+];
+
+function createCrackTexture(stage: number) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return new THREE.CanvasTexture(canvas);
+
+  ctx.clearRect(0, 0, 64, 64);
+  ctx.strokeStyle = 'rgba(12, 12, 12, 0.95)';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'square';
+  ctx.lineJoin = 'miter';
+
+  for (const path of CRACK_PATHS) {
+    if (path.stage > stage) continue;
+    ctx.beginPath();
+    path.points.forEach(([x, y], index) => {
+      if (index === 0) ctx.moveTo(x * 64, y * 64);
+      else ctx.lineTo(x * 64, y * 64);
+    });
+    ctx.stroke();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestFilter;
+  texture.generateMipmaps = false;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
 
 const FACES: { dir: [number,number,number]; corners: [number,number,number][]; light: number }[] = [
   { dir: [0, 1, 0],  corners: [[0,1,0],[0,1,1],[1,1,1],[1,1,0]], light: 1.0 },
@@ -120,11 +175,22 @@ interface ChunkEntry { opaque: THREE.Mesh | null; transparent: THREE.Mesh | null
 interface WorldProps {
   playerChunkRef: React.MutableRefObject<{ x: number; z: number }>;
   viewDistance: number;
+  breakingRef: React.MutableRefObject<BreakingState>;
 }
 
-export default function World({ playerChunkRef, viewDistance }: WorldProps) {
+export default function World({ playerChunkRef, viewDistance, breakingRef }: WorldProps) {
   const groupRef = useRef<THREE.Group>(null);
   const chunkMap = useRef<Map<string, ChunkEntry>>(new Map());
+  const crackMeshRef = useRef<THREE.Mesh>(null);
+  const crackMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
+  const crackTextures = useMemo(
+    () => Array.from({ length: 10 }, (_, stage) => createCrackTexture(stage)),
+    [],
+  );
+  const crackGeometry = useMemo(() => new THREE.PlaneGeometry(1.002, 1.002), []);
+  const crackNormal = useMemo(() => new THREE.Vector3(), []);
+  const crackPosition = useMemo(() => new THREE.Vector3(), []);
+  const crackQuaternion = useMemo(() => new THREE.Quaternion(), []);
 
   const atlas = getAtlas();
 
@@ -170,6 +236,29 @@ export default function World({ playerChunkRef, viewDistance }: WorldProps) {
   useFrame(() => {
     if (!groupRef.current) return;
     const { x: pcx, z: pcz } = playerChunkRef.current;
+    const breaking = breakingRef.current;
+    const crackMesh = crackMeshRef.current;
+    const crackMaterial = crackMaterialRef.current;
+
+    if (crackMesh && crackMaterial) {
+      if (!breaking.active) {
+        crackMesh.visible = false;
+      } else {
+        crackNormal.set(breaking.nx, breaking.ny, breaking.nz);
+        crackPosition.set(breaking.x + 0.5, breaking.y + 0.5, breaking.z + 0.5)
+          .addScaledVector(crackNormal, 0.507);
+        crackMesh.position.copy(crackPosition);
+        crackQuaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), crackNormal);
+        crackMesh.quaternion.copy(crackQuaternion);
+        crackMesh.visible = true;
+
+        const stage = Math.min(9, Math.floor(breaking.progress * 10));
+        if (crackMaterial.map !== crackTextures[stage]) {
+          crackMaterial.map = crackTextures[stage];
+          crackMaterial.needsUpdate = true;
+        }
+      }
+    }
 
     for (const key of worldManager.dirtyChunks) {
       const [cxStr, czStr] = key.split(',');
@@ -200,8 +289,30 @@ export default function World({ playerChunkRef, viewDistance }: WorldProps) {
     return () => {
       opaqueMat.current.dispose();
       transparentMat.current.dispose();
+      crackGeometry.dispose();
+      crackMaterialRef.current?.dispose();
+      crackTextures.forEach(texture => texture.dispose());
     };
-  }, []);
+  }, [crackGeometry, crackTextures]);
 
-  return <group ref={groupRef} />;
+  return (
+    <>
+      <group ref={groupRef} />
+      <mesh
+        ref={crackMeshRef}
+        visible={false}
+        renderOrder={1000}
+        geometry={crackGeometry}
+      >
+        <meshBasicMaterial
+          ref={crackMaterialRef}
+          transparent
+          depthTest={false}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+          opacity={0.95}
+        />
+      </mesh>
+    </>
+  );
 }

@@ -7,6 +7,7 @@ import { worldManager, CHUNK_SIZE } from './worldGen';
 import { BlockType, isSolid } from './blocks';
 import { raycastMobs, damageMob } from './mobSystem';
 import type { TouchState } from './TouchControls';
+import type { BreakingState } from './World';
 
 const SPEED          = 5;
 const CREATIVE_SPEED = 8;
@@ -30,6 +31,7 @@ interface PlayerProps {
     pos: THREE.Vector3;
   }) => void;
   touchRef:       React.MutableRefObject<TouchState>;
+  breakingRef:    React.MutableRefObject<BreakingState>;
   externalSlot:   number;
   externalHotbar: BlockType[];
   canPlace:       (type: BlockType) => boolean;
@@ -80,6 +82,7 @@ function castRay(origin: THREE.Vector3, dir: THREE.Vector3, maxD: number) {
 export default function Player({
   mode, setMode, playerChunkRef, onStateChange,
   touchRef, externalSlot, externalHotbar,
+  breakingRef,
   canPlace, onBlockBreak, onBlockPlace, onChestOpen, onCraftingTableOpen,
   isDead = false, respawnTrigger = 0,
 }: PlayerProps) {
@@ -205,7 +208,10 @@ export default function Player({
   }, []);
 
   useFrame((_, delta) => {
-    if (isDeadRef.current) return;
+    if (isDeadRef.current) {
+      breakingRef.current.active = false;
+      return;
+    }
 
     // Teleport command from 
 
@@ -294,6 +300,7 @@ export default function Player({
 
     const doBreak = lmbDown.current || t.doBreak;
     const doPlace = rmbDown.current || t.doPlace;
+    if (!doBreak || curMode !== 'SURVIVAL') breakingRef.current.active = false;
 
     if (locked || doBreak || doPlace) {
       camera.getWorldDirection(dir3.current);
@@ -305,6 +312,7 @@ export default function Player({
         : null;
 
       if (mobHit && (!ray.hit || mobHit.dist < ray.dist)) {
+        breakingRef.current.active = false;
         if (doBreak) {
           const now = Date.now();
           if (now - lastHit.current > 400) {
@@ -317,6 +325,7 @@ export default function Player({
           const now = Date.now();
           const hp  = ray.hitPos;
           if (curMode === 'CREATIVE') {
+            breakingRef.current.active = false;
             if (now - breakStart.current > 200) {
               worldManager.setBlock(hp.x, hp.y, hp.z, BlockType.AIR);
               breakStart.current = now;
@@ -324,14 +333,28 @@ export default function Player({
           } else {
             const samePos = breakPos.current?.equals(hp);
             if (!samePos) { breakPos.current = hp.clone(); breakStart.current = now; }
+            if (ray.normal) {
+              breakingRef.current.active = true;
+              breakingRef.current.x = hp.x;
+              breakingRef.current.y = hp.y;
+              breakingRef.current.z = hp.z;
+              breakingRef.current.nx = ray.normal.x;
+              breakingRef.current.ny = ray.normal.y;
+              breakingRef.current.nz = ray.normal.z;
+              breakingRef.current.progress = Math.min(1, Math.max(0, (now - breakStart.current) / BREAK_TIME_MS));
+            }
             if (now - breakStart.current >= BREAK_TIME_MS) {
               const blockType = worldManager.getBlock(hp.x, hp.y, hp.z);
               worldManager.setBlock(hp.x, hp.y, hp.z, BlockType.AIR);
               onBlockBreak(blockType, new THREE.Vector3(hp.x + 0.5, hp.y + 0.5, hp.z + 0.5));
               breakPos.current = null; breakStart.current = 0;
+              breakingRef.current.active = false;
             }
           }
-        } else { breakPos.current = null; breakStart.current = 0; }
+        } else {
+          breakPos.current = null; breakStart.current = 0;
+          breakingRef.current.active = false;
+        }
 
         if (doPlace && ray.hitPos) {
           const hitBlock = worldManager.getBlock(ray.hitPos.x, ray.hitPos.y, ray.hitPos.z);
@@ -365,7 +388,10 @@ export default function Player({
             }
           }
         }
-      } else { breakPos.current = null; breakStart.current = 0; }
+      } else {
+        breakPos.current = null; breakStart.current = 0;
+        breakingRef.current.active = false;
+      }
     }
 
     stateT.current += dt;
