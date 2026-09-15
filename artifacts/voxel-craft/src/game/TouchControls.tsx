@@ -100,11 +100,6 @@ export default function TouchControls({ stateRef }: Props) {
           }, LONG_PRESS_MS);
         }
 
-        // A touch on the right side also controls the camera while it moves.
-        if (t.clientX >= window.innerWidth * 0.38 && lookTouchId.current === null) {
-          lookTouchId.current = t.identifier;
-          lookPrev.current = { x: t.clientX, y: t.clientY };
-        }
       }
     };
 
@@ -121,6 +116,13 @@ export default function TouchControls({ stateRef }: Props) {
               actionTimer.current = null;
             }
             stateRef.current.doBreak = false;
+
+            // Do not let a stationary action touch move the camera. Promote
+            // it to a look gesture only after the finger clearly moves.
+            if (t.clientX >= window.innerWidth * 0.38 && lookTouchId.current === null) {
+              lookTouchId.current = t.identifier;
+              lookPrev.current = { x: t.clientX, y: t.clientY };
+            }
           }
         }
         if (t.identifier !== lookTouchId.current) continue;
