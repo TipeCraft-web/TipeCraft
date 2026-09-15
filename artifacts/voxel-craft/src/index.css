@@ -12,6 +12,18 @@ body, html {
   -webkit-touch-callout: none;
 }
 
+.game-shell {
+  width: 100vw;
+  height: 100vh;
+  /*
+   * Mobile browsers may keep the address bar inside 100vh. Dynamic viewport
+   * height keeps the game inside the actually visible area, with a small
+   * bottom buffer for browser chrome and home indicators.
+   */
+  height: calc(100vh - 8px);
+  height: calc(100dvh - env(safe-area-inset-bottom, 0px) - 8px);
+}
+
 .text-shadow-sm {
   text-shadow: 1px 1px 0px rgba(0,0,0,0.8);
 }

@@ -262,10 +262,11 @@ export default function Game() {
 
   return (
     <div
+      className="game-shell"
       onContextMenu={e => e.preventDefault()}
       onDragStart={e => e.preventDefault()}
       style={{
-        width:'100vw', height:'100vh', overflow:'hidden', background:'#000', position:'relative',
+        overflow:'hidden', background:'#000', position:'relative',
         userSelect:'none', WebkitUserSelect:'none', WebkitTouchCallout:'none',
       }}
     >
