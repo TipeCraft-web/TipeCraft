@@ -5,7 +5,6 @@ import { worldManager, CHUNK_SIZE, WORLD_MAX_Y, getChunkKey } from './worldGen';
 import { BlockType, isSolid, isTransparent } from './blocks';
 import { getAtlas, blockUV } from './textures';
 
-const VIEW_DISTANCE = 4;
 const MAX_CHUNKS_PER_FRAME = 1;
 
 const FACES: { dir: [number,number,number]; corners: [number,number,number][]; light: number }[] = [
@@ -120,9 +119,10 @@ interface ChunkEntry { opaque: THREE.Mesh | null; transparent: THREE.Mesh | null
 
 interface WorldProps {
   playerChunkRef: React.MutableRefObject<{ x: number; z: number }>;
+  viewDistance: number;
 }
 
-export default function World({ playerChunkRef }: WorldProps) {
+export default function World({ playerChunkRef, viewDistance }: WorldProps) {
   const groupRef = useRef<THREE.Group>(null);
   const chunkMap = useRef<Map<string, ChunkEntry>>(new Map());
 
@@ -179,8 +179,8 @@ export default function World({ playerChunkRef }: WorldProps) {
     worldManager.dirtyChunks.clear();
 
     let built = 0;
-    for (let dx = -VIEW_DISTANCE; dx <= VIEW_DISTANCE && built < MAX_CHUNKS_PER_FRAME; dx++) {
-      for (let dz = -VIEW_DISTANCE; dz <= VIEW_DISTANCE && built < MAX_CHUNKS_PER_FRAME; dz++) {
+    for (let dx = -viewDistance; dx <= viewDistance && built < MAX_CHUNKS_PER_FRAME; dx++) {
+      for (let dz = -viewDistance; dz <= viewDistance && built < MAX_CHUNKS_PER_FRAME; dz++) {
         const cx = pcx + dx, cz = pcz + dz;
         const key = getChunkKey(cx, cz);
         if (!chunkMap.current.has(key)) { addChunk(cx, cz); built++; }
@@ -190,7 +190,7 @@ export default function World({ playerChunkRef }: WorldProps) {
     for (const key of Array.from(chunkMap.current.keys())) {
       const [cxStr, czStr] = key.split(',');
       const cx = parseInt(cxStr), cz = parseInt(czStr);
-      if (Math.abs(cx - pcx) > VIEW_DISTANCE + 1 || Math.abs(cz - pcz) > VIEW_DISTANCE + 1) {
+      if (Math.abs(cx - pcx) > viewDistance + 1 || Math.abs(cz - pcz) > viewDistance + 1) {
         removeChunk(key);
       }
     }
