@@ -7,7 +7,7 @@ interface Props {
   dayTimeRef:   React.MutableRefObject<number>;
 }
 
-const DAY_SPEED = 1 / 300;  // full cycle in 300 seconds (5 minutes)
+const DAY_SPEED = 1 / 1200;  // full cycle in 300 seconds (5 minutes)
 
 const SKY_NIGHT   = new THREE.Color(0x060818);
 const SKY_DAWN    = new THREE.Color(0xff7744);
