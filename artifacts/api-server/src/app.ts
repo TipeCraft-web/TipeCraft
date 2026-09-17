@@ -33,6 +33,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public"))); 
 app.use("/api", router);
+// Sende die Sitemap direkt als Text, unabhängig von der Ordnerstruktur
+app.get("/sitemap.xml", (req, res) => {
+  res.header("Content-Type", "application/xml");
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://sitemaps.org">
+   <url>
+      <loc>https://replit.app</loc>
+      <lastmod>2026-09-17</lastmod>
+      <changefreq>weekly</changefreq>
+      <priority>1.0</priority>
+   </url>
+</urlset>`);
+});
+
+// Deine bestehende Zeile:
+app.use("/api", router);
+
 
 app.use("/api", router);
 
