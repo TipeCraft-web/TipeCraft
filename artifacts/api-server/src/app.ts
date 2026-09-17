@@ -6,12 +6,20 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
-import path from 'path';
-
-// Platziere diesen Block ganz oben, BEVOR die app.use-Befehle kommen:
+// DIESER CODE KOMMT GANZ NACH OBEN (direkt unter const app = express();)
 app.get('/sitemap.xml', (req, res) => {
+  // Wir senden den XML-Inhalt direkt als reinen Text aus dem Code heraus!
+  const xmlSitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://sitemaps.org">
+  <url>
+    <loc>https://${req.get('host')}/</loc>
+    <changefreq>wöchentlich</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>`;
+
   res.header('Content-Type', 'application/xml');
-  res.sendFile(path.join(__dirname, 'public', 'sitemap.xml'));
+  res.send(xmlSitemap);
 });
 
 app.use(
