@@ -8,6 +8,13 @@ import path from "path";
 
 const app: Express = express();
 
+// 1. DIESEN BLOCK GANZ NACH OBEN SETZEN!
+app.get("/sitemap.xml", (_req, res) => {
+  res.header("Content-Type", "application/xml");
+  res.send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://sitemaps.org"><url><loc>https://replit.app</loc><lastmod>2026-09-17</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url></urlset>');
+});
+
+
 
 app.use(
   pinoHttp({
