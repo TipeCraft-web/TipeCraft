@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { worldManager, CHUNK_SIZE, WORLD_MAX_Y, getChunkKey } from './worldGen';
@@ -176,9 +176,10 @@ interface WorldProps {
   playerChunkRef: React.MutableRefObject<{ x: number; z: number }>;
   viewDistance: number;
   breakingRef: React.MutableRefObject<BreakingState>;
+  worldRevision: number;
 }
 
-export default function World({ playerChunkRef, viewDistance, breakingRef }: WorldProps) {
+export default function World({ playerChunkRef, viewDistance, breakingRef, worldRevision }: WorldProps) {
   const groupRef = useRef<THREE.Group>(null);
   const chunkMap = useRef<Map<string, ChunkEntry>>(new Map());
   const crackMeshRef = useRef<THREE.Mesh>(null);
@@ -232,6 +233,10 @@ export default function World({ playerChunkRef, viewDistance, breakingRef }: Wor
     if (entry.transparent) { groupRef.current.remove(entry.transparent); entry.transparent.geometry.dispose(); }
     chunkMap.current.delete(key);
   }
+
+  useLayoutEffect(() => {
+    for (const key of Array.from(chunkMap.current.keys())) removeChunk(key);
+  }, [worldRevision]);
 
   useFrame(() => {
     if (!groupRef.current) return;

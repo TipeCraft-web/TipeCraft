@@ -10,6 +10,8 @@ export const WORLD_HEIGHT = WORLD_MAX_Y - WORLD_MIN_Y + 1;
 export const DEFAULT_CHUNK_RENDER_MIN_Y = -48;
 export const SEA_LEVEL = 6;
 
+export type WorldType = 'normal' | 'superflat';
+
 export type ChunkData = Uint8Array;
 
 export function getChunkKey(cx: number, cz: number): string { return `${cx},${cz}`; }
@@ -80,8 +82,19 @@ const BIOME_STRUCTURES: Record<Biome, StructureKey[]> = {
   [Biome.MESA]:      ['MESA_RUIN','STONE_CIRCLE','BLACKSTONE_FORT','NETHER_SHRINE'],
 };
 
-function generateChunk(cx: number, cz: number): ChunkData {
+function generateChunk(cx: number, cz: number, worldType: WorldType): ChunkData {
   const data = new Uint8Array(CHUNK_SIZE * WORLD_HEIGHT * CHUNK_SIZE);
+
+  if (worldType === 'superflat') {
+    for (let lx = 0; lx < CHUNK_SIZE; lx++) {
+      for (let lz = 0; lz < CHUNK_SIZE; lz++) {
+        for (let y = WORLD_MIN_Y; y <= 0; y++) {
+          data[blockIndex(lx, y, lz)] = BlockType.GRASS;
+        }
+      }
+    }
+    return data;
+  }
 
   // Determine the dominant biome for this chunk (center point)
   const chunkCenterX = cx * CHUNK_SIZE + CHUNK_SIZE / 2;
@@ -204,7 +217,15 @@ function generateChunk(cx: number, cz: number): ChunkData {
 class WorldManager {
   chunks = new Map<string, ChunkData>();
   dirtyChunks = new Set<string>();
+  worldType: WorldType = 'normal';
   private chunkRenderMinY = new Map<string, number>();
+
+  resetWorld(worldType: WorldType): void {
+    this.worldType = worldType;
+    this.chunks.clear();
+    this.dirtyChunks.clear();
+    this.chunkRenderMinY.clear();
+  }
 
   getChunkRenderMinY(cx: number, cz: number): number {
     return this.chunkRenderMinY.get(getChunkKey(cx, cz)) ?? DEFAULT_CHUNK_RENDER_MIN_Y;
@@ -220,7 +241,7 @@ class WorldManager {
   getOrGenerateChunk(cx: number, cz: number): ChunkData {
     const key = getChunkKey(cx, cz);
     let chunk = this.chunks.get(key);
-    if (!chunk) { chunk = generateChunk(cx, cz); this.chunks.set(key, chunk); }
+    if (!chunk) { chunk = generateChunk(cx, cz, this.worldType); this.chunks.set(key, chunk); }
     return chunk;
   }
 

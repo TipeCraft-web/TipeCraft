@@ -3,6 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { KeyboardControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { BlockType, HOTBAR_CREATIVE } from './blocks';
+import { worldManager, type WorldType } from './worldGen';
 import World, { type BreakingState } from './World';
 import Player from './Player';
 import Animals from './Animals';
@@ -62,6 +63,10 @@ interface UIState {
 
 export default function Game() {
   const [optionsOpen,    setOptionsOpen    ] = useState(false);
+  const [singlePlayerMenuOpen, setSinglePlayerMenuOpen] = useState(false);
+  const [selectedGameMode, setSelectedGameMode] = useState<'CREATIVE' | 'SURVIVAL'>('CREATIVE');
+  const [selectedWorldType, setSelectedWorldType] = useState<WorldType>('normal');
+  const [worldRevision, setWorldRevision] = useState(0);
   const [viewDistance,   setViewDistance   ] = useState(8);
   const [fogEnabled,     setFogEnabled     ] = useState(true);
   const [started,        setStarted]        = useState(false);
@@ -161,6 +166,29 @@ export default function Game() {
       counts: {},
     }));
   }, []);
+
+  const handleCreateWorld = useCallback(() => {
+    worldManager.resetWorld(selectedWorldType);
+    setWorldRevision(revision => revision + 1);
+    playerChunkRef.current = { x: 0, z: 0 };
+    breakingRef.current.active = false;
+    countsRef.current = {};
+    chestsRef.current.clear();
+    nextDropIdRef.current = 1;
+    setDrops([]);
+    setDead(false);
+    setUiState(prev => ({
+      ...prev,
+      health: 20,
+      hunger: 20,
+      mode: selectedGameMode,
+      hotbar: selectedGameMode === 'CREATIVE' ? [...HOTBAR_CREATIVE] : [...SURVIVAL_HOTBAR],
+      selectedSlot: 0,
+      counts: {},
+    }));
+    setSinglePlayerMenuOpen(false);
+    setStarted(true);
+  }, [selectedGameMode, selectedWorldType]);
 
   const canPlace    = useCallback((type: BlockType) => (countsRef.current[type] || 0) > 0, []);
 
@@ -292,14 +320,14 @@ export default function Game() {
           <div style={{ fontSize:13, color:'#f0f0f0', textShadow:'1px 2px 0 #000', marginBottom:28, letterSpacing:1, textAlign:'center' }}>
             226 Blöcke · 10 Biome · Crafting · Mobs · Tag/Nacht · Chat
           </div>
-          {!optionsOpen ? (
+          {!optionsOpen && !singlePlayerMenuOpen ? (
             <>
               <div style={{ display:'flex', flexDirection:'column', gap:10, width:'min(270px, 84vw)' }}>
                 <button
                   type="button"
                   data-touch-btn="1"
-                  onClick={() => setStarted(true)}
-                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setStarted(true); }}
+                  onClick={() => setSinglePlayerMenuOpen(true)}
+                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setSinglePlayerMenuOpen(true); }}
                   style={{
                     background:'rgba(35,35,35,0.88)', border:'2px solid #f1f1f1',
                     color:'#fff', padding:'12px 20px', fontSize:17, letterSpacing:2,
@@ -336,7 +364,7 @@ export default function Game() {
                 LMB — Abbauen &nbsp;|&nbsp; RMB — Platzieren / Truhe öffnen &nbsp;|&nbsp; 1–9 — Hotbar
               </div>
             </>
-          ) : (
+          ) : optionsOpen ? (
             <div
               data-no-look="1"
               onClick={e => e.stopPropagation()}
@@ -398,6 +426,98 @@ export default function Game() {
                   fontFamily:'"Courier New", monospace', cursor:'pointer',
                 }}
               >ZURÜCK</button>
+            </div>
+          ) : (
+            <div
+              data-no-look="1"
+              onClick={e => e.stopPropagation()}
+              onTouchStart={e => e.stopPropagation()}
+              style={{
+                width:'min(430px, 92vw)', padding:22, boxSizing:'border-box',
+                background:'rgba(30,30,30,0.94)', border:'2px solid #eee',
+                boxShadow:'0 4px 0 rgba(0,0,0,0.7)', color:'#fff',
+                maxHeight:'calc(100dvh - 36px)', overflowY:'auto',
+              }}
+            >
+              <div style={{ fontSize:22, letterSpacing:2, textAlign:'center', marginBottom:22 }}>
+                NEUE WELT
+              </div>
+
+              <div style={{ fontSize:13, letterSpacing:1, marginBottom:9 }}>SPIELMODUS</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:9, marginBottom:20 }}>
+                {(['CREATIVE', 'SURVIVAL'] as const).map(gameMode => {
+                  const active = selectedGameMode === gameMode;
+                  return (
+                    <button
+                      key={gameMode}
+                      type="button"
+                      data-touch-btn="1"
+                      aria-pressed={active}
+                      onClick={() => setSelectedGameMode(gameMode)}
+                      onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setSelectedGameMode(gameMode); }}
+                      style={{
+                        background:active ? 'rgba(91,142,75,0.95)' : 'rgba(45,45,45,0.92)',
+                        border:`2px solid ${active ? '#d8ffb0' : '#aaa'}`,
+                        color:'#fff', padding:'11px 8px', fontSize:13, letterSpacing:1,
+                        fontFamily:'"Courier New", monospace', cursor:'pointer',
+                      }}
+                    >{gameMode === 'CREATIVE' ? 'KREATIV' : 'SURVIVAL'}</button>
+                  );
+                })}
+              </div>
+
+              <div style={{ fontSize:13, letterSpacing:1, marginBottom:9 }}>WELTTYP</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:9, marginBottom:22 }}>
+                {([
+                  { type:'normal' as const, label:'NORMAL', description:'Biom, Berge und Landschaften' },
+                  { type:'superflat' as const, label:'SUPERFLACH', description:'Komplett flache Graswelt' },
+                ]).map(world => {
+                  const active = selectedWorldType === world.type;
+                  return (
+                    <button
+                      key={world.type}
+                      type="button"
+                      data-touch-btn="1"
+                      aria-pressed={active}
+                      onClick={() => setSelectedWorldType(world.type)}
+                      onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setSelectedWorldType(world.type); }}
+                      style={{
+                        minHeight:76, background:active ? 'rgba(91,142,75,0.95)' : 'rgba(45,45,45,0.92)',
+                        border:`2px solid ${active ? '#d8ffb0' : '#aaa'}`,
+                        color:'#fff', padding:'9px 7px', fontFamily:'"Courier New", monospace', cursor:'pointer',
+                      }}
+                    >
+                      <span style={{ display:'block', fontSize:13, letterSpacing:1, marginBottom:5 }}>{world.label}</span>
+                      <span style={{ display:'block', fontSize:10, lineHeight:1.35, color:'#ddd' }}>{world.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:9 }}>
+                <button
+                  type="button"
+                  data-touch-btn="1"
+                  onClick={() => setSinglePlayerMenuOpen(false)}
+                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setSinglePlayerMenuOpen(false); }}
+                  style={{
+                    background:'rgba(55,55,55,0.95)', border:'2px solid #ddd',
+                    color:'#fff', padding:'11px 8px', fontSize:13, letterSpacing:1,
+                    fontFamily:'"Courier New", monospace', cursor:'pointer',
+                  }}
+                >ZURÜCK</button>
+                <button
+                  type="button"
+                  data-touch-btn="1"
+                  onClick={handleCreateWorld}
+                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); handleCreateWorld(); }}
+                  style={{
+                    background:'rgba(75,130,60,0.96)', border:'2px solid #efffdc',
+                    color:'#fff', padding:'11px 8px', fontSize:13, letterSpacing:1,
+                    fontFamily:'"Courier New", monospace', cursor:'pointer',
+                  }}
+                >WELT ERSTELLEN</button>
+              </div>
             </div>
           )}
         </div>
@@ -523,7 +643,12 @@ export default function Game() {
           {fogEnabled && <fog attach="fog" args={['#9dcde8', Math.max(16, viewDistance * 16 - 64), viewDistance * 16 + 16]} />}
 
           <DayNight playerPosRef={playerPosRef} dayTimeRef={dayTimeRef} />
-          <World playerChunkRef={playerChunkRef} viewDistance={viewDistance} breakingRef={breakingRef} />
+          <World
+            playerChunkRef={playerChunkRef}
+            viewDistance={viewDistance}
+            breakingRef={breakingRef}
+            worldRevision={worldRevision}
+          />
           <ItemDrops drops={drops} playerPosRef={playerPosRef} onCollect={onCollectDrop} />
           <Animals />
 
