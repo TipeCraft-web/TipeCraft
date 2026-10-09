@@ -17,7 +17,7 @@ import ChestUI from './ChestUI';
 import Chat from './Chat';
 import ItemDrops, { type DroppedItem } from './ItemDrops';
 import CraftingTable from './CraftingTable';
-import startBackgroundUrl from '@assets/image_1789386720465.jpeg';
+import startBackgroundUrl from '@assets/IMG_1402_1791524151994.jpeg';
 
 export enum Controls {
   forward = 'forward',
@@ -70,6 +70,8 @@ export default function Game() {
   const [viewDistance,   setViewDistance   ] = useState(8);
   const [fogEnabled,     setFogEnabled     ] = useState(true);
   const [started,        setStarted]        = useState(false);
+  const [worldLoading, setWorldLoading] = useState(false);
+  const [worldLoadProgress, setWorldLoadProgress] = useState(0);
   const [craftingOpen,   setCraftingOpen]   = useState(false);
   const [inventoryOpen,  setInventoryOpen]  = useState(false);
   const [dead,           setDead]           = useState(false);
@@ -167,6 +169,17 @@ export default function Game() {
     }));
   }, []);
 
+  const handleWorldLoadProgress = useCallback((loadedChunks: number, totalChunks: number) => {
+    const progress = Math.floor((loadedChunks / totalChunks) * 100);
+    setWorldLoadProgress(previous => Math.max(previous, progress));
+  }, []);
+
+  const handleWorldReady = useCallback(() => {
+    setWorldLoadProgress(100);
+    setWorldLoading(false);
+    setStarted(true);
+  }, []);
+
   const handleCreateWorld = useCallback(() => {
     worldManager.resetWorld(selectedWorldType);
     setWorldRevision(revision => revision + 1);
@@ -177,6 +190,8 @@ export default function Game() {
     nextDropIdRef.current = 1;
     setDrops([]);
     setDead(false);
+    setWorldLoadProgress(0);
+    setWorldLoading(true);
     setUiState(prev => ({
       ...prev,
       health: 20,
@@ -187,7 +202,6 @@ export default function Game() {
       counts: {},
     }));
     setSinglePlayerMenuOpen(false);
-    setStarted(true);
   }, [selectedGameMode, selectedWorldType]);
 
   const canPlace    = useCallback((type: BlockType) => (countsRef.current[type] || 0) > 0, []);
@@ -304,7 +318,7 @@ export default function Game() {
     >
 
       {/* ── Start screen ─────────────────────────────────────── */}
-      {!started && (
+      {(!started || worldLoading) && (
         <div data-no-look="1" style={{
           position:'absolute', inset:0, zIndex:100,
           backgroundImage:`linear-gradient(180deg, rgba(8,16,28,0.1) 0%, rgba(8,12,20,0.58) 100%), url(${startBackgroundUrl})`,
@@ -318,9 +332,39 @@ export default function Game() {
              TipeCraft
           </div>
           <div style={{ fontSize:13, color:'#f0f0f0', textShadow:'1px 2px 0 #000', marginBottom:28, letterSpacing:1, textAlign:'center' }}>
-            226 Blöcke · 10 Biome · Crafting · Mobs · Tag/Nacht · Chat
+            {worldLoading ? 'Deine Welt wird vorbereitet …' : '226 Blöcke · 10 Biome · Crafting · Mobs · Tag/Nacht · Chat'}
           </div>
-          {!optionsOpen && !singlePlayerMenuOpen ? (
+          {worldLoading ? (
+            <div
+              role="status"
+              aria-live="polite"
+              style={{ width:'min(360px, 84vw)', textAlign:'center' }}
+            >
+              <div style={{ fontSize:16, letterSpacing:2, marginBottom:12 }}>WELT WIRD GELADEN</div>
+              <div
+                role="progressbar"
+                aria-label="Welt wird geladen"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={worldLoadProgress}
+                style={{
+                  width:'100%', height:22, padding:3, boxSizing:'border-box',
+                  background:'rgba(0,0,0,0.72)', border:'2px solid #f1f1f1',
+                  boxShadow:'0 3px 0 rgba(0,0,0,0.65)',
+                }}
+              >
+                <div style={{
+                  width:`${worldLoadProgress}%`, height:'100%',
+                  minWidth:worldLoadProgress > 0 ? 3 : 0,
+                  background:'linear-gradient(90deg, #72bb45, #c2ef67)',
+                  transition:'width 120ms linear',
+                }} />
+              </div>
+              <div style={{ marginTop:9, fontSize:12, textShadow:'1px 2px 0 #000' }}>
+                {worldLoadProgress}%
+              </div>
+            </div>
+          ) : !optionsOpen && !singlePlayerMenuOpen ? (
             <>
               <div style={{ display:'flex', flexDirection:'column', gap:10, width:'min(270px, 84vw)' }}>
                 <button
@@ -648,6 +692,9 @@ export default function Game() {
             viewDistance={viewDistance}
             breakingRef={breakingRef}
             worldRevision={worldRevision}
+            isWorldLoading={worldLoading}
+            onWorldLoadProgress={handleWorldLoadProgress}
+            onWorldReady={handleWorldReady}
           />
           <ItemDrops drops={drops} playerPosRef={playerPosRef} onCollect={onCollectDrop} />
           <Animals />

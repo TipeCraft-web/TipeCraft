@@ -177,11 +177,24 @@ interface WorldProps {
   viewDistance: number;
   breakingRef: React.MutableRefObject<BreakingState>;
   worldRevision: number;
+  isWorldLoading: boolean;
+  onWorldLoadProgress: (loadedChunks: number, totalChunks: number) => void;
+  onWorldReady: () => void;
 }
 
-export default function World({ playerChunkRef, viewDistance, breakingRef, worldRevision }: WorldProps) {
+export default function World({
+  playerChunkRef,
+  viewDistance,
+  breakingRef,
+  worldRevision,
+  isWorldLoading,
+  onWorldLoadProgress,
+  onWorldReady,
+}: WorldProps) {
   const groupRef = useRef<THREE.Group>(null);
   const chunkMap = useRef<Map<string, ChunkEntry>>(new Map());
+  const lastLoadProgressRef = useRef(-1);
+  const readyWorldRevisionRef = useRef(-1);
   const crackMeshRef = useRef<THREE.Mesh>(null);
   const crackMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const crackTextures = useMemo(
@@ -236,6 +249,8 @@ export default function World({ playerChunkRef, viewDistance, breakingRef, world
 
   useLayoutEffect(() => {
     for (const key of Array.from(chunkMap.current.keys())) removeChunk(key);
+    lastLoadProgressRef.current = -1;
+    readyWorldRevisionRef.current = -1;
   }, [worldRevision]);
 
   useFrame(() => {
@@ -286,6 +301,27 @@ export default function World({ playerChunkRef, viewDistance, breakingRef, world
       const cx = parseInt(cxStr), cz = parseInt(czStr);
       if (Math.abs(cx - pcx) > viewDistance + 1 || Math.abs(cz - pcz) > viewDistance + 1) {
         removeChunk(key);
+      }
+    }
+
+    if (isWorldLoading) {
+      const totalChunks = (viewDistance * 2 + 1) ** 2;
+      let loadedChunks = 0;
+      for (let dx = -viewDistance; dx <= viewDistance; dx++) {
+        for (let dz = -viewDistance; dz <= viewDistance; dz++) {
+          if (chunkMap.current.has(getChunkKey(pcx + dx, pcz + dz))) loadedChunks++;
+        }
+      }
+
+      const progress = Math.floor((loadedChunks / totalChunks) * 100);
+      if (progress !== lastLoadProgressRef.current) {
+        lastLoadProgressRef.current = progress;
+        onWorldLoadProgress(loadedChunks, totalChunks);
+      }
+
+      if (loadedChunks === totalChunks && readyWorldRevisionRef.current !== worldRevision) {
+        readyWorldRevisionRef.current = worldRevision;
+        onWorldReady();
       }
     }
   });
