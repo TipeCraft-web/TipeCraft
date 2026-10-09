@@ -4,6 +4,7 @@ import { KeyboardControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { BlockType, HOTBAR_CREATIVE } from './blocks';
 import { worldManager, type WorldType } from './worldGen';
+import GameOptionsPanel from './GameOptionsPanel';
 import World, { type BreakingState } from './World';
 import Player from './Player';
 import Animals from './Animals';
@@ -72,6 +73,7 @@ export default function Game() {
   const [started,        setStarted]        = useState(false);
   const [worldLoading, setWorldLoading] = useState(false);
   const [worldLoadProgress, setWorldLoadProgress] = useState(0);
+  const [gamePaused, setGamePaused] = useState(false);
   const [craftingOpen,   setCraftingOpen]   = useState(false);
   const [inventoryOpen,  setInventoryOpen]  = useState(false);
   const [dead,           setDead]           = useState(false);
@@ -102,6 +104,37 @@ export default function Game() {
   const tpRef          = useRef<{ x: number; y: number; z: number } | null>(null);
   const dayTimeRef     = useRef<number>(0.5);
 
+  const handlePauseGame = useCallback(() => {
+    setGamePaused(true);
+    setOptionsOpen(false);
+    setCraftingOpen(false);
+    setInventoryOpen(false);
+    setOpenChest(null);
+    setOpenCraftingTable(null);
+    touchRef.current = createTouchState();
+    breakingRef.current.active = false;
+    document.exitPointerLock?.();
+  }, []);
+
+  const handleResumeGame = useCallback(() => {
+    setGamePaused(false);
+    setOptionsOpen(false);
+  }, []);
+
+  const handleReturnToTitle = useCallback(() => {
+    setGamePaused(false);
+    setStarted(false);
+    setOptionsOpen(false);
+    setSinglePlayerMenuOpen(false);
+    setCraftingOpen(false);
+    setInventoryOpen(false);
+    setOpenChest(null);
+    setOpenCraftingTable(null);
+    touchRef.current = createTouchState();
+    breakingRef.current.active = false;
+    document.exitPointerLock?.();
+  }, []);
+
   // Death detection
   useEffect(() => {
     if (uiState.mode === 'SURVIVAL' && uiState.health <= 0 && !dead && started) {
@@ -117,6 +150,15 @@ export default function Game() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!started || dead) return;
+      if (e.code === 'Tab') {
+        e.preventDefault();
+        if (e.repeat) return;
+        if (gamePaused) handleResumeGame();
+        else handlePauseGame();
+        return;
+      }
+      if (gamePaused) return;
+
       // Don't intercept T (chat uses it) or when typing in an input
       const target = e.target as HTMLElement;
       const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
@@ -124,19 +166,10 @@ export default function Game() {
       if (e.code === 'KeyE') { e.preventDefault(); setCraftingOpen(o => !o); setInventoryOpen(false); }
       if (e.code === 'KeyI') { e.preventDefault(); setInventoryOpen(o => !o); setCraftingOpen(false); }
       if (e.code === 'Escape') { setCraftingOpen(false); setInventoryOpen(false); setOpenChest(null); setOpenCraftingTable(null); }
-      if (e.code === 'Tab') {
-        e.preventDefault();
-        countsRef.current = {};
-        setDrops([]);
-        setUiState(prev => {
-          const newMode = prev.mode === 'CREATIVE' ? 'SURVIVAL' : 'CREATIVE';
-          return { ...prev, mode: newMode, hotbar: newMode === 'CREATIVE' ? [...HOTBAR_CREATIVE] : [...SURVIVAL_HOTBAR], counts: {} };
-        });
-      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [started, dead]);
+  }, [started, dead, gamePaused, handlePauseGame, handleResumeGame]);
 
   const handleStateChange = useCallback((s: {
     health: number; hunger: number;
@@ -409,68 +442,13 @@ export default function Game() {
               </div>
             </>
           ) : optionsOpen ? (
-            <div
-              data-no-look="1"
-              onClick={e => e.stopPropagation()}
-              onTouchStart={e => e.stopPropagation()}
-              style={{
-                width:'min(430px, 92vw)', padding:22, boxSizing:'border-box',
-                background:'rgba(30,30,30,0.92)', border:'2px solid #eee',
-                boxShadow:'0 4px 0 rgba(0,0,0,0.7)', color:'#fff',
-              }}
-            >
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
-                <div style={{ fontSize:22, letterSpacing:2 }}>OPTIONS</div>
-                <button
-                  type="button"
-                  data-touch-btn="1"
-                  onClick={() => setOptionsOpen(false)}
-                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setOptionsOpen(false); }}
-                  style={{ background:'transparent', border:0, color:'#fff', fontSize:22, cursor:'pointer' }}
-                >✕</button>
-              </div>
-              <label style={{ display:'block', fontSize:14, marginBottom:10 }}>
-                Sichtweite: <b>{viewDistance} Chunks</b>
-              </label>
-              <input
-                aria-label="Sichtweite in Chunks"
-                type="range"
-                min={5}
-                max={32}
-                step={1}
-                value={viewDistance}
-                onChange={e => setViewDistance(Number(e.target.value))}
-                style={{ width:'100%', accentColor:'#70d7ff', marginBottom:24 }}
-              />
-              <label style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, fontSize:14, marginBottom:26 }}>
-                <span>Nebel</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={fogEnabled}
-                  data-touch-btn="1"
-                  onClick={() => setFogEnabled(value => !value)}
-                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setFogEnabled(value => !value); }}
-                  style={{
-                    width:70, height:32, borderRadius:16,
-                    border:'2px solid #eee', cursor:'pointer',
-                    background:fogEnabled ? '#5f9fbd' : '#444',
-                    color:'#fff', fontFamily:'"Courier New", monospace',
-                  }}
-                >{fogEnabled ? 'AN' : 'AUS'}</button>
-              </label>
-              <button
-                type="button"
-                data-touch-btn="1"
-                onClick={() => setOptionsOpen(false)}
-                onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setOptionsOpen(false); }}
-                style={{
-                  width:'100%', background:'#555', border:'2px solid #eee',
-                  color:'#fff', padding:'10px', fontSize:14, letterSpacing:1,
-                  fontFamily:'"Courier New", monospace', cursor:'pointer',
-                }}
-              >ZURÜCK</button>
-            </div>
+            <GameOptionsPanel
+              viewDistance={viewDistance}
+              onViewDistanceChange={setViewDistance}
+              fogEnabled={fogEnabled}
+              onFogEnabledChange={setFogEnabled}
+              onBack={() => setOptionsOpen(false)}
+            />
           ) : (
             <div
               data-no-look="1"
@@ -567,6 +545,82 @@ export default function Game() {
         </div>
       )}
 
+      {started && !dead && gamePaused && (
+        <div
+          data-no-look="1"
+          onClick={event => event.stopPropagation()}
+          onTouchStart={event => event.stopPropagation()}
+          style={{
+            position:'absolute', inset:0, zIndex:120, padding:20, boxSizing:'border-box',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            background:'rgba(0,0,0,0.72)', color:'#fff',
+            fontFamily:'"Courier New", monospace', touchAction:'manipulation',
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pause-menu-title"
+            style={{
+              width:'min(380px, 92vw)', padding:22, boxSizing:'border-box',
+              display:'flex', flexDirection:'column', alignItems:'stretch', gap:11,
+              background:'rgba(30,30,30,0.96)', border:'2px solid #eee',
+              boxShadow:'0 4px 0 rgba(0,0,0,0.7)',
+            }}
+          >
+            {optionsOpen ? (
+              <GameOptionsPanel
+                viewDistance={viewDistance}
+                onViewDistanceChange={setViewDistance}
+                fogEnabled={fogEnabled}
+                onFogEnabledChange={setFogEnabled}
+                onBack={() => setOptionsOpen(false)}
+              />
+            ) : (
+              <>
+                <div id="pause-menu-title" style={{ fontSize:22, letterSpacing:2, textAlign:'center', marginBottom:10 }}>
+                  PAUSED
+                </div>
+                <button
+                  type="button"
+                  data-touch-btn="1"
+                  onClick={handleResumeGame}
+                  onTouchStart={event => { event.stopPropagation(); event.preventDefault(); handleResumeGame(); }}
+                  style={{
+                    background:'rgba(75,130,60,0.96)', border:'2px solid #efffdc',
+                    color:'#fff', padding:'12px 10px', fontSize:15, letterSpacing:1,
+                    fontFamily:'"Courier New", monospace', cursor:'pointer',
+                  }}
+                >FORTSETZEN</button>
+                <button
+                  type="button"
+                  data-touch-btn="1"
+                  onClick={() => setOptionsOpen(true)}
+                  onTouchStart={event => { event.stopPropagation(); event.preventDefault(); setOptionsOpen(true); }}
+                  style={{
+                    background:'rgba(55,55,55,0.95)', border:'2px solid #ddd',
+                    color:'#fff', padding:'12px 10px', fontSize:15, letterSpacing:1,
+                    fontFamily:'"Courier New", monospace', cursor:'pointer',
+                  }}
+                >OPTIONS</button>
+                <button
+                  type="button"
+                  data-touch-btn="1"
+                  onClick={handleReturnToTitle}
+                  onTouchStart={event => { event.stopPropagation(); event.preventDefault(); handleReturnToTitle(); }}
+                  style={{
+                    background:'rgba(55,55,55,0.95)', border:'2px solid #aaa',
+                    color:'#fff', padding:'12px 10px', fontSize:13, letterSpacing:1,
+                    fontFamily:'"Courier New", monospace', cursor:'pointer',
+                  }}
+                >TO TITLE-SCREEN</button>
+                <div style={{ marginTop:2, fontSize:11, color:'#ddd', textAlign:'center' }}>TAB — FORTSETZEN</div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Death screen ─────────────────────────────────────── */}
       {dead && (
         <div style={{
@@ -633,6 +687,24 @@ export default function Game() {
           >📦 Bag</div>
         </div>
       )}
+      {started && !dead && !gamePaused && (
+        <button
+          type="button"
+          aria-label="Pausenmenü öffnen"
+          title="Pausenmenü"
+          data-touch-btn="1"
+          onClick={handlePauseGame}
+          onTouchStart={event => { event.stopPropagation(); event.preventDefault(); handlePauseGame(); }}
+          style={{
+            position:'absolute', top:42, right:12, zIndex:35,
+            padding:'7px 11px', borderRadius:8,
+            background:'rgba(30,30,30,0.88)', border:'1px solid rgba(220,220,220,0.72)',
+            boxShadow:'0 2px 5px rgba(0,0,0,0.55)',
+            color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer',
+            fontFamily:'"Courier New", monospace', touchAction:'manipulation',
+          }}
+        >Ⅱ MENU</button>
+      )}
 
       {/* ── Modals ───────────────────────────────────────────── */}
       {craftingOpen && (
@@ -669,11 +741,12 @@ export default function Game() {
       )}
 
       {/* ── Touch controls ───────────────────────────────────── */}
-      {started && <TouchControls stateRef={touchRef} />}
+      {started && !gamePaused && <TouchControls stateRef={touchRef} />}
 
       {/* ── 3D Canvas ────────────────────────────────────────── */}
       <KeyboardControls map={KEY_MAP}>
         <Canvas
+          frameloop={gamePaused || (!started && !worldLoading) ? 'never' : 'always'}
           shadows
           camera={{ fov: 75, near: 0.05, far: Math.max(220, viewDistance * 16 + 64) }}
           gl={{ antialias: false }}

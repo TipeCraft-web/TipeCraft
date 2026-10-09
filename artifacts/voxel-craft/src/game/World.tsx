@@ -5,7 +5,9 @@ import { worldManager, CHUNK_SIZE, WORLD_MAX_Y, getChunkKey } from './worldGen';
 import { BlockType, isSolid, isTransparent } from './blocks';
 import { getAtlas, blockUV } from './textures';
 
-const MAX_CHUNKS_PER_FRAME = 1;
+const MAX_CHUNKS_PER_FRAME = 2;
+const MAX_CHUNKS_PER_LOAD_FRAME = 8;
+const LOAD_FRAME_BUDGET_MS = 28;
 
 export interface BreakingState {
   active: boolean;
@@ -195,6 +197,15 @@ export default function World({
   const chunkMap = useRef<Map<string, ChunkEntry>>(new Map());
   const lastLoadProgressRef = useRef(-1);
   const readyWorldRevisionRef = useRef(-1);
+  const chunkLoadOrder = useMemo(() => {
+    const offsets: { x: number; z: number }[] = [];
+    for (let x = -viewDistance; x <= viewDistance; x++) {
+      for (let z = -viewDistance; z <= viewDistance; z++) offsets.push({ x, z });
+    }
+    return offsets.sort((a, b) =>
+      a.x * a.x + a.z * a.z - b.x * b.x - b.z * b.z || a.x - b.x || a.z - b.z
+    );
+  }, [viewDistance]);
   const crackMeshRef = useRef<THREE.Mesh>(null);
   const crackMaterialRef = useRef<THREE.MeshBasicMaterial>(null);
   const crackTextures = useMemo(
@@ -288,12 +299,15 @@ export default function World({
     worldManager.dirtyChunks.clear();
 
     let built = 0;
-    for (let dx = -viewDistance; dx <= viewDistance && built < MAX_CHUNKS_PER_FRAME; dx++) {
-      for (let dz = -viewDistance; dz <= viewDistance && built < MAX_CHUNKS_PER_FRAME; dz++) {
-        const cx = pcx + dx, cz = pcz + dz;
-        const key = getChunkKey(cx, cz);
-        if (!chunkMap.current.has(key)) { addChunk(cx, cz); built++; }
-      }
+    const buildBudget = isWorldLoading ? MAX_CHUNKS_PER_LOAD_FRAME : MAX_CHUNKS_PER_FRAME;
+    const buildStartedAt = performance.now();
+    for (const offset of chunkLoadOrder) {
+      if (built >= buildBudget) break;
+      if (isWorldLoading && built > 0 && performance.now() - buildStartedAt >= LOAD_FRAME_BUDGET_MS) break;
+
+      const cx = pcx + offset.x, cz = pcz + offset.z;
+      const key = getChunkKey(cx, cz);
+      if (!chunkMap.current.has(key)) { addChunk(cx, cz); built++; }
     }
 
     for (const key of Array.from(chunkMap.current.keys())) {
