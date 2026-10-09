@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useKeyboardControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Controls } from './Game';
-import { worldManager, CHUNK_SIZE } from './worldGen';
+import { worldManager, CHUNK_SIZE, WORLD_MIN_Y } from './worldGen';
 import { BlockType, isSolid } from './blocks';
 import { raycastMobs, damageMob } from './mobSystem';
 import type { TouchState } from './TouchControls';
@@ -41,7 +41,8 @@ interface PlayerProps {
   onCraftingTableOpen?: (x: number, y: number, z: number) => void;
   isDead?:         boolean;
   respawnTrigger?: number;
-  tpRef?:          React.MutableRefObject<{ x: number; y: number; z: number } | null>;
+  tpRef:           React.MutableRefObject<{ x: number; y: number; z: number } | null>;
+  pendingMobDamageRef: React.MutableRefObject<number>;
 }
 
 function collidesAt(pos: THREE.Vector3): boolean {
@@ -84,7 +85,7 @@ export default function Player({
   touchRef, externalSlot, externalHotbar,
   breakingRef,
   canPlace, onBlockBreak, onBlockPlace, onChestOpen, onCraftingTableOpen,
-  isDead = false, respawnTrigger = 0,
+  isDead = false, respawnTrigger = 0, tpRef, pendingMobDamageRef,
 }: PlayerProps) {
   const { camera, gl } = useThree();
   const [, getKeys] = useKeyboardControls<Controls>();
@@ -131,9 +132,10 @@ export default function Player({
     vel.current.set(0, 0, 0);
     health.current = 20;
     hunger.current = 20;
+    pendingMobDamageRef.current = 0;
     breakPos.current = null;
     breakStart.current = 0;
-  }, [respawnTrigger]);
+  }, [respawnTrigger, pendingMobDamageRef]);
 
   useEffect(() => { hotbar.current = [...externalHotbar]; }, [externalHotbar]);
   useEffect(() => { slot.current = externalSlot; }, [externalSlot]);
@@ -221,6 +223,23 @@ export default function Player({
     const locked  = document.pointerLockElement === gl.domElement;
     const curMode = modeRef.current;
 
+    const pendingDamage = pendingMobDamageRef.current;
+    if (pendingDamage > 0) {
+      if (curMode === 'SURVIVAL') health.current = Math.max(0, health.current - pendingDamage);
+      pendingMobDamageRef.current = 0;
+    }
+
+    if (tpRef.current) {
+      const destination = tpRef.current;
+      tpRef.current = null;
+      pos.current.set(destination.x, destination.y, destination.z);
+      vel.current.set(0, 0, 0);
+      grounded.current = false;
+      breakPos.current = null;
+      breakStart.current = 0;
+      breakingRef.current.active = false;
+    }
+
     if (t.lookDx !== 0 || t.lookDy !== 0) {
       yaw.current   -= t.lookDx * 0.004;
       pitch.current -= t.lookDy * 0.004;
@@ -286,7 +305,7 @@ export default function Player({
     tmpPos.current.set(p.x, p.y, p.z + v.z * dt);
     if (!collidesAt(tmpPos.current)) p.z = tmpPos.current.z; else v.z = 0;
 
-    if (p.y < -10) {
+    if (p.y < WORLD_MIN_Y - PLAYER_H) {
       p.set(8, worldManager.getTerrainHeight(8, 8) + 3, 8);
       v.set(0, 0, 0);
       if (curMode === 'SURVIVAL') health.current = Math.max(0, health.current - 4);

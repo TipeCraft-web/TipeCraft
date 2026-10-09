@@ -102,6 +102,7 @@ export default function Game() {
   const chestsRef      = useRef<Map<string, BlockType[]>>(new Map());
   // Shared refs for Chat ↔ Player/DayNight communication
   const tpRef          = useRef<{ x: number; y: number; z: number } | null>(null);
+  const pendingMobDamageRef = useRef(0);
   const dayTimeRef     = useRef<number>(0.5);
 
   const handlePauseGame = useCallback(() => {
@@ -186,11 +187,9 @@ export default function Game() {
   }, []);
 
   const handleMobDamage = useCallback((amount: number) => {
-    setUiState(prev => {
-      if (prev.mode !== 'SURVIVAL') return prev;
-      return { ...prev, health: Math.max(0, prev.health - amount) };
-    });
-  }, []);
+    if (uiState.mode !== 'SURVIVAL' || dead || !started) return;
+    pendingMobDamageRef.current += amount;
+  }, [uiState.mode, dead, started]);
 
   const handleSetMode = useCallback((m: 'CREATIVE' | 'SURVIVAL') => {
     countsRef.current = {};
@@ -219,6 +218,7 @@ export default function Game() {
     playerChunkRef.current = { x: 0, z: 0 };
     breakingRef.current.active = false;
     countsRef.current = {};
+    pendingMobDamageRef.current = 0;
     chestsRef.current.clear();
     nextDropIdRef.current = 1;
     setDrops([]);
@@ -796,6 +796,7 @@ export default function Game() {
                 isDead={dead}
                 respawnTrigger={respawnTrigger}
                 tpRef={tpRef}
+                pendingMobDamageRef={pendingMobDamageRef}
               />
             </>
           )}
