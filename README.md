@@ -19,14 +19,15 @@ The project is cross-platform optimized and runs smoothly in web browsers, as a 
 - **Procedural World Generation:** Endless hills, valleys, and landscapes based on mathematical noise algorithms (perfectly playable up to a limit of 1,250,000 blocks!).
 - **Massive Variety:** Over 226 different blocks and 10 unique biomes to discover.
 - **Living World:** Fully functional day/night cycle, mobs (creatures), and an integrated crafting system.
-- **Custom Save System:** Worlds are saved using a custom-built, highly efficient file format (`.tipeworld`).
-- **Worldborder Safety:** A built-in protective barrier at 1,250,000 blocks protects the game from floating-point graphical glitches (can be disabled in options with a warning note).
+
 - **Cross-Platform:** Optimized controls for keyboard/mouse (PC) and dynamic touch overlays for mobile devices.
 
 ### 🛠️ Roadmap (Upcoming Features)
 - [ ] **User Accounts (Cloud Save):** Optional accounts to save up to 2 worlds in the cloud.
 - [ ] **Real-Time Multiplayer:** Build together with friends using WebSockets.
 - [ ] **Custom Server Hosting:** Connecting to servers via unique `.tc` addresses (using a hybrid hosting model for small and large servers).
+- [ ]  **Custom Save System:** Worlds are saved using a custom-built, highly efficient file format (`.tipeworld`).
+- [ ]   **Worldborder Safety:** A built-in protective barrier at 1,250,000 blocks protects the game from floating-point graphical glitches (can be disabled in options with a warning note).
 
 ### 🎮 Controls
 #### PC (Keyboard & Mouse)
