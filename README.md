@@ -95,4 +95,4 @@ Das bedeutet:
 3. **Weitergabe unter gleichen Bedingungen (SA):** Wenn du den Code veränderst oder Teile davon nutzt, muss dein Projekt genau so kostenlos, werbefrei und Open Source bleiben wie dieses hier.
 
 ---
-*Developed with passion and code. Viel Spass beim Bauen in TipeCraft!*
+*Developed with passion and code. Viel Spass beim Bauen & spielen in TipeCraft!*
