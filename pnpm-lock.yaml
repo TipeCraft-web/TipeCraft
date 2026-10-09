@@ -407,6 +407,9 @@ importers:
       '@react-three/fiber':
         specifier: ^9.6.1
         version: 9.6.1(@types/react@19.2.14)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(three@0.184.0)
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
       simplex-noise:
         specifier: ^4.0.3
         version: 4.0.3

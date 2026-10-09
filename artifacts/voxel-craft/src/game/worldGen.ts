@@ -19,11 +19,46 @@ export function blockIndex(lx: number, y: number, lz: number): number {
   return lx + (y - WORLD_MIN_Y) * CHUNK_SIZE + lz * CHUNK_SIZE * WORLD_HEIGHT;
 }
 
-const terrainNoise = createNoise2D();
-const terrainNoise2 = createNoise2D();
-const terrainNoise3 = createNoise2D();
-const biomeNoise    = createNoise2D();
-const oreNoise      = createNoise2D();
+let terrainNoise = createNoise2D();
+let terrainNoise2 = createNoise2D();
+let terrainNoise3 = createNoise2D();
+let biomeNoise    = createNoise2D();
+let oreNoise      = createNoise2D();
+
+function createWorldSeed(): number {
+  return Math.floor(Math.random() * 0x1_0000_0000) >>> 0;
+}
+
+function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    let value = state += 0x6D2B79F5;
+    value = Math.imul(value ^ (value >>> 15), value | 1);
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+    return ((value ^ (value >>> 14)) >>> 0) / 0x1_0000_0000;
+  };
+}
+
+function seedWorldNoise(seed: number): void {
+  const random = seededRandom(seed);
+  terrainNoise = createNoise2D(random);
+  terrainNoise2 = createNoise2D(random);
+  terrainNoise3 = createNoise2D(random);
+  biomeNoise = createNoise2D(random);
+  oreNoise = createNoise2D(random);
+}
+
+export interface WorldChunkSnapshot {
+  key: string;
+  data: Uint8Array;
+  renderMinY: number;
+}
+
+export interface WorldSnapshot {
+  worldType: WorldType;
+  seed: number;
+  chunks: WorldChunkSnapshot[];
+}
 
 function pseudoRand(seed: number): number {
   const s = Math.sin(seed * 7919.131 + 2147.483) * 43758.5453;
@@ -218,13 +253,42 @@ class WorldManager {
   chunks = new Map<string, ChunkData>();
   dirtyChunks = new Set<string>();
   worldType: WorldType = 'normal';
+  private seed = createWorldSeed();
   private chunkRenderMinY = new Map<string, number>();
 
-  resetWorld(worldType: WorldType): void {
+  constructor() {
+    seedWorldNoise(this.seed);
+  }
+
+  resetWorld(worldType: WorldType, seed = createWorldSeed()): void {
     this.worldType = worldType;
+    this.seed = seed >>> 0;
+    seedWorldNoise(this.seed);
     this.chunks.clear();
     this.dirtyChunks.clear();
     this.chunkRenderMinY.clear();
+  }
+
+  snapshot(): WorldSnapshot {
+    return {
+      worldType: this.worldType,
+      seed: this.seed,
+      chunks: Array.from(this.chunks, ([key, data]) => ({
+        key,
+        data: data.slice(),
+        renderMinY: this.chunkRenderMinY.get(key) ?? DEFAULT_CHUNK_RENDER_MIN_Y,
+      })),
+    };
+  }
+
+  restore(snapshot: WorldSnapshot): void {
+    this.resetWorld(snapshot.worldType, snapshot.seed);
+    for (const chunk of snapshot.chunks) {
+      this.chunks.set(chunk.key, chunk.data.slice());
+      if (chunk.renderMinY < DEFAULT_CHUNK_RENDER_MIN_Y) {
+        this.chunkRenderMinY.set(chunk.key, chunk.renderMinY);
+      }
+    }
   }
 
   getChunkRenderMinY(cx: number, cz: number): number {
