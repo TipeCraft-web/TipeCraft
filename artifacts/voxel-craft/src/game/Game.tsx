@@ -74,6 +74,7 @@ export default function Game() {
   const [worldLoading, setWorldLoading] = useState(false);
   const [worldLoadProgress, setWorldLoadProgress] = useState(0);
   const [gamePaused, setGamePaused] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [craftingOpen,   setCraftingOpen]   = useState(false);
   const [inventoryOpen,  setInventoryOpen]  = useState(false);
   const [dead,           setDead]           = useState(false);
@@ -107,6 +108,7 @@ export default function Game() {
 
   const handlePauseGame = useCallback(() => {
     setGamePaused(true);
+    setChatOpen(false);
     setOptionsOpen(false);
     setCraftingOpen(false);
     setInventoryOpen(false);
@@ -124,6 +126,7 @@ export default function Game() {
 
   const handleReturnToTitle = useCallback(() => {
     setGamePaused(false);
+    setChatOpen(false);
     setStarted(false);
     setOptionsOpen(false);
     setSinglePlayerMenuOpen(false);
@@ -669,41 +672,61 @@ export default function Game() {
           dayTimeRef={dayTimeRef}
           onSetMode={handleSetMode}
           currentMode={mode}
+          open={chatOpen}
+          onOpenChange={setChatOpen}
         />
       )}
 
       {/* ── Top toolbar (mobile) ─────────────────────────────── */}
       {started && !dead && (
         <div style={{
-          position:'absolute', top:14, left:'50%', transform:'translateX(-50%)',
-          zIndex:30, display:'flex', gap:8, pointerEvents:'auto',
-          filter:'grayscale(1)',
+          position:'absolute', top:14, left:0, right:0, height:36,
+          zIndex:30, pointerEvents:'none', filter:'grayscale(1)',
         }}>
           <div
             data-touch-btn="1"
             onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setInventoryOpen(o => !o); setCraftingOpen(false); }}
             onClick={() => { setInventoryOpen(o => !o); setCraftingOpen(false); }}
-            style={{ padding:'6px 14px', borderRadius:16, background:'rgba(30,60,80,0.8)', border:'1px solid rgba(68,136,204,0.6)', color:'#7ac', fontSize:11, fontWeight:700, cursor:'pointer', userSelect:'none' }}
+            style={{ position:'absolute', top:0, right:'calc(50% + 50px)', padding:'6px 14px', borderRadius:16, background:'rgba(30,60,80,0.8)', border:'1px solid rgba(68,136,204,0.6)', color:'#7ac', fontSize:11, fontWeight:700, cursor:'pointer', userSelect:'none', pointerEvents:'auto' }}
           >📦 Bag</div>
+          {!gamePaused && (
+            <>
+              <button
+                type="button"
+                aria-label="Pausenmenü öffnen"
+                title="Pausenmenü"
+                data-touch-btn="1"
+                onClick={handlePauseGame}
+                onTouchStart={event => { event.stopPropagation(); event.preventDefault(); handlePauseGame(); }}
+                style={{
+                  position:'absolute', top:0, left:'50%', transform:'translateX(-50%)',
+                  padding:'7px 11px', borderRadius:8,
+                  background:'rgba(30,30,30,0.88)', border:'1px solid rgba(220,220,220,0.72)',
+                  boxShadow:'0 2px 5px rgba(0,0,0,0.55)',
+                  color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer',
+                  fontFamily:'"Courier New", monospace', touchAction:'manipulation', pointerEvents:'auto',
+                }}
+              >Ⅱ MENU</button>
+              <button
+                type="button"
+                className="mobile-chat-toggle"
+                aria-label={chatOpen ? 'Chat schließen' : 'Chat öffnen'}
+                title="Chat"
+                data-touch-btn="1"
+                onClick={() => setChatOpen(open => !open)}
+                onTouchStart={event => { event.stopPropagation(); event.preventDefault(); setChatOpen(open => !open); }}
+                style={{
+                  position:'absolute', top:0, left:'calc(50% + 50px)',
+                  padding:'7px 11px', borderRadius:8,
+                  background:'rgba(30,30,30,0.88)', border:'1px solid rgba(220,220,220,0.72)',
+                  boxShadow:'0 2px 5px rgba(0,0,0,0.55)',
+                  color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer',
+                  fontFamily:'"Courier New", monospace', touchAction:'manipulation', pointerEvents:'auto',
+                }}
+              >💬 CHAT</button>
+            </>
+          )}
         </div>
-      )}
-      {started && !dead && !gamePaused && (
-        <button
-          type="button"
-          aria-label="Pausenmenü öffnen"
-          title="Pausenmenü"
-          data-touch-btn="1"
-          onClick={handlePauseGame}
-          onTouchStart={event => { event.stopPropagation(); event.preventDefault(); handlePauseGame(); }}
-          style={{
-            position:'absolute', top:42, right:12, zIndex:35,
-            padding:'7px 11px', borderRadius:8,
-            background:'rgba(30,30,30,0.88)', border:'1px solid rgba(220,220,220,0.72)',
-            boxShadow:'0 2px 5px rgba(0,0,0,0.55)',
-            color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer',
-            fontFamily:'"Courier New", monospace', touchAction:'manipulation',
-          }}
-        >Ⅱ MENU</button>
       )}
 
       {/* ── Modals ───────────────────────────────────────────── */}

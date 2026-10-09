@@ -7,6 +7,8 @@ interface Props {
   dayTimeRef:  React.MutableRefObject<number>;
   onSetMode?:  (m: 'CREATIVE' | 'SURVIVAL') => void;
   currentMode: 'CREATIVE' | 'SURVIVAL';
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 const HELP = [
@@ -17,8 +19,7 @@ const HELP = [
   '/clear            — Chat leeren',
 ];
 
-export default function Chat({ tpRef, dayTimeRef, onSetMode, currentMode }: Props) {
-  const [open,     setOpen]     = useState(false);
+export default function Chat({ tpRef, dayTimeRef, onSetMode, currentMode, open, onOpenChange }: Props) {
   const [input,    setInput]    = useState('');
   const [messages, setMessages] = useState<Message[]>([
     { text: 'Drücke T um den Chat zu öffnen. /help für Befehle.', color: '#aaa', ts: Date.now() },
@@ -59,15 +60,15 @@ export default function Chat({ tpRef, dayTimeRef, onSetMode, currentMode }: Prop
 
   const submit = useCallback(() => {
     const txt = input.trim();
-    if (!txt) { setOpen(false); setInput(''); return; }
+     if (!txt) { onOpenChange(false); setInput(''); return; }
     if (txt.startsWith('/')) {
       runCommand(txt);
     } else {
       addMsg(`> ${txt}`, '#e0e0e0');
     }
     setInput('');
-    setOpen(false);
-  }, [input, runCommand, addMsg]);
+    onOpenChange(false);
+  }, [input, runCommand, addMsg, onOpenChange]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -75,17 +76,17 @@ export default function Chat({ tpRef, dayTimeRef, onSetMode, currentMode }: Prop
       const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
       if ((e.key === 't' || e.key === 'T') && !isTyping) {
         e.preventDefault();
-        setOpen(true);
+        onOpenChange(true);
         setTimeout(() => inputRef.current?.focus(), 50);
       }
       if (e.key === 'Escape' && open) {
-        setOpen(false);
+        onOpenChange(false);
         setInput('');
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
+  }, [open, onOpenChange]);
 
   useEffect(() => {
     if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
@@ -137,7 +138,7 @@ export default function Chat({ tpRef, dayTimeRef, onSetMode, currentMode }: Prop
             onKeyDown={e => {
               e.stopPropagation();
               if (e.key === 'Enter') submit();
-              if (e.key === 'Escape') { setOpen(false); setInput(''); }
+              if (e.key === 'Escape') { onOpenChange(false); setInput(''); }
             }}
             placeholder="Befehl eingeben... (/help)"
             style={{

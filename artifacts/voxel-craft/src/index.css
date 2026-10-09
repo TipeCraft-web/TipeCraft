@@ -27,3 +27,15 @@ body, html {
 .text-shadow-sm {
   text-shadow: 1px 1px 0px rgba(0,0,0,0.8);
 }
+
+.mobile-chat-toggle {
+  display: none;
+}
+
+@media (pointer: coarse), (max-width: 768px) {
+  .mobile-chat-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
