@@ -11,7 +11,7 @@
 📱 **Download Android App (.APK):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAcEDPbTUsGQIS8d3MNmsEXAYJqlvNqa0e_oMEohSuLlUo)  
 *⏳ Coming soon: macOS, Linux, and iOS versions!*
 
-TipeCraft is a fully functional, high-performance 3D sandbox  minecraft like game in the browser, built completely from scratch! **TipeCraft** features a massive, procedurally generated voxel world with endless possibilities for building, exploring, and surviving.
+**TipeCraft** is a fully functional, high-performance 3D sandbox  **minecraft** like game in the browser, built completely from scratch! **TipeCraft** features a massive, procedurally generated voxel world with endless possibilities for building, exploring, and surviving.
 
 The project is cross-platform optimized and runs smoothly in web browsers, as a Windows application, and on Android smartphones (fully responsive with custom touch controls).
 
@@ -40,7 +40,7 @@ This project is **Open Source** under the **Creative Commons Attribution-NonComm
 📱 **Android-App (.APK) herunterladen:** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAcEDPbTUsGQIS8d3MNmsEXAYJqlvNqa0e_oMEohSuLlUo)  
 *⏳ Demnächst verfügbar: Versionen für macOS, Linux und iOS!*
 
-Tipecraft ist ein voll funktionsfähiges, performantes Minecraft artiges 3D-Sandbox-Spiel im Browser, komplett von Grund auf selbst programmiert! **TipeCraft** bietet eine riesige, prozedural generierte Voxel-Welt mit unzähligen Möglichkeiten zum Bauen, Erkunden und Überleben.
+**Tipecraft** ist ein voll funktionsfähiges, performantes **Minecraft** artiges 3D-Sandbox-Spiel im Browser, komplett von Grund auf selbst programmiert! **TipeCraft** bietet eine riesige, prozedural generierte Voxel-Welt mit unzähligen Möglichkeiten zum Bauen, Erkunden und Überleben.
 
 Das Projekt ist plattformübergreifend optimiert und läuft flüssig im Webbrowser, als Windows-Applikation und auf Android-Smartphones (vollständig responsive mit Touch-Steuerung).
 
