@@ -1,0 +1,29 @@
+Attribution-NonCommercial-ShareAlike 4.0 International
+
+=======================================================================
+TipeCraft License Agreement
+Copyright (c) 2026 TipeCraft Developer
+=======================================================================
+
+This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. To view a copy of this license, visit http://creativecommons.org or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+
+Under the following terms, you are free to:
+* Share — copy and redistribute the material in any medium or format
+* Adapt — remix, transform, and build upon the material
+
+The licensor cannot revoke these freedoms as long as you follow the license terms:
+
+1. ATTRIBUTION (Namensnennung) — You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
+
+2. NON-COMMERCIAL (Nicht-kommerziell) — You may not use the material for commercial purposes. This means NO ONE is allowed to make money from this game, its source code, or modifications. The game must remain 100% free and COMPLETELY AD-FREE (keine Werbung).
+
+3. SHARE-ALIKE (Weitergabe unter gleichen Bedingungen) — If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
+
+=======================================================================
+DEUTSCHE ZUSAMMENFASSUNG (Zusatzklausel für TipeCraft)
+=======================================================================
+Dieses Spiel und sein Quellcode sind Open Source, aber durch die CC BY-NC-SA 4.0 geschützt.
+* Du darfst den Code ansehen und zum Lernen benutzen.
+* Du darfst eigene Versionen für dich bauen, ABER diese müssen komplett kostenlos und absolut werbefrei bleiben.
+* Kommerzielle Nutzung, der Verkauf des Spiels oder das Einbinden von Werbung sind strengstens verboten!
+* Bei jeder Weiterverwendung muss der ursprüngliche Entwickler von TipeCraft namentlich genannt werden.
