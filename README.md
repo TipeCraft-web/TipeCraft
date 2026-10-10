@@ -6,7 +6,7 @@
 
 ## English
 
-👉 **Play TipeCraft directly in your browser:** [voxel-world-builder--tbctnnwmh9jkjhh.replit.app](https://replit.app)  
+👉 **Play TipeCraft directly in your browser:** [voxel-world-builder--tbctnnwmh9jkjhh.replit.app](https://voxel-world-builder--tbctnnwmh9jkjhh.replit.app/)  
 💾 **Download Windows Desktop App:** [Download via OneDrive](https://onedrive.live.com/?id=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments%2FTipeCraft&listurl=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3UvYy8yRjlFNDQ1MDUwNURGQzVGL0lRRGhmdjlEMy1MLVNJX25TUVNXZktNUUFUZ2xvajZfaGRuM1hrVGk4TjU5MjZJ&ga=1)  
 📱 **Download Android App (.APK):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAcEDPbTUsGQIS8d3MNmsEXAYJqlvNqa0e_oMEohSuLlUo)  
 *⏳ Coming soon: macOS, Linux, and iOS versions!*
