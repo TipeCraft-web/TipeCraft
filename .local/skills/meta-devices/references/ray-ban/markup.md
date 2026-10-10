@@ -1,0 +1,45 @@
+# Markup Reference
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=600, height=600, initial-scale=1.0, user-scalable=no">
+  <meta name="description" content="A brief description of what this app does.">
+  <meta name="mrbd-web-app-capable" content="yes">
+  <meta name="replit:meta-device" content="ray-ban-display">
+  <title>App Name</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <div id="home" class="screen">
+      <header class="header">
+        <h1>App Name</h1>
+        <span class="header-meta" id="status-indicator">Ready</span>
+      </header>
+      <div class="content">
+        <!-- Screen content -->
+      </div>
+      <nav class="nav-bar">
+        <button class="nav-item focusable" data-action="action-name">Label</button>
+      </nav>
+    </div>
+
+    <div id="detail" class="screen hidden">
+      <header class="header">
+        <button class="back-btn focusable" data-action="back">&#8592;</button>
+        <h1>Detail</h1>
+      </header>
+      <div class="content">
+        <!-- Detail content -->
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
+```

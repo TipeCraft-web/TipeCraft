@@ -5,8 +5,8 @@ import { worldManager, CHUNK_SIZE, WORLD_MAX_Y, getChunkKey } from './worldGen';
 import { BlockType, isSolid, isTransparent } from './blocks';
 import { getAtlas, blockUV } from './textures';
 
-const MAX_CHUNKS_PER_FRAME = 2;
-const MAX_CHUNKS_PER_LOAD_FRAME = 8;
+const MAX_CHUNKS_PER_FRAME = 4;
+const MAX_CHUNKS_PER_LOAD_FRAME = 10;
 const LOAD_FRAME_BUDGET_MS = 28;
 
 export interface BreakingState {

@@ -1,0 +1,1 @@
+The build reference for this deck is `./sdm-building.md`; read it together with `./sdm-principles.md`.
