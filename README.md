@@ -9,8 +9,10 @@
 👉 **Play TipeCraft directly in your browser:** [voxel-world-builder--tbctnnwmh9jkjhh.replit.app](https://voxel-world-builder--tbctnnwmh9jkjhh.replit.app/)  
 💾 **Download Windows Desktop App:** [Download via OneDrive](https://onedrive.live.com/?id=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments%2FTipeCraft&listurl=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3UvYy8yRjlFNDQ1MDUwNURGQzVGL0lRRGhmdjlEMy1MLVNJX25TUVNXZktNUUFUZ2xvajZfaGRuM1hrVGk4TjU5MjZJ&ga=1)  
 🐧 **Download Linux Desktop-App :** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQCqbTC_JD3jSbIPg-KmnJPHAQWWRj6GpJ_CjXQpXMxkdI0)
+🍎 **macOS App (Apple Silicon M1/M2/M3):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAEi5jvQvm-Rr6QJiS_aiqTAdzebWGzObCkSPX_6HGLzqU)  
+💻 **macOS App (Intel):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQDEYYMNtlUzTbKVITLzPZ3UAUHd9iw9JqzBtk8OH8
 📱 **Download Android App (.APK):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAcEDPbTUsGQIS8d3MNmsEXAYJqlvNqa0e_oMEohSuLlUo)  
-*⏳ Coming soon: macOS, Linux, and iOS versions!*
+*⏳ Coming soon: iOS versions!*
 
 **TipeCraft** is a fully functional, high-performance 3D sandbox  **minecraft** like game in the browser, built completely from scratch! **TipeCraft** features a massive, procedurally generated voxel world with endless possibilities for building, exploring, and surviving.
 
@@ -38,8 +40,10 @@ This project is **Open Source** under the **Creative Commons Attribution-NonComm
 👉 **Spiele TipeCraft direkt im Browser:** [voxel-world-builder--tbctnnwmh9jkjhh.replit.app](voxel-world-builder--tbctnnwmh9jkjhh.replit)  
 💾 **Windows Desktop-App herunterladen:** [Download via OneDrive](https://onedrive.live.com/?id=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments%2FTipeCraft&listurl=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3UvYy8yRjlFNDQ1MDUwNURGQzVGL0lRRGhmdjlEMy1MLVNJX25TUVNXZktNUUFUZ2xvajZfaGRuM1hrVGk4TjU5MjZJ&ga=1)  
 🐧 **Linux Desktop-App herunterladen:** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQCqbTC_JD3jSbIPg-KmnJPHAQWWRj6GpJ_CjXQpXMxkdI0)
+🍎 **macOS App (Apple Silicon M1/M2/M3):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAEi5jvQvm-Rr6QJiS_aiqTAdzebWGzObCkSPX_6HGLzqU)  
+💻 **macOS App (Intel-Prozessoren):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQDEYYMNtlUzTbKVITLzPZ3UAUHd9iw9JqzBtk8OH8
 📱 **Android-App (.APK) herunterladen:** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAcEDPbTUsGQIS8d3MNmsEXAYJqlvNqa0e_oMEohSuLlUo)  
-*⏳ Demnächst verfügbar: Versionen für macOS, Linux und iOS!*
+*⏳ Demnächst verfügbar: Versionen für  iOS!*
 
 **Tipecraft** ist ein voll funktionsfähiges, performantes **Minecraft** artiges 3D-Sandbox-Spiel im Browser, komplett von Grund auf selbst programmiert! **TipeCraft** bietet eine riesige, prozedural generierte Voxel-Welt mit unzähligen Möglichkeiten zum Bauen, Erkunden und Überleben.
 
