@@ -23,7 +23,7 @@ The project is cross-platform optimized and runs smoothly in web browsers, as a 
 - **Custom Save System:** Worlds will soon be saved using a custom-built, highly efficient file format (`.tipeworld`).
 - **Cross-Platform:** Optimized controls for keyboard/mouse (PC) and dynamic touch overlays for mobile devices.
 
-### 🛠️ Roadmap (Upcoming Update: 13.10.)
+### 🛠️ Roadmap (Upcoming Update: beta-v2.0.0 date:13.10.26)
 - [ ] **Ore Generation & Smelting:** Natural underground ore veins and a fully functional furnace logic to smelt items.
 - [ ] **Tool-Tier System:** Pickaxes with specific mining tiers required to get block drops.
 
@@ -51,7 +51,7 @@ Das Projekt ist plattformübergreifend optimiert und läuft flüssig im Webbrows
 - **Eigenes Speichersystem:** Welten werden bald in einem eigens dafür entwickelten, hocheffizienten Dateiformat (`.tipeworld`) gesichert.
 - **Cross-Platform:** Optimierte Steuerung für Tastatur/Maus (PC) sowie dynamische Touch-Overlays für Mobilgeräte.
 
-### 🛠️ Nächste Features (Geplant für das Update am 13.10.)
+### 🛠️ Nächste Features (Geplant für das Update Beta-v2.0.0 am 13.10.26)
 - [ ] **Erzgenerierung & Ofen:** Natürliche Erze unter Tage und eine funktionierende Schmelzlogik für den Ofen.
 - [ ] **Werkzeug-Stufen (Tool-Tiers):** Spitzhaken, die benötigt werden, damit bestimmte Blöcke überhaupt Items droppen.
 
