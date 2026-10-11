@@ -6,7 +6,7 @@
 
 ## English
 
-👉 **Play TipeCraft directly in your browser:** [voxel-world-builder--tbctnnwmh9jkjhh.replit.app](https://replit.app)  
+👉 **Play TipeCraft directly in your browser:** [voxel-world-builder--tbctnnwmh9jkjhh.replit.app](https://voxel-world-builder--tbctnnwmh9jkjhh.replit.app/)  
 💾 **Download Windows Desktop App:** [Download via OneDrive](https://onedrive.live.com/?id=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments%2FTipeCraft&listurl=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3UvYy8yRjlFNDQ1MDUwNURGQzVGL0lRRGhmdjlEMy1MLVNJX25TUVNXZktNUUFUZ2xvajZfaGRuM1hrVGk4TjU5MjZJ&ga=1)  
 📱 **Download Android App (.APK):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAcEDPbTUsGQIS8d3MNmsEXAYJqlvNqa0e_oMEohSuLlUo)  
 *⏳ Coming soon: macOS, Linux, and iOS versions!*
@@ -26,7 +26,6 @@ The project is cross-platform optimized and runs smoothly in web browsers, as a 
 ### 🛠️ Roadmap (Upcoming Update: 13.10.)
 - [ ] **Ore Generation & Smelting:** Natural underground ore veins and a fully functional furnace logic to smelt items.
 - [ ] **Tool-Tier System:** Pickaxes with specific mining tiers required to get block drops.
-- [ ] **Real-Time Multiplayer:** Build together with friends using WebSockets in future builds.
 
 ### 📄 License & Open Source Guidelines
 This project is **Open Source** under the **Creative Commons Attribution-NonCommercial-ShareAlike (CC BY-NC-SA)** license. The game is 100% free and will always remain completely ad-free! No commercial use allowed.
@@ -55,7 +54,7 @@ Das Projekt ist plattformübergreifend optimiert und läuft flüssig im Webbrows
 ### 🛠️ Nächste Features (Geplant für das Update am 13.10.)
 - [ ] **Erzgenerierung & Ofen:** Natürliche Erze unter Tage und eine funktionierende Schmelzlogik für den Ofen.
 - [ ] **Werkzeug-Stufen (Tool-Tiers):** Spitzhaken, die benötigt werden, damit bestimmte Blöcke überhaupt Items droppen.
-- [ ] **Echtzeit-Multiplayer:** Gemeinsam mit Freunden über WebSockets auf Servern bauen (in zukünftigen Updates).
+
 
 ### 📄 Lizenz & Open Source Richtlinien
 Dieses Projekt ist **Open Source** unter der **Creative Commons Attribution-NonCommercial-ShareAlike (CC BY-NC-SA)** Lizenz. Das Spiel ist und bleibt zu 100% kostenlos und komplett werbefrei! Jede kommerzielle Nutzung ist verboten.
