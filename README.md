@@ -19,7 +19,7 @@
 The project is cross-platform optimized and runs smoothly in web browsers, as a Windows application, and on Android smartphones (fully responsive with custom touch controls).
 
 ### 🚀 Features
-- **Procedural World Generation:** Endless hills, valleys, and landscapes based on mathematical noise algorithms (perfectly playable up to a limit of 1,250,000 blocks!).
+- **Procedural World Generation:** Endless hills, valleys, and landscapes based on mathematical noise algorithms (perfectly playable up to a limit of 1,048,576 blocks!).
 - **10 Unique Biomes:** Explore Forests, Autumn Forests, Mountains, High Mountains, Rivers, Deserts, Jungles, Stony Peaks, Tundras, and Plains (Forest Clearings).
 - **Procedural Structures:** Discover generated Desert Pyramids, Underwater Ruins, unique biome-specific Wachtowers, and Abandoned Houses with chests and crafting tables.
 - **Living World:** Fully functional 5-minute day/night cycle (updating to 20 mins soon), hostile Zombies spawning in the dark, and an integrated chat command system (`/help`, `/tp`, `/time day/night`).
@@ -50,7 +50,7 @@ This project is **Open Source** under the **Creative Commons Attribution-NonComm
 Das Projekt ist plattformübergreifend optimiert und läuft flüssig im Webbrowser, als Windows-Applikation und auf Android-Smartphones (vollständig responsive mit Touch-Steuerung).
 
 ### 🚀 Features
-- **Prozedurale Weltgenerierung:** Endlose Hügel, Täler und Landschaften basierend auf mathematischen Noise-Algorithmen (spielbar bis zu einer Grenze von 1.250.000 Blöcken!).
+- **Prozedurale Weltgenerierung:** Endlose Hügel, Täler und Landschaften basierend auf mathematischen Noise-Algorithmen (spielbar bis zu einer Grenze von 1,048,576 Blöcken!).
 - **10 einzigartige Biome:** Entdecke Wälder, Herbstwälder, Berge, Hohe Berge, Flüsse, Wüsten, Dschungel, Felsregionen, Tundras und Plains (Waldlichtungen).
 - **Generierte Strukturen:** Erkunde Wüstenpyramiden, Unterwasser-Ruinen, biom-spezifische Wachtürme und verlassene Hütten mit Truhen und Werkbänken.
 - **Lebendige Welt:** Funktionierendes Tag/Nacht-System (aktuell 5 Minuten, bald 20), angreifende Zombies in der Nacht und ein integriertes Befehlssystem (`/help`, `/tp`, `/time day/night`).
