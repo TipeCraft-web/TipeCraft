@@ -8,6 +8,7 @@
 
 👉 **Play TipeCraft directly in your browser:** [voxel-world-builder--tbctnnwmh9jkjhh.replit.app](https://voxel-world-builder--tbctnnwmh9jkjhh.replit.app/)  
 💾 **Download Windows Desktop App:** [Download via OneDrive](https://onedrive.live.com/?id=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments%2FTipeCraft&listurl=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3UvYy8yRjlFNDQ1MDUwNURGQzVGL0lRRGhmdjlEMy1MLVNJX25TUVNXZktNUUFUZ2xvajZfaGRuM1hrVGk4TjU5MjZJ&ga=1)  
+🐧 **Download Linux Desktop-App :** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQCqbTC_JD3jSbIPg-KmnJPHAQWWRj6GpJ_CjXQpXMxkdI0)
 📱 **Download Android App (.APK):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAcEDPbTUsGQIS8d3MNmsEXAYJqlvNqa0e_oMEohSuLlUo)  
 *⏳ Coming soon: macOS, Linux, and iOS versions!*
 
@@ -36,6 +37,7 @@ This project is **Open Source** under the **Creative Commons Attribution-NonComm
 
 👉 **Spiele TipeCraft direkt im Browser:** [voxel-world-builder--tbctnnwmh9jkjhh.replit.app](voxel-world-builder--tbctnnwmh9jkjhh.replit)  
 💾 **Windows Desktop-App herunterladen:** [Download via OneDrive](https://onedrive.live.com/?id=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments%2FTipeCraft&listurl=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3UvYy8yRjlFNDQ1MDUwNURGQzVGL0lRRGhmdjlEMy1MLVNJX25TUVNXZktNUUFUZ2xvajZfaGRuM1hrVGk4TjU5MjZJ&ga=1)  
+🐧 **Linux Desktop-App herunterladen:** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQCqbTC_JD3jSbIPg-KmnJPHAQWWRj6GpJ_CjXQpXMxkdI0)
 📱 **Android-App (.APK) herunterladen:** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAcEDPbTUsGQIS8d3MNmsEXAYJqlvNqa0e_oMEohSuLlUo)  
 *⏳ Demnächst verfügbar: Versionen für macOS, Linux und iOS!*
 
