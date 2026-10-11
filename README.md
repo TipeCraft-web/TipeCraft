@@ -34,7 +34,7 @@ This project is **Open Source** under the **Creative Commons Attribution-NonComm
 
 ## Deutsche Version
 
-👉 **Spiele TipeCraft direkt im Browser:** [voxel-world-builder--tbctnnwmh9jkjhh.replit.app](https://replit.app)  
+👉 **Spiele TipeCraft direkt im Browser:** [voxel-world-builder--tbctnnwmh9jkjhh.replit.app](voxel-world-builder--tbctnnwmh9jkjhh.replit)  
 💾 **Windows Desktop-App herunterladen:** [Download via OneDrive](https://onedrive.live.com/?id=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments%2FTipeCraft&listurl=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3UvYy8yRjlFNDQ1MDUwNURGQzVGL0lRRGhmdjlEMy1MLVNJX25TUVNXZktNUUFUZ2xvajZfaGRuM1hrVGk4TjU5MjZJ&ga=1)  
 📱 **Android-App (.APK) herunterladen:** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAcEDPbTUsGQIS8d3MNmsEXAYJqlvNqa0e_oMEohSuLlUo)  
 *⏳ Demnächst verfügbar: Versionen für macOS, Linux und iOS!*
