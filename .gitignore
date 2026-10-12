@@ -3,6 +3,7 @@
 # compiled output
 dist
 tmp
+out
 out-tsc
 *.tsbuildinfo
 .expo
@@ -47,5 +48,5 @@ Thumbs.db
 # Replit
 .cache/
 .local/
-.cache/
-.local/
+.replit
+replit.nix
