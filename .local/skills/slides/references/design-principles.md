@@ -58,16 +58,27 @@ Before writing any code, establish your creative direction:
    - Real-world images (products, people, places, sharper or missing logos) -- `imageSearch`.
    - Supplemental / abstract / doesn't exist on the web -- `media-generation` skill.
    - Data charts, and diagrams past a small labeled flow (three to five boxes) -- build them programmatically, the way your build reference describes -- never `imageSearch` or `generateImage`.
-4. **Color palette**: Pick a bold, intentional palette. State exact hex codes. You want 1 primary, 1 accent, 1-2 neutrals, and a background tone. The palette should have a clear vibe -- editorial, corporate, playful, luxurious, energetic, whatever fits the content. Every color should feel like a deliberate choice. Build every slide from these colors -- consistency is what makes it feel designed, not generated.
-5. **Typography**: Pick ONE display font + ONE body font. Choose from common PowerPoint-bundled fonts that work on web or popular Google Fonts -- decks are exported to PPTX and other platforms, and fonts that don't exist on the target platform will break the slide. Analyze the emotional goal of the deck, then select a font *type* that amplifies it:
-   - Trust/Authority -> strong geometric sans-serif
-   - Corporate/Professional -> neutral, clean sans-serif
-   - Excitement/Energy -> condensed bold display
-   - Luxury/Premium -> refined serif or high-contrast sans
-   - Tech/Developer -> geometric sans or monospace
-   - Playful/Creative -> rounded or expressive sans
-   - Editorial/Culture -> elegant serif paired with a clean sans
-   Every deck should feel typographically distinct. Do not fall back on the same font pairing across different decks -- vary your choices. The font IS the personality of the deck. A wrong font choice undermines everything else.
+4. **Color palette**: Pick a bold, intentional palette. State exact hex codes. You want 1 primary, 1 accent, 1-2 neutrals, and a background tone. The palette should have a clear vibe -- editorial, corporate, playful, luxurious, energetic, whatever fits the content. Every color should feel like a deliberate choice. Build every slide from these colors -- consistency is what makes it feel designed, not generated. Derive the palette from the subject, not from a safe default: an energy drink gets its loud brand lime, a puppy guide gets warm pastel tints, a smart lamp gets amber-on-walnut, a physics lesson gets the colors of its diagrams. Saturated palettes are correct for consumer, sports, food, kids, and playful subjects.
+5. **Typography**: Pick ONE display font + ONE body font. Use common PowerPoint-bundled fonts or popular Google Fonts so exports work across platforms.
+
+   Pick interesting fonts that match the topic and content well. Here are vetted examples, but feel free to pick other or different fonts -- use whatever is best for this deck.
+
+   - Editorial: Instrument Serif / Instrument Sans; DM Serif Display / DM Sans; Libre Caslon Display / Libre Franklin
+   - Institutional: Newsreader / Public Sans; Source Serif 4 / Source Sans 3; Literata / Source Sans 3
+   - Corporate or data: IBM Plex Serif / IBM Plex Sans
+   - Technical: Space Grotesk / Instrument Sans; Geist / Geist
+   - Bold: Anton / Barlow; Bebas Neue / Archivo
+   - Playful: Fredoka / Nunito; Baloo 2 / Nunito
+   - Warm: Young Serif / Figtree; Lora / Karla
+   - Science or classroom: Literata / Atkinson Hyperlegible; Space Grotesk / Atkinson Hyperlegible
+   - Arabic or RTL: Tajawal / Tajawal; Cairo / IBM Plex Sans Arabic; Noto Kufi Arabic / Tajawal
+
+   Monospace faces are for code, labels, and accents, never display or body text. Do not reach for the same pairing out of habit, such as Plex for anything technical; choose from the topic's own world.
+
+   Font rendering rules:
+   - **No Didone web faces** (Bodoni Moda, Playfair Display at heavy weights) for anything below 5vw; their hairlines break up and their web kerning is uneven.
+   - **Never add letter-spacing to a serif or a lowercase headline.** Tracking is for short uppercase labels only (0.08–0.14em).
+   - **Read the headline at 100% zoom in a screenshot.** Uneven gaps between letters, clipped descenders, or fallback glyphs mean the font failed to load or is wrong for the size; change the font, not the spacing.
 6. **Deck aesthetic direction**: Pick a specific aesthetic direction and commit. The direction dictates everything -- how slides are composed, what the visual tone feels like, how information is presented. **Match the visual energy of the deck to the subject matter.** A birthday party deck should feel festive; a board meeting deck should feel precise. Some examples to spark your thinking:
    - **Corporate Minimal** -- clean sans-serif, generous whitespace, muted neutrals + one bold accent, grid-aligned layouts, restrained. Best for: investor updates, board decks, quarterly reports.
    - **Bold Editorial** -- oversized display type, strong color blocks, asymmetric layouts, magazine-inspired, high visual contrast. Best for: marketing pitches, brand launches, thought leadership.
@@ -77,12 +88,22 @@ Before writing any code, establish your creative direction:
    - **Playful/Creative** -- rounded fonts, saturated colors, hand-drawn accents, loose layouts, personality-driven. Best for: birthday parties, pet showcases, hobby projects, kids' topics.
    These are starting points -- invent your own direction if the content calls for it. The point is to have a nameable aesthetic, not a vague "clean and modern."
 
+   **Do not fall back to the house look.** The default this model drifts to on every subject is: warm off-white paper background, navy or dark-teal headings, a tiny letterspaced uppercase eyebrow label in orange or gold above every title, a serif headline, hairline rules, `01 / 02 / 03` numerals, and an `NN / NN` page counter. It is one valid direction for a formal editorial report. It is wrong as a default, and it makes a physics lesson, a coaching-institute brochure, and a PR lecture look like the same deck. Before you build, write three adjectives for this subject and audience, then choose the type family, palette, shape language, and image style from those adjectives. Eyebrow labels and page counters are optional devices, not required parts of every slide.
+
+   **The second house look: navy plus orange.** Swapping cream for dark does not fix the drift. Navy, charcoal, or dark teal with an orange or gold accent is the same default in a new coat; it made a regulatory review, a coaching institute, a PR lecture, and a physics lesson look alike. Use it only when the real brand or the subject's own colors call for it (an electrical blueprint, a navy-and-orange brand). Light and mid-tone backgrounds are the default for consumer, education, health, food, kids, and lifestyle subjects. When you choose a dark background, write one sentence in your plan that says why this subject is dark.
+
+   **Let the accent be a surface.** Strong decks put the accent color on large areas: a full lime panel, a solid blue slide, a butter or sky background, filled cards in the brand color. A palette used only for 2px rules, eyebrow labels, and small numerals reads as grey. At least a third of the slides should have a large block of the primary or accent color (a panel, a full background, or filled cards).
+
+   **Cover-the-words test.** If all text were blurred, could a viewer guess the topic and the audience from the cover and one content slide? Celsius-style condensed italic caps on lime and black reads "sports drink"; a chunky rounded display font with a recurring cartoon mascot on pastel tints reads "puppy guide for new owners". If your answer is "some kind of consulting report", change the direction.
+
    **Context matters for imagery too.** Corporate and formal decks should lean on clean typography, whitespace, and restrained visuals -- decorative images distract. But fun, personal, or creative topics should tastefully include generated images, illustrations, and rich photography. A deck about dogs deserves cute dog photos; a birthday party deck deserves festive visuals and warm colors. Read the room and design accordingly.
 
-   **Commit to a system up front.** Before writing slides, write out (in planning text) the system you'll use for the whole deck: the section-header layout, the title-slide layout, how content slides are composed, the image-slide pattern, and the closing-slide treatment. Limit the deck to **1--2 background colors max** -- varied background tones break visual cohesion fast. Decide where visual rhythm comes from (a recurring accent shape, a consistent type lockup, a divider style). State the system before you build it; it's what separates a designed deck from an assembled one.
+   **Commit to a system up front.** Before writing slides, write out (in planning text) the system you'll use for the whole deck: the section-header layout, the title-slide layout, how content slides are composed, the image-slide pattern, and the closing-slide treatment. Limit the deck to **1--2 background colors max** -- varied background tones break visual cohesion fast. Exception: a playful or consumer deck may rotate through one family of 3--5 tints of the same lightness (for example butter, cream, sky, blush) when every tint comes from the stated palette. Decide where visual rhythm comes from (a recurring accent shape, a consistent type lockup, a divider style). State the system before you build it; it's what separates a designed deck from an assembled one.
 
    **Professional / corporate / formal decks -- extra consistency rules.** When the user asks for a professional deck (or the context reads that way -- investor, board, exec, sales, internal report, quarterly review): pick **one mode and hold it** -- either consistently light or consistently dark, never alternating slide-to-slide. Hold the same background tone family across every content slide. Save full-bleed image slides for 1--2 hero moments max, and lean on typography + whitespace for the rest unless the user explicitly asks for a more visually rich treatment. A professional deck reads as professional because it's restrained and consistent, not because every slide brings a new visual trick.
 7. **Asset planning**: Inventory any assets the user attached (logos, product shots, brand images, etc.) and decide where each one appears. Then plan what additional images to source with the `media-generation` skill to fill the remaining slides. Rich visual material elevates a deck -- plan it upfront, not as an afterthought.
+
+   **One recurring subject, one image style.** When the deck is about a thing -- a product, an animal, a place, a character, a brand -- generate a consistent set: the same product, mascot, or scene shown in different contexts and crops, with the same lighting, palette, and rendering style. Repeat the same subject description and style words in every prompt so the images match. A smart-lamp deck shows the same lamp in a living room, bedroom, and desk; a puppy deck reuses the same illustrated puppy on the cover, a content slide, and the close. For kids, pets, hobbies, and playful topics, prefer one consistent illustration style over stock-style photos. Generic stock scenes (people at a meeting table, a desk with pills, a dark blurred lab) are filler; use them only when nothing more specific exists. Do not drop small isolated 3D renders or cutout objects (a spring, a molecule, a gear) into a corner as decoration; an image is either large enough to carry the slide (at least a third of the frame) or it is absent.
 
 Commit to a direction and execute.
 </planning>
@@ -126,11 +147,23 @@ Every slide should have visual depth and intentional composition. Layer backgrou
 - Mix centered layouts with left-aligned, right-aligned, and asymmetric compositions. Visual tension keeps the viewer engaged.
 - Use generous padding (roughly 5-8% from edges). Content crammed to the edges looks unfinished.
 - Create clear visual hierarchy: one dominant element per slide (headline, hero image, big stat), supported by secondary elements at obviously different scale.
+- **Scale contrast on every slide.** Each slide needs one element at least three times the body size: a hero number (`180°`, `+86%`, `28 → 42`), an oversized year or step numeral, a headline of 5vw or larger, or an image that takes 45% or more of the frame. A slide built only from 2vw text and 3vw titles reads as a document page. When a slide has a real number, make it the hero.
+- **Fill the frame with structure.** The content block should span most of the safe area. Do not leave a large tinted panel or a full column empty for decoration. If the content is short, make it bigger or switch to a Statement or Big number archetype; do not shrink it into one corner, and do not pad it with boxes.
+- **Cards and icons for parallel items, sparingly.** Three to five parallel items can be a row of filled cards, each with a small icon or numeral, a bold label, and one short line. Icons are allowed when each icon labels a real item; draw them as simple inline SVG line icons with one stroke width and one color across the deck. Icons used only to fill space are still banned. Cards are one tool, not the default: see the box budget below.
+- **Box budget.** Agency decks separate content with space, alignment, and hairlines far more than with boxes. Use containers (cards, tinted panels with text inside) on at most a third of the content slides, and at most one row of them per slide. Elsewhere, set the text straight on the background in columns aligned to the grid. A slide that is a title plus a grid of white boxes is the most common reason our decks look generated.
+- **Word budget.** A content slide carries at most about 45 words of body copy, not counting the title. A card holds a bold label plus one line of at most 12 words. If the material needs more, split the slide or cut copy; never shrink type to fit. Dense small-print slides with five text blocks are the most common reason a deck reads as a document. Strong reference decks average 25-40 words per slide with body text at 2vw or larger.
+- **No footnote strip.** Do not add a sentence-length takeaway line or footnote along the bottom edge of content slides. It is the line that gets clipped. Put the takeaway in the title or a card, or leave it in speaker notes.
 - White space is a design element -- balance content and breathing room.
+- **One grid and one spacing scale for the whole deck.** Write both into your plan before building:
+  - Margins: about 6vw left and right, 8vh top and bottom, the same on every slide. The title sits at the same position on every content slide.
+  - A 12-column grid with a 2vw gutter. Every text block, image edge, and rule starts and ends on a column line. Prefer asymmetric splits (5/7, 4/8) over 6/6.
+  - A spacing scale of 0.8, 1.6, 2.4, 4, and 6.4vw. Every gap is one of these values. Related items (label and its line) use the small steps; separate groups use 4vw or more. Equal gaps everywhere is what makes a slide look crowded and flat.
+  - Card padding is at least 1.6vw on every side; text never touches a card edge.
+- **Vertical balance.** The content block either fills the safe area or sits on a deliberate anchor (centered, or bottom-aligned under a top title). A slide whose content ends halfway down and leaves the bottom 40% empty is unfinished: enlarge the content, move it down, or switch archetype.
 - When using images alongside text, give images real estate. If you're using an image, let it be prominent.
-- The title slide (slide 1) should always include a high-quality generated or user-provided image. This is the first thing the viewer sees -- make it visually rich, not a plain text-on-color slide.
-- Roughly 1 in every 4-5 slides -- and never more than 2-3 per deck -- should use a **full-bleed high-resolution image as the background** with bold, high-contrast text on top. These slides create visual impact and break up text-heavy runs. Use a semi-transparent overlay or gradient so text remains readable. Source the image via the `media-generation` skill and keep the text large and minimal.
-- Give images real visual space. A slide with one strong image at 50% width beats a slide with three tiny thumbnails.
+- The title slide (slide 1) should often include a high-quality generated or user-provided image. This is the first thing the viewer sees -- make it visually rich.
+- Some slides benefit from a **full-bleed high-resolution image as the background** with bold, high-contrast text on top. These slides create visual impact. Use a semi-transparent overlay or gradient so text remains readable. Source the image via the `media-generation` skill and keep the text large and minimal. Don't overuse this style, only use it when it makes sense: full-bleed image backgrounds should never be more than 2-3 slides in a deck, if any.
+- Give images visual space when relevant, sometimes a single image beats 3 on a slide.
 
 **Asset usage:**
 
@@ -154,7 +187,7 @@ Use a variety of slide layouts to keep the deck visually engaging. Match layouts
 
 **Core layout patterns:**
 
-- **Title Slide**: Hero display typography at large scale with a high-quality full-bleed or prominent hero image. Minimal supporting text (subtitle or date). Brand mark/logo if available. Sets the visual tone for the entire deck. This is your first impression -- make it count. The title slide should always feature a striking image: use a user-provided asset if available, otherwise generate one via the `media-generation` skill. Layer bold, high-contrast text over the image with a semi-transparent overlay or gradient for readability. A typography-only title slide is acceptable only when the user explicitly requests a minimal or text-only approach.
+- **Title Slide**: Hero display typography at large scale typically with a high-quality hero image. Minimal supporting text (subtitle or date). Brand mark/logo if available. Sets the visual tone for the entire deck. This is your first impression -- make it count. Some titles even use a full bleed image background, which can work sometimes. The title slide should usually feature some sort of striking image: use a user-provided asset if available, otherwise generate one via the `media-generation` skill. If you do a full bleed image, layer bold, high-contrast text over the image with a semi-transparent overlay or gradient for readability.
 - **Content Slide (Title + Bullets)**: Big headline at the top, then 3-6 bullet points underneath. The workhorse layout for communicating lots of information. Keep bullets concise -- phrases, not sentences.
 - **Two-Column**: Headline, then two columns of content below. Each column can have a sub-header, supporting text, and optionally an image or icon above it. Great for comparisons, before/after, pros/cons.
 - **Three-Column**: Headline, then three columns. Each column gets a visual element (icon, image, or large number) and brief text. Good for features, process steps, team members.
@@ -171,7 +204,29 @@ Match variety to deck type:
 - **Board decks, memos, internal reports** -- Consistent, repeatable formats. Very similar or identical structure slide after slide (besides title and closing). Predictability is a feature.
 - **Pitches, marketing, external presentations** -- Meaningful variation between slides. Mix layouts to keep visual interest high. The goal is professional and polished, not flashy or cluttered.
 
-Most decks should be around 6-8 slides.
+**Layout archetypes and the repetition budget (pitches, lectures, briefs, and every non-board deck).** In your plan, assign each slide one archetype from this list and write the list down before building:
+
+1. **Cover** -- display title, usually with a hero image.
+2. **Statement** -- one sentence at 5-7vw, nothing else but a small label.
+3. **Big number** -- one figure at 12vw or larger, with one line of context.
+4. **Split** -- image bleeding to two or three edges on 5 columns, text on 7 (or reversed).
+5. **Full-bleed image** -- photograph with a short caption or title over a gradient.
+6. **Index** -- an unboxed list: large numerals or labels in a narrow left column, hairline rules between rows, text on the right.
+7. **Columns** -- two to four unboxed columns of label plus one line, aligned to the grid.
+8. **Diagram or chart hero** -- the visual takes most of the frame; text is a caption.
+9. **Comparison** -- two sides, or a real table with a header row.
+10. **Card row** -- one row of filled cards (counts against the box budget).
+11. **Quote** -- pull quote at large scale with attribution.
+12. **Close** -- summary or call to action with the cover's treatment.
+
+Rules:
+- No archetype appears more than twice in a deck, except Columns and Index, which may appear three times in decks over ten slides.
+- No two adjacent slides use the same archetype.
+- `01 / 02 / 03 / 04` numerals appear only for a real sequence (steps, phases, a ranked list) and at most twice per deck. A four-up grid of numbered items is the single most repeated pattern in our output; use it once at most.
+- One title device for the deck. If titles get an eyebrow label or an accent bar, use it on section starts only, not on every slide.
+- Do not restate the same fact on two slides (a headline number on the cover, again in an overview card, and again in the results slide). Say it once, where it matters most.
+
+Most decks should be around 6-8 slides. Go past 10 only when the user asks for a slide count or an outline that needs it; merge thin slides instead of adding more.
 </slide_layouts>
 
 <typography_system>
@@ -218,10 +273,10 @@ These constraints are non-negotiable. Every slide must comply. Content must be s
 
 **Style:**
 
-- No neon colors, purple gradients, or cyan/magenta palettes (unless specifically requested or a more lax prompt)
+- No neon colors, purple gradients, or cyan/magenta palettes (unless specifically requested, a more lax prompt, or the real brand uses them)
 - No generic dark mode with glowing elements
 - No random visual treatments (every slide uses a different trick)
-- No clip art or generic stock illustrations
+- No clip art or mismatched generic stock illustrations. One consistent generated illustration style across the deck is not clip art.
 - No drop shadows on everything
 - No overusing AI-generated images (especially as full-slide backgrounds) -- use them sparingly and purposefully
 - No more than 2-3 image-background slides per deck
@@ -241,6 +296,7 @@ These constraints are non-negotiable. Every slide must comply. Content must be s
   - Takeaway boxes, "pro tip:" banners, tip-callout containers
   - Dramatic tension-building with no payoff
   - Replace each hit with a concrete, specific claim -- or cut the line entirely.
+- **No placeholder or invented contact details.** Never write placeholder text ("Add your address", "+91 XXXXX", "email@example.com", "[Phone]") or invent a phone number, email, or address. If the user did not give contact details and you cannot verify them, end the deck with a call to action or a summary instead of a contact block.
 - **One idea per slide.** If a title contains "and," it's almost always two slides -- split it.
 - No decks shorter than 3 slides unless the user explicitly asks for a short deck
 </constraints>

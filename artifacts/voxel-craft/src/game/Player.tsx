@@ -4,8 +4,12 @@ import { useKeyboardControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Controls } from './Game';
 import { worldManager, CHUNK_SIZE, WORLD_MIN_Y } from './worldGen';
-import { BlockType, isSolid } from './blocks';
+import {
+  BlockType, isSolid, canHarvestBlockWithTool, getBlockDrop,
+  getSwordDamage, isPlaceableBlock,
+} from './blocks';
 import { raycastMobs, damageMob } from './mobSystem';
+import { damageAnimal, raycastAnimals } from './Animals';
 import type { TouchState } from './TouchControls';
 import type { BreakingState } from './World';
 
@@ -39,6 +43,8 @@ interface PlayerProps {
   onBlockPlace:   (type: BlockType) => void;
   onChestOpen?:    (x: number, y: number, z: number) => void;
   onCraftingTableOpen?: (x: number, y: number, z: number) => void;
+  onFurnaceOpen?: (x: number, y: number, z: number) => void;
+  worldBorderEnabled?: boolean;
   isDead?:         boolean;
   respawnTrigger?: number;
   tpRef:           React.MutableRefObject<{ x: number; y: number; z: number } | null>;
@@ -84,7 +90,8 @@ export default function Player({
   mode, setMode, playerChunkRef, onStateChange,
   touchRef, externalSlot, externalHotbar,
   breakingRef,
-  canPlace, onBlockBreak, onBlockPlace, onChestOpen, onCraftingTableOpen,
+  canPlace, onBlockBreak, onBlockPlace, onChestOpen, onCraftingTableOpen, onFurnaceOpen,
+  worldBorderEnabled = true,
   isDead = false, respawnTrigger = 0, tpRef, pendingMobDamageRef,
 }: PlayerProps) {
   const { camera, gl } = useThree();
@@ -305,6 +312,14 @@ export default function Player({
     tmpPos.current.set(p.x, p.y, p.z + v.z * dt);
     if (!collidesAt(tmpPos.current)) p.z = tmpPos.current.z; else v.z = 0;
 
+    if (worldBorderEnabled) {
+      const border = 1_048_576 - PLAYER_W / 2;
+      if (p.x > border) { p.x = border; if (v.x > 0) v.x = 0; }
+      if (p.x < -border) { p.x = -border; if (v.x < 0) v.x = 0; }
+      if (p.z > border) { p.z = border; if (v.z > 0) v.z = 0; }
+      if (p.z < -border) { p.z = -border; if (v.z < 0) v.z = 0; }
+    }
+
     if (p.y < WORLD_MIN_Y - PLAYER_H) {
       p.set(8, worldManager.getTerrainHeight(8, 8) + 3, 8);
       v.set(0, 0, 0);
@@ -329,13 +344,27 @@ export default function Player({
       const mobHit = doBreak
         ? raycastMobs(eyePos.current.x, eyePos.current.y, eyePos.current.z, dir3.current.x, dir3.current.y, dir3.current.z, reach)
         : null;
+      const animalHit = doBreak
+        ? raycastAnimals(eyePos.current.x, eyePos.current.y, eyePos.current.z, dir3.current.x, dir3.current.y, dir3.current.z, reach)
+        : null;
 
-      if (mobHit && (!ray.hit || mobHit.dist < ray.dist)) {
+      if (animalHit && (!ray.hit || animalHit.dist < ray.dist) && (!mobHit || animalHit.dist < mobHit.dist)) {
+        breakingRef.current.active = false;
+        breakPos.current = null;
+        breakStart.current = 0;
+        const now = Date.now();
+        if (now - lastHit.current > 400) {
+          const weapon = hotbar.current[slot.current] ?? BlockType.AIR;
+          damageAnimal(animalHit.id, curMode === 'CREATIVE' ? 10 : getSwordDamage(weapon));
+          lastHit.current = now;
+        }
+      } else if (mobHit && (!ray.hit || mobHit.dist < ray.dist)) {
         breakingRef.current.active = false;
         if (doBreak) {
           const now = Date.now();
           if (now - lastHit.current > 400) {
-            damageMob(mobHit.id, curMode === 'CREATIVE' ? 10 : 5);
+            const weapon = hotbar.current[slot.current] ?? BlockType.AIR;
+            damageMob(mobHit.id, curMode === 'CREATIVE' ? 10 : getSwordDamage(weapon));
             lastHit.current = now;
           }
         }
@@ -377,7 +406,10 @@ export default function Player({
               if (now - breakStart.current >= BREAK_TIME_MS && target) {
                 const blockType = worldManager.getBlock(target.x, target.y, target.z);
                 worldManager.setBlock(target.x, target.y, target.z, BlockType.AIR);
-                onBlockBreak(blockType, new THREE.Vector3(target.x + 0.5, target.y + 0.5, target.z + 0.5));
+                const heldItem = hotbar.current[slot.current] ?? BlockType.AIR;
+                if (blockType !== BlockType.AIR && canHarvestBlockWithTool(blockType, heldItem)) {
+                  onBlockBreak(getBlockDrop(blockType), new THREE.Vector3(target.x + 0.5, target.y + 0.5, target.z + 0.5));
+                }
                 breakPos.current = null; breakStart.current = 0;
                 breakingRef.current.active = false;
               }
@@ -401,10 +433,15 @@ export default function Player({
               onCraftingTableOpen(ray.hitPos.x, ray.hitPos.y, ray.hitPos.z);
               lastPlace.current = now;
             }
+          } else if (hitBlock === BlockType.FURNACE && onFurnaceOpen) {
+            if (now - lastPlace.current > 400) {
+              onFurnaceOpen(ray.hitPos.x, ray.hitPos.y, ray.hitPos.z);
+              lastPlace.current = now;
+            }
           } else if (ray.prevPos && now - lastPlace.current > 250) {
             const pp  = ray.prevPos;
             const blk = hotbar.current[slot.current];
-            if (blk !== BlockType.AIR) {
+            if (isPlaceableBlock(blk)) {
               const canPl = curMode !== 'SURVIVAL' || canPlace(blk);
               if (canPl) {
                 const hw = PLAYER_W / 2;

@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
-import { BlockType, BLOCK_COLORS, BLOCK_NAMES } from './blocks';
+import { BlockType, BLOCK_COLORS, BLOCK_NAMES, isItemOnly } from './blocks';
 import { blockTextureUrl } from './textures';
 import { getCraftOutput, type CraftOutput } from './craftingRecipes';
+import { getToolIconStyle } from './itemIcons';
 
 interface Props {
   mode: 'CREATIVE' | 'SURVIVAL';
@@ -19,9 +20,10 @@ function colorStr(t: BlockType): string {
   return `rgb(${Math.round(c[0]*255)},${Math.round(c[1]*255)},${Math.round(c[2]*255)})`;
 }
 
-type Cat = 'all' | 'natural' | 'stone' | 'wood' | 'ores' | 'building' | 'color' | 'special';
+type Cat = 'all' | 'natural' | 'stone' | 'wood' | 'ores' | 'building' | 'color' | 'special' | 'tools';
 
 function getBlockCat(t: BlockType): Cat {
+  if (t >= BlockType.STICK) return 'tools';
   if (t >= 1  && t <= 14)  return 'natural';
   if (t >= 15 && t <= 34)  return 'stone';
   if (t >= 35 && t <= 54)  return 'wood';
@@ -32,7 +34,7 @@ function getBlockCat(t: BlockType): Cat {
   return 'special';
 }
 
-const ALL_BLOCKS: BlockType[] = Array.from({ length: 225 }, (_, i) => i + 1) as BlockType[];
+const ALL_BLOCKS: BlockType[] = Array.from({ length: BlockType.DIAMOND_SWORD }, (_, i) => i + 1) as BlockType[];
 const CATS: { key: Cat; label: string }[] = [
   { key: 'all',      label: 'All'      },
   { key: 'natural',  label: 'Natural'  },
@@ -41,6 +43,7 @@ const CATS: { key: Cat; label: string }[] = [
   { key: 'ores',     label: 'Ores'     },
   { key: 'color',    label: 'Color'    },
   { key: 'building', label: 'Special'  },
+  { key: 'tools',    label: 'Tools & items' },
 ];
 
 function blockSwatch(type: BlockType, size: number): React.CSSProperties {
@@ -49,11 +52,12 @@ function blockSwatch(type: BlockType, size: number): React.CSSProperties {
     height: size,
     borderRadius: 2,
     background: colorStr(type),
-    backgroundImage: type !== BlockType.AIR ? `url(${blockTextureUrl(type)})` : undefined,
+    backgroundImage: type !== BlockType.AIR && !isItemOnly(type) ? `url(${blockTextureUrl(type)})` : undefined,
     backgroundSize: 'cover',
     imageRendering: 'pixelated',
     border: '2px solid #5c5c5c',
     boxShadow: 'inset 2px 2px 0 rgba(255,255,255,0.35), inset -2px -2px 0 rgba(0,0,0,0.3)',
+    ...getToolIconStyle(type),
   };
 }
 

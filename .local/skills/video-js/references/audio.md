@@ -1,6 +1,19 @@
 # Video Audio
 
-Use this reference during the post-build pass for `video-js` artifacts, after the scenes are built and workflow logs are clean.
+The design subagent owns audio end to end through the `generateMusic`, `generateSoundEffect`, `textToSpeech`, and `searchVoices` callbacks, called inside `CodeExecution` exactly as the examples below show (they are pre-registered there; no import). Order: write the Audio spec with the script, generate the bed, find its beats and move the scripted cuts onto them, build the scenes, then any requested voiceover and effects, then the composite and playback wiring.
+
+## Audio spec (in `SCRIPT.md`)
+
+```markdown
+## Audio spec
+- Runtime: 24 s (SCENE_DURATIONS total)
+- Music: driving synthwave, 120 BPM, confident build; strong accent at 4.0 s (hero pop), 12.0 s (product reveal), 20.5 s (logo lockup); resolved ending, no vocals.
+- Voiceover (requested): "Meet Nova." at 1.2-2.4 s, warm narrator; "Built for the way you work." at 13.0-15.5 s.
+- SFX (requested): soft logo chime at 20.5 s, 1.2 s.
+- Playback file: composite_audio.mp3
+```
+
+Omit the voiceover and SFX lines unless the user asked for them; then the playback file is `bg_music.mp3`. Put the requested accents on scripted cuts; after generation, move the cuts onto the accents the track actually has.
 
 ## Default behavior
 
@@ -10,9 +23,8 @@ Skip default music only when the user explicitly asks for no music, no audio, si
 
 ## Generate background music
 
-1. Read `SCENE_DURATIONS` from `src/components/video/VideoTemplate.tsx`.
-2. Compute `totalRuntimeSeconds = Math.ceil(sum(Object.values(SCENE_DURATIONS)) / 1000)`.
-3. Generate music with the `generateMusic` callback and save it under the artifact's public audio directory:
+1. `totalRuntimeSeconds` is the scripted runtime (the sum the shot script's durations must reach). Build the prompt from the Audio spec: style, BPM, mood, and the accent moments.
+2. Generate music with the `generateMusic` callback inside `CodeExecution` and save it under the artifact's public audio directory:
 
 ```javascript
 const music = await generateMusic({
@@ -195,6 +207,20 @@ console.log(sfx.filePath);
 ## Prohibited uses
 
 The audio callbacks run on ElevenLabs, and every call is subject to the ElevenLabs Prohibited Use Policy. Read `.local/skills/media-generation/elevenlabs-prohibited-uses.md` and refuse audio it prohibits.
+
+## Find the beat (after generating the bed, before building scenes)
+
+The generated bed will not land its accents exactly where the spec asked. Measure, then move the cuts:
+
+```bash
+ffmpeg -i public/audio/bg_music.mp3 \
+  -af "aformat=sample_rates=44100,asetnsamples=n=2205,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level" \
+  -f null - 2>&1 | grep -E "pts_time|RMS_level" | paste - - \
+  | sed -n 's/.*pts_time:\([0-9.]*\).*RMS_level=\(-\{0,1\}[0-9.]*\).*/\1 \2/p' > /tmp/rms.txt
+awk 'NR>1 && $2-prev>=6 {print $1} {prev=$2}' /tmp/rms.txt   # onset times in seconds
+```
+
+`/tmp/rms.txt` is time (s) and RMS level (dB) per 50 ms window; a jump of 6 dB or more between neighbours is an onset. For each accent in the spec, take the nearest onset and move the scripted cut onto it by shifting time between the two adjacent shots (the total must not change). If the track has no usable onset near an important cut, delete the rejected file (`rm public/audio/bg_music.mp3`) and regenerate once with a sharper prompt before you rescript around it. The callback never replaces a file that exists: with the old `bg_music.mp3` still on disk it saves `bg_music_2.mp3`, and this recipe and the `<audio>` element keep measuring and playing the rejected track. Update `SCRIPT.md` with the final cut times so the scenes are built to them.
 
 ## Multi-layer export parity
 

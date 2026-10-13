@@ -31,7 +31,7 @@ These workarounds are hidden inside the hook. Consumers just use `jumpTo(index)`
 
 ## When to use
 
-Run this step once, right after the initial scene build and a clean workflow log. Skip on iteration prompts. Do not delegate it to a subagent.
+The design subagent builds the bar in the same run as the scenes, once, on the first build. Skip on iteration prompts unless the bar is missing or broken.
 
 ## Files to create/edit
 
@@ -567,7 +567,6 @@ The invisible `flex-1 w-full` filler above the bar gives the pointer a target ar
 
 1. Make sure that `src/App.tsx` imports `VideoWithControls` from `@/components/video/VideoWithControls` and imports nothing from `src/lib/video/controls.tsx`.
 2. Run `bash scripts/validate-recording.sh` — fix any issues.
-3. Restart the workflow.
-4. Read logs — fix build errors until clean.
-5. Call `presentArtifact`.
+3. Run the artifact typecheck — fix any issues.
+4. List the files you changed in your report. The main agent restarts the workflow, reads the logs, and calls `presentArtifact`; you cannot.
 

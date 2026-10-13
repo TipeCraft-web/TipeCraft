@@ -14,23 +14,71 @@ Set up Anthropic AI integration via Replit AI Integrations proxy. Keys are autom
 
 ## Supported Anthropic Models
 
-- claude-opus-5: Most capable, best for complex reasoning and coding tasks. Prefer claude-opus-5 over other Opus-series models.
-- claude-opus-4-8: Earlier Opus generation, prefer claude-opus-5.
-- claude-opus-4-7: Earlier Opus generation, prefer claude-opus-5.
-- claude-opus-4-6: Earlier Opus generation, prefer claude-opus-5.
-- claude-opus-4-5: Earlier Opus generation, prefer claude-opus-5.
-- claude-sonnet-5: Balanced performance and speed, recommended for most use cases. Prefer claude-sonnet-5 over other Sonnet-series models.
-- claude-sonnet-4-6: Earlier Sonnet generation, prefer claude-sonnet-5.
-- claude-sonnet-4-5: Earlier Sonnet generation, prefer claude-sonnet-5.
-- claude-haiku-4-5: Fastest and most compact, ideal for simple tasks
+Prefer the latest supported model within each fleet.
+
+### Fable
+
+- Best for: Demanding reasoning and long-horizon agentic work.
+- Latest model:
+  - `claude-fable-5-1`
+- Older models:
+  - `claude-fable-5`
+
+### Opus
+
+- Best for: Long-running agentic coding and knowledge work.
+- Latest model:
+  - `claude-opus-5-5`
+- Older models:
+  - `claude-opus-5`
+  - `claude-opus-4-8`
+  - `claude-opus-4-7`
+  - `claude-opus-4-6`
+  - `claude-opus-4-5`
+
+### Sonnet
+
+- Best for: General-purpose tasks that need a balance of speed and intelligence.
+- Latest model:
+  - `claude-sonnet-5-5`
+- Older models:
+  - `claude-sonnet-5`
+  - `claude-sonnet-4-6`
+  - `claude-sonnet-4-5`
+
+### Haiku
+
+- Best for: High-volume, latency-sensitive tasks such as classification, extraction, and routing.
+- Latest model:
+  - `claude-haiku-5-5`
+- Older models:
+  - `claude-haiku-4-5`
 
 ### API Constraints
 
-The following constraints apply to claude-opus-5, claude-sonnet-5, claude-opus-4-8, and claude-opus-4-7:
+The following shared constraints apply to:
 
-- Omit temperature, top_p, and top_k. Non-default values return a 400 error.
-- Manual extended thinking with budget_tokens is unsupported and returns a 400 error. Use adaptive thinking instead.
-- Thinking summaries are omitted by default. Set thinking display to "summarized" to receive readable summary text.
+- `claude-fable-5-1`
+- `claude-fable-5`
+- `claude-opus-5-5`
+- `claude-opus-5`
+- `claude-opus-4-8`
+- `claude-opus-4-7`
+- `claude-sonnet-5-5`
+- `claude-sonnet-5`
+- `claude-haiku-5-5`
+
+Shared constraints:
+
+- Omit `temperature`, `top_p`, and `top_k`. Sampling controls are restricted; omitting all three avoids unsupported values and combinations.
+- Manual extended thinking (`thinking: {"type": "enabled", "budget_tokens": N}`) returns a 400 error. Use `thinking: {"type": "adaptive"}` and `output_config.effort` to control thinking depth.
+- When thinking is enabled, its text is omitted by default, but thinking blocks still appear. Use `thinking: {"type": "adaptive", "display": "summarized"}` to receive readable summaries. Pass thinking blocks back unchanged in tool-use conversations.
+
+Thinking-mode differences for the newly added models:
+
+- `claude-fable-5`, `claude-fable-5-1`, and `claude-opus-5-5`: Adaptive thinking is always on. Omit `thinking` or use `{"type": "adaptive"}`; `{"type": "disabled"}` returns a 400 error.
+- `claude-sonnet-5-5`: Adaptive thinking is on by default. To turn off up-front thinking, use `thinking: {"type": "between_tools"}` at `high` effort or below. `{"type": "disabled"}` returns a 400 error. Do not add `display`, `budget_tokens`, or `block_binding` to `between_tools`.
+- `claude-haiku-5-5`: Adaptive thinking is on by default. `thinking: {"type": "disabled"}` is accepted at `high` effort or below, but returns a 400 error at `xhigh` or `max`.
 
 IMPORTANT: Models not listed above are NOT available through AI integrations. Never use unlisted models with this integration.
 
@@ -250,7 +298,7 @@ res.setHeader("Connection", "keep-alive");
 let fullResponse = "";
 
 const stream = anthropic.messages.stream({
-  model: "claude-sonnet-5",
+  model: "claude-sonnet-5-5",
   max_tokens: 8192,
   messages: chatMessages,
 });
@@ -285,12 +333,14 @@ const results = await batchProcess(
   items,
   async (item) => {
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-5",
+      model: "claude-sonnet-5-5",
       max_tokens: 8192,
       messages: [{ role: "user", content: `Process: ${item.name}` }],
     });
-    const block = message.content[0];
-    return block.type === "text" ? block.text : "";
+    return message.content
+      .filter((block) => block.type === "text")
+      .map((block) => block.text)
+      .join("");
   },
   { concurrency: 2, retries: 5 }
 );

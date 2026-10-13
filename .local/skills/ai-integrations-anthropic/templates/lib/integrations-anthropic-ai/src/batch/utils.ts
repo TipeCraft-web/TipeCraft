@@ -16,12 +16,14 @@ import pRetry, { AbortError } from "p-retry";
  *   artworks,
  *   async (artwork) => {
  *     const message = await anthropic.messages.create({
- *       model: "claude-sonnet-5",
+ *       model: "claude-sonnet-5-5",
  *       max_tokens: 8192,
  *       messages: [{ role: "user", content: `Categorize: ${artwork.name}` }],
  *     });
- *     const block = message.content[0];
- *     return block.type === "text" ? block.text : "";
+ *     return message.content
+ *       .filter((block) => block.type === "text")
+ *       .map((block) => block.text)
+ *       .join("");
  *   },
  *   { concurrency: 2, retries: 5 }
  * );

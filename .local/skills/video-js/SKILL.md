@@ -1,40 +1,54 @@
 ---
 name: video-js
-description: Create and revise short Replit Animation films (v3.1, with composition/pacing floors, scaffold-protection and frame-capture recipes, transition render-cost rules, photography-first product rules, signature-detail fidelity, compound-transition rules, persistent-layer ownership, subagent-output verification, and revision-integrity checks) directly with React, Framer Motion, GSAP, and animated SVG. Use for dynamic product launches, brand films, kinetic typography, social announcements, and After Effects-style motion graphics. Prioritizes distinct shot compositions, purposeful choreography, product reveals, and reliable playback/export. Videos auto-play, loop, and have no interactive elements. Attached media assets (images, video clips) can be used as elements. Not a timeline video editor (no trimming, splicing, or footage editing) and not an After Effects project exporter.
+description: Create and revise short Replit Animation films (v3.2, with composition/pacing floors, scaffold-protection and frame-capture recipes, transition render-cost rules, photography-first product rules, signature-detail fidelity, compound-transition rules, persistent-layer ownership, and revision-integrity checks) with React, Framer Motion, GSAP, and animated SVG. The design subagent builds and revises the whole film; the main agent runs only the platform callbacks around it. Use for dynamic product launches, brand films, kinetic typography, social announcements, and After Effects-style motion graphics. Prioritizes distinct shot compositions, purposeful choreography, product reveals, and reliable playback/export. Videos auto-play, loop, and have no interactive elements. Attached media assets (images, video clips) can be used as elements. Not a timeline video editor (no trimming, splicing, or footage editing) and not an After Effects project exporter.
 ---
 
 # Replit Animation -- Motion Design
 
-v3.1 -- adds 4b no-empty-frame/wipe-tail floors, 6b push-through recipe, 8 outlined-type rule, 8d scaffold protection, 11 filter-on-scaled-plane rule, 13 frame-capture recipe. Learned on a 20 s Gap linen-shirt brand film.
+v3.2 -- the design subagent owns every file in the film; the main agent only runs the platform steps the subagent has no tools for. Keeps the v3.1 floors and recipes (4b no-empty-frame/wipe-tail, 6b push-through, 8 outlined-type, 8d scaffold protection, 11 filter-on-scaled-plane, 13 frame capture).
 
 Build a directed motion piece, not a presentation with animated entrances.
 
-This is a single-agent creative and implementation workflow. The agent owns the concept, assets, composition, animation, audio integration, and verification.
+Two agents read this file. The **main agent** asks the platform questions, creates the artifact, gathers brand assets, delegates, restarts the workflow, and presents. The **design subagent** does all creative and implementation work: treatment, script, audio, assets, scenes, styling, controls, validation, and every revision. Section 1 draws the line; sections 2-13 are written for the design subagent.
 
-## 0. Platform steps before any creative work
+## 0. Platform steps before any creative work (main agent)
 
-**Ratio step (before any other work).** Read `.local/skills/video-js/references/resolution.md`. For a NEW video, complete its required ratio question before research, artifact creation, planning, template selection, or file changes. If you ask the question, end your turn and wait for the user's answer. Skip the question only when that reference permits it. Before creating the artifact, resolve the selected ratio to one exact `selectedVideoAspectRatio` value (`16:9`, `9:16`, `1:1`, or `4:5`) and persist it as that reference describes.
+These steps use callbacks the design subagent does not have. The main agent runs them, then delegates.
 
-**Brand assets step.** If the request names a real company, product, or brand whose visual identity should appear (logos, fonts, brand colors) and the user did not attach those assets, gather them before designing:
+**Ratio step (before any other work).** Read `.local/skills/video-js/references/resolution.md`. For a NEW video, resolve the ratio from the request as that reference describes -- an explicit ratio or one unambiguous platform or orientation word, otherwise 16:9. Never ask the user for the ratio. Before creating the artifact, resolve the selected ratio to one exact `selectedVideoAspectRatio` value (`16:9`, `9:16`, `1:1`, or `4:5`) and persist it as that reference describes.
+
+**Brand assets step.** If the request names a real company, product, or brand whose visual identity should appear (logos, fonts, brand colors) and the user did not attach those assets, gather them before delegating -- the design subagent cannot call these callbacks:
 
 - Use `extractBranding` on the official site for brand tokens (colors, fonts) and logo asset URLs.
 - Download each usable logo image into `attached_assets/` and verify it is a real image file (SVG/PNG content, not an HTML page); discard anything that fails.
 - If `extractBranding` gave no usable logo, use `imageSearch` (`"<company> logo png"` or `"<company> logo transparent"`, preferring official domains and press or brand asset pages), then download the best candidate the same way.
 
-Skip this step when no real brand is involved, the user attached the brand assets, or the callbacks are unavailable or fail. Distilled facts only: keep the logo file paths, font names (with the closest Google Fonts match when proprietary), hex codes, and source URL for the treatment.
+Skip this step when no real brand is involved, the user attached the brand assets, or the callbacks are unavailable or fail. Distilled facts only: keep the logo file paths, font names (with the closest Google Fonts match when proprietary), hex codes, and source URL for the `Brand assets` block of the brief.
 
-**First build.** For a NEW film, `.local/skills/video-js/references/first-build.md` owns the build order (artifact creation, script, assets, scenes, workflow restart, audio, controls, verification, presentation). Read it once and follow it; this file supplies the creative and technical rules it relies on.
+**First build.** For a NEW film, `.local/skills/video-js/references/first-build.md` owns the sequence (brand assets, the delegation brief, workflow restart, presentation). Read it once and follow it. This file supplies the creative and technical rules the design subagent relies on.
+
+**Revisions.** Every change to an existing film -- a new shot, a pacing note, a screenshot of a defect, "make it more premium" -- goes to a design subagent with the user's message verbatim, the attached screenshot paths in `relevantFiles`, and `.local/skills/video-js/SKILL.md` in `relevantSkills`. Add no creative direction of your own. When it returns: `refresh_all_logs()`, restart the workflow only if the logs show errors, and do not call `presentArtifact` again -- the preview hot-reloads.
 
 ## 1. Operating contract
 
-- Implement directly by default. Do not automatically delegate the film to a design subagent.
-- Honor an explicit request to work without subagents. Otherwise, narrow independent assistance is optional, not a prerequisite to starting.
-- Make concrete creative decisions rather than repeatedly asking permission for routine choices.
+### Main agent: platform callbacks only
+
+- Never write or edit a file in the video artifact: not `SCRIPT.md`, scenes, CSS, `App.tsx`, `sceneMeta.ts`, controls, audio, or a one-line build fix. Every file change, on the first build and on every revision, goes through a design subagent.
+- Run only what the design subagent cannot: the ratio and template questions, `createArtifact` and ratio persistence, `extractBranding` / `imageSearch` downloads, `subagent()`, `restart_workflow` / `refresh_all_logs`, and `presentArtifact`.
+- The brief is the user's request verbatim plus facts (ratio, template, downloaded brand assets). No creative direction, palette, typography, scene ideas, or pacing notes. The design subagent is the creative expert.
+- When the workflow logs or `scripts/validate-recording.sh` show a problem, send the exact output back to a design subagent with a fix-only task. Do not patch it yourself.
+- Report only what the logs, the validation script, and the subagent's changed-file list support. Do not relay a subagent's claims about frames or exports as verified.
+
+### Design subagent: the whole film
+
+- You own the concept, audio, assets, composition, animation, controls, validation, and every revision. There is no one to hand work back to; finish it.
+- Make concrete creative decisions rather than asking permission for routine choices. You cannot ask the user questions; when the brief is ambiguous, choose the reading that best serves the stated subject and say what you chose in your report.
 - Script the entire film shot by shot before animation code or asset generation. A treatment, scene outline, or motion-effects list alone does not satisfy this requirement.
 - Preserve successful scenes when revising. A request about the last three scenes is not permission to redesign the opening.
-- This skill supplies the build workflow. Do not also execute a legacy first-build recipe that mandates delegation, prohibits creative direction, or repeats finalization. Higher-priority platform instructions still apply.
-- Do not edit platform-managed skill files. Save editable variants in the user-skill directory and clearly identify what was installed versus supplied as a proposed replacement.
-- Make no model-specific capability claims. Discover available tools through their documented skills.
+- You cannot start or restart workflows, create artifacts, present, or ask the user questions. On a first build the dev server is not running: verify from the files (section 13). On a revision it is running: capture frames.
+- Stay inside `src/components/video/`, `public/`, `index.html`, `src/index.css`, `src/App.tsx`, and `SCRIPT.md`. Everything else in the artifact is protected scaffold (section 8d).
+- Do not edit platform-managed skill files.
+- End every run with the list of files you created or changed and the values that matter (durations total, scene count, asset paths). The main agent relays that list; it cannot check your work for you.
 
 ### What you are producing
 
@@ -48,20 +62,16 @@ This produces After Effects-style visual language, not an .aep file. It is not a
 
 ## 2. Resolve the brief without slowing the work
 
-Before a new film, establish:
+Before a new film, establish from the brief:
 
 - Subject, audience, and one takeaway.
-- Format: 16:9, 9:16, 1:1, or 4:5. Before creative work, read `references/resolution.md` and follow its ratio instructions exactly.
+- Format: 16:9, 9:16, 1:1, or 4:5. The brief states the ratio the main agent resolved and persisted; read `references/resolution.md` for how to compose for it. Never change or infer a different ratio. Preserve an existing film's ratio unless the brief asks for a change.
 - Approximate runtime.
 - Brand inputs, provided assets, and any explicit creative references.
 
-Infer format from an unambiguous request: Shorts/Reels -> 9:16; square feed -> 1:1. Ask one concise question when format is consequential and unspecified. If the user explicitly delegates the choice or asks to skip questions, use 16:9 and state it briefly. Preserve an existing film's ratio unless a change is requested.
+"Dynamic After Effects-style product launch" is enough motion direction to proceed. It does not specify a palette, but the brand and subject can resolve that. If the brief names a template, preserve its recognizable identity, not necessarily every source layout, and recompose it for the chosen ratio.
 
-"Dynamic After Effects-style product launch" is enough motion direction to proceed. It does not specify a palette, but the brand and subject can resolve that. Do not force a template questionnaire after the user has already given actionable direction.
-
-If the environment requires a style/ratio picker, use it once. If the user selects a template, preserve its recognizable identity, not necessarily every source layout. Recompose for the chosen ratio.
-
-Use the artifact tools to list existing artifacts before creating one. Reuse a matching video; create a video-js artifact for a new product or standalone film. Persist `videoAspectRatio` through the validated artifact-configuration workflow, never a direct edit to protected TOML.
+The artifact already exists and its `videoAspectRatio` is already persisted when you start. Do not create artifacts or edit `.replit-artifact/artifact.toml`.
 
 ## 3. Write a compact director's treatment
 
@@ -451,17 +461,17 @@ Persistent layers (backgrounds, color panels, anchor logos) that live outside `A
 
 Scaffold specifics worth knowing: `VideoText` takes a `scale` prop (not size/weight); the artifact tsconfig needs lib `["es2022", "dom", "dom.iterable"]`; do not edit `src/lib/video`.
 
-## 8c. Verify subagent output from files and frames, never from its report
+## 8c. Report from the files, never from intent
 
-A design subagent's completion message describes what it intended, not necessarily what it wrote. Twice on one film a subagent reported "rebuilt Scene 2 around the hero photo" and "spec lines at 3.2vmin" while the file still held the previous CSS dial and the text rendered at ~1.5vmin. After every subagent pass: grep the touched scene files for the new imports/values, capture frames from the changed scenes, and only then report to the user. If the subagent's claim and the file disagree, fix it directly rather than sending another follow-up -- the third round rarely lands.
+Your completion message is the only account of the film the main agent gets, and it cannot check it for you. Twice on one film a design subagent reported "rebuilt Scene 2 around the hero photo" and "spec lines at 3.2vmin" while the file still held the previous CSS dial and the text rendered at ~1.5vmin. Before you report: grep every touched scene file for the new imports and values you are about to claim, re-read `SCENE_DURATIONS`, and (when the dev server is running) capture frames from the changed scenes. Report what the files contain. If you ran out of budget before a change landed, say which shot is unfinished instead of describing the plan as done.
 
-## 8d. Scaffold protection when anything else touches the artifact (learned on a Gap film)
+## 8d. Scaffold protection (learned on a Gap film)
 
-A platform design subagent, handed the whole film, treated the video artifact as a fresh Vite project: it replaced `package.json`, `vite.config`, `tsconfig`, `main.tsx`, `index.css`, the protected `src/lib/video/hooks.ts` and `layout.tsx`, added postcss/tailwind configs, and overwrote `.replit-artifact/artifact.toml` -- which deleted the managed workflow -- then wrote scenes against primitives that do not exist. Its completion report described a finished film.
+A design subagent handed a video artifact treated it as a fresh Vite project: it replaced `package.json`, `vite.config`, `tsconfig`, `main.tsx`, `index.css`, the protected `src/lib/video/hooks.ts` and `layout.tsx`, added postcss/tailwind configs, and tried to overwrite `.replit-artifact/artifact.toml` -- which would have deleted the managed workflow -- then wrote scenes against primitives that do not exist. Its completion report described a finished film.
 
-Prevention: prefer implementing directly (section 1). If assistance is used, scope it to asset generation and single scene files, and state that everything outside `src/components/video/`, `public/`, `index.html`, `src/index.css`, and `src/App.tsx` is read-only.
+The artifact is a scaffold with a recording contract, not a blank project. Write only inside `src/components/video/`, `public/`, `index.html`, `src/index.css`, `src/App.tsx`, and `SCRIPT.md`. Do not add config files. Do not install packages. Build on the primitives that exist (`src/lib/video/`), and read them before assuming an API.
 
-Recovery, in order: diff every protected file (`src/lib/video/*`, `src/main.tsx`, `vite.config.ts`, `tsconfig.json`, `scripts/`) against the pristine scaffold copy at `.local/skills/artifacts/artifacts/video-js/files/` and copy the scaffold version back over any that changed; delete stray config files it added (postcss/tailwind configs, a second `package.json`); confirm the managed workflow reappears after `artifact.toml` is restored through the validated artifact-configuration workflow (re-persist `videoAspectRatio` if it was lost); re-run `scripts/validate-recording.sh` and the typecheck; then rebuild only the scene files on the real scaffold. Never blanket-revert the artifact: scene files, `SCRIPT.md`, and generated assets are the deliverable and must survive.
+Before you finish any run, diff every protected file (`src/lib/video/*`, `src/main.tsx`, `vite.config.ts`, `tsconfig.json`, `package.json`, `scripts/`) against the pristine scaffold copy at `.local/skills/artifacts/artifacts/video-js/files/`. If any differ, copy the scaffold version back, delete stray config files, re-run `scripts/validate-recording.sh` and the typecheck, and fix only the scene files that depended on the drift. Never blanket-revert the artifact: scene files, `SCRIPT.md`, and generated assets are the deliverable and must survive. If `.replit-artifact/artifact.toml` or the managed workflow looks wrong, say so in your report; only the main agent can repair it.
 
 ## 9. Playback and export invariants
 
@@ -479,10 +489,8 @@ These are implementation requirements, not creative suggestions:
 
 ## 10. Audio
 
-- For a new film, provide one intentional instrumental bed unless the user requested silence or supplied the soundtrack. Follow `references/audio.md` for the generation call, prompting, output path, runtime matching, and playback wiring.
-- Use the documented audio-generation tools and their policy/authorization requirements.
-- Generate voiceover and sound effects only when requested.
-- Pick rhythm to support the visual treatment. Avoid generic music unrelated to the edit.
+- Generate the bed right after the script and before scene code: write the "Audio spec" section of `SCRIPT.md` (runtime, style/BPM/mood, the accent times that sit on your cuts), call the `generateMusic` callback inside `CodeExecution` with `durationSeconds` = the scripted runtime, then measure the track's real onsets ("Find the beat" in `references/audio.md`) and move your cut times onto them before you build. Choreograph to the track you have, not the one you asked for.
+- Generate voiceover (`searchVoices` then `textToSpeech`) and sound effects (`generateSoundEffect`) only when the user requested them, all as callbacks inside `CodeExecution`. When there is more than one file, pre-mix `public/audio/composite_audio.mp3` with `ffmpeg` at the spec times and play that; otherwise play `bg_music.mp3`. Follow `references/audio.md` for prompting, paths, and the playback wiring.
 - If the user supplies audio, choreograph major hits to it. Otherwise, do not claim beat synchronization unless you actually aligned it.
 - Preserve an existing soundtrack during visual revisions unless it no longer fits or the user requests a change.
 - Derive cumulative audio offsets from the canonical scene durations.
@@ -494,7 +502,7 @@ These are implementation requirements, not creative suggestions:
 
 ### 10b. Runtime lock
 
-Once a music bed exists, the total runtime is locked to its length. Re-pace by moving seconds between shots (shorten the opener, lengthen the product shot) and keep the sum constant. Only regenerate music when the total genuinely must change, then re-verify the per-scene seek table. Recompute `SCENE_START_SEC` from `SCENE_DURATIONS`; never hand-maintain both.
+The script fixes the runtime and the bed is generated to match it, so once the bed exists the total is locked. Re-pace by moving seconds between shots (shorten the opener, lengthen the product shot) and keep the sum constant. Regenerate music only when the total genuinely must change; delete the old file first (the callback never overwrites; it saves `bg_music_2.mp3` beside it), then re-verify the per-scene seek table. Recompute `SCENE_START_SEC` from `SCENE_DURATIONS`; never hand-maintain both.
 
 ## 11. Performance and pause behavior
 
@@ -530,23 +538,23 @@ Translate vague feedback into a structural change:
 
 When the user likes one part and rejects another, identify what worked and preserve it. Upgrade the criticized scene's choreography, not just its easing curve.
 
-**Revision integrity:** a broad pass (whole-film motion audit, "polish everything") must not undo earlier targeted fixes. Before starting a broad pass, list the locked decisions (durations, opener timing, closed persistent layers, hero scales) and re-verify each one from the files afterward -- not from memory of having done it. If a film is being revised through a design subagent, state the locked decisions explicitly in every follow-up; subagents rewrite from their own last snapshot.
+**Revision integrity:** a broad pass (whole-film motion audit, "polish everything") must not undo earlier targeted fixes. Before starting a broad pass, list the locked decisions (durations, opener timing, closed persistent layers, hero scales) and re-verify each one from the files afterward -- not from memory of having done it. Each revision run starts from the files, not from the last run's memory: read `SCRIPT.md`, `SCENE_DURATIONS`, and the persistent layers in `VideoTemplate` before touching anything, and treat every decision recorded there as locked unless the brief changes it.
 
 ## 13. Finish with evidence, not extra ceremony
 
-After a coherent build or revision:
+After a coherent build or revision, run the checks below. On a first build the dev server is not running and you cannot start it, so the file checks are the gate and the frame checks wait for the first revision. On a revision the preview is running: capture frames.
 
 - Check the requested changes and the shot-by-shot script against the actual scenes. Confirm every scripted shot, internal beat, and handoff exists; reconcile intentional deviations in the script.
 - Run the artifact typecheck and `scripts/validate-recording.sh` when available.
 - Confirm the recording hook and static duration object remain intact.
-- Restart the managed workflow once after the change batch and inspect fresh logs.
+- The main agent restarts the managed workflow and reads the logs after you return; leave the build compiling (typecheck clean) so that restart is uneventful.
 - Inspect representative frames from the changed scenes, plus their transitions when motion is at issue. The workspace screenshot tool only captures the first scene; for later scenes drive a headless browser (recipe below), then tile the frames into one contact sheet. Sample 3-4 frames per changed shot including the last 15% of it. An opening-scene screenshot does not verify a revised outro -- but always take the first-frame screenshot too, as the regression check for persistent layers.
 - **Frame-capture recipe that works (and what does not):** install `playwright-core` in a scratch directory and launch the system Chromium via `executablePath` (find it with `which chromium`). Navigate, wait for the first scene's section to exist, record the page's `performance.now()` as t0, then screenshot in a real-time loop and name each file with the in-page elapsed time. Do NOT use Chromium's `--virtual-time-budget` (Framer Motion does not advance under it, so frames show stale states) and do NOT launch several headless browsers in parallel -- that crashed the container and killed the dev workflow. Screenshots block the page's timers, so the film runs slow while you sample: treat absolute times as +/- 0.5 s and confirm scene position from the picture, not the filename. Run one full-loop scan at ~0.5 s steps and flag any frame whose grayscale standard deviation is below ~0.02 (`magick f.png -colorspace Gray -format '%[fx:standard_deviation]' info:`) -- every such frame is a dead field, a doubled layer, or a wipe tail, and each one needs a fix. Then sample the transitions at ~100 ms steps.
 - Re-read `SCENE_DURATIONS` and every scene's `useSceneTimer` table after the pass and confirm the last timer in each scene fires before the scene ends and leaves no dead tail.
 - Check final text holds, masks, safe-frame containment, assets, end-to-start continuity, and any changed pause/audio behavior.
 - Use proportionate verification. A focused playback check is usually enough; do not launch a broad app-testing campaign for a visual edit.
-- Present the updated artifact once. If a file was requested, deliver that file through the asset-presentation flow.
-- Distinguish what was verified: a passing recording-wiring script is not proof that an MP4 export was rendered successfully. Do not claim an export, audio check, or full loop check you did not perform.
+- The main agent presents the artifact. Your report is what it presents from: list the changed files, the duration total, and what you verified.
+- Distinguish what was verified: a passing recording-wiring script is not proof that an MP4 export was rendered successfully. Do not claim an export, audio check, frame check, or full loop check you did not perform.
 
 ### Final creative check
 

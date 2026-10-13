@@ -9,12 +9,14 @@ const GRAVITY = 18;
 const SPEED = 1.2;
 const COUNT = 18;
 
-type AnimalType = 'cow' | 'pig' | 'sheep';
+export type AnimalType = 'cow' | 'pig' | 'sheep';
 
-interface Animal {
+export interface Animal {
   id: number;
   type: AnimalType;
   pos: THREE.Vector3;
+  health: number;
+  dead: boolean;
   vy: number;
   dir: number;
   changeT: number;
@@ -45,6 +47,8 @@ function spawnAnimals(): Animal[] {
       id: i,
       type: types[i % 3],
       pos: new THREE.Vector3(sx, 30, sz),
+      health: 10,
+      dead: false,
       vy: 0,
       dir: prand(i * 999) * Math.PI * 2,
       changeT: prand(i * 123) * 4,
@@ -52,6 +56,64 @@ function spawnAnimals(): Animal[] {
     });
   }
   return animals;
+}
+
+const animals = spawnAnimals();
+
+export function raycastAnimals(
+  ox: number, oy: number, oz: number,
+  dx: number, dy: number, dz: number,
+  maxDist: number,
+): { id: number; dist: number } | null {
+  let best: { id: number; dist: number } | null = null;
+  for (const animal of animals) {
+    if (animal.dead) continue;
+    const spec = SPECS[animal.type];
+    const halfWidth = Math.hypot(spec.w, spec.d) * 0.5;
+    const dist = rayBoxDistance(
+      ox, oy, oz, dx, dy, dz,
+      animal.pos.x - halfWidth, animal.pos.y, animal.pos.z - halfWidth,
+      animal.pos.x + halfWidth, animal.pos.y + spec.h, animal.pos.z + halfWidth,
+    );
+    if (dist !== null && dist <= maxDist && (!best || dist < best.dist)) {
+      best = { id: animal.id, dist };
+    }
+  }
+  return best;
+}
+
+export function damageAnimal(id: number, amount: number): boolean {
+  const animal = animals.find(candidate => candidate.id === id);
+  if (!animal || animal.dead) return false;
+  animal.health = Math.max(0, animal.health - amount);
+  if (animal.health === 0) animal.dead = true;
+  return true;
+}
+
+function rayBoxDistance(
+  ox: number, oy: number, oz: number,
+  dx: number, dy: number, dz: number,
+  minX: number, minY: number, minZ: number,
+  maxX: number, maxY: number, maxZ: number,
+): number | null {
+  let near = 0;
+  let far = Infinity;
+  const origins = [ox, oy, oz];
+  const directions = [dx, dy, dz];
+  const mins = [minX, minY, minZ];
+  const maxs = [maxX, maxY, maxZ];
+  for (let axis = 0; axis < 3; axis++) {
+    if (Math.abs(directions[axis]) < 1e-8) {
+      if (origins[axis] < mins[axis] || origins[axis] > maxs[axis]) return null;
+      continue;
+    }
+    const first = (mins[axis] - origins[axis]) / directions[axis];
+    const second = (maxs[axis] - origins[axis]) / directions[axis];
+    near = Math.max(near, Math.min(first, second));
+    far = Math.min(far, Math.max(first, second));
+    if (near > far) return null;
+  }
+  return far >= 0 ? near : null;
 }
 
 function findGround(x: number, z: number, startY: number): number {
@@ -63,7 +125,7 @@ function findGround(x: number, z: number, startY: number): number {
 }
 
 export default function Animals() {
-  const animalsRef = useRef<Animal[]>(spawnAnimals());
+  const animalsRef = useRef<Animal[]>(animals);
   const bodyRefs   = useRef<(THREE.Mesh | null)[]>(new Array(COUNT).fill(null));
   const headRefs   = useRef<(THREE.Mesh | null)[]>(new Array(COUNT).fill(null));
   const sheepHeadMaterials = useMemo(() => {
@@ -86,6 +148,9 @@ export default function Animals() {
       const body = bodyRefs.current[i];
       const head = headRefs.current[i];
       if (!body) return;
+      body.visible = !a.dead;
+      if (head) head.visible = !a.dead;
+      if (a.dead) return;
 
       // Change direction
       a.changeT -= dt;

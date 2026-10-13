@@ -7,14 +7,15 @@ interface Props {
   dayTimeRef:   React.MutableRefObject<number>;
 }
 
-const DAY_SPEED = 1 / 1200;  // full cycle in 300 seconds (5 minutes)
+const DAY_LENGTH_SECONDS = 20 * 60;
+const DAY_SPEED = 1 / DAY_LENGTH_SECONDS;
 
-const SKY_NIGHT   = new THREE.Color(0x060818);
+const SKY_NIGHT   = new THREE.Color(0x111a30);
 const SKY_DAWN    = new THREE.Color(0xff7744);
 const SKY_DAY     = new THREE.Color(0x6ab4f5);
 const SKY_DUSK    = new THREE.Color(0xff5533);
 
-const FOG_NIGHT   = new THREE.Color(0x080c20);
+const FOG_NIGHT   = new THREE.Color(0x17213a);
 const FOG_DAY     = new THREE.Color(0x9dcde8);
 
 function lerp3(a: THREE.Color, b: THREE.Color, t: number, out: THREE.Color) {
@@ -66,12 +67,12 @@ export default function DayNight({ playerPosRef, dayTimeRef }: Props) {
       m.position.set(px - sunLat * 80, -sunH * 80, pz - 20);
       m.target.position.set(px, 0, pz);
       m.target.updateMatrixWorld();
-      const moonIntensity = Math.max(0, -sunH) * 0.18;
+      const moonIntensity = Math.max(0, -sunH) * 0.32;
       m.intensity = moonIntensity;
     }
 
     if (ambientRef.current) {
-      const base = Math.max(0.06, sunH * 0.55);
+      const base = Math.max(0.18, sunH * 0.55);
       ambientRef.current.intensity = base;
     }
 

@@ -106,7 +106,7 @@ Convert text into speech using a selected voice and save it as an audio file.
 - `summary` (str, default "speech"): Short description for the filename
 - `modelId` (str, default "eleven_multilingual_v2"): Text-to-speech model ID
 - `outputFormat` (str, default "mp3_44100_128"): Audio format
-- `voiceSettings` (object, optional): Per-request voice settings such as `stability`, `similarity_boost`, `style`, `use_speaker_boost`, and `speed`
+- `voiceSettings` (object, optional): Per-request voice settings such as `stability`, `similarityBoost`, `style`, `useSpeakerBoost`, and `speed` (camelCase; other spellings are ignored)
 - `overwrite` (bool, default True): Whether to overwrite existing files
 
 **Example:**

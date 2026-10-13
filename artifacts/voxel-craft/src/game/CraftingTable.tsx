@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { BlockType, BLOCK_COLORS, BLOCK_NAMES } from './blocks';
+import { BlockType, BLOCK_COLORS, BLOCK_NAMES, isItemOnly } from './blocks';
 import { blockTextureUrl } from './textures';
 import { getCraftOutput } from './craftingRecipes';
+import { getToolIconStyle } from './itemIcons';
 
 interface Props {
   mode: 'CREATIVE' | 'SURVIVAL';
@@ -24,11 +25,12 @@ function blockSwatch(type: BlockType, size: number): React.CSSProperties {
     height: size,
     borderRadius: 2,
     background: colorStr(type),
-    backgroundImage: `url(${blockTextureUrl(type)})`,
+    backgroundImage: type !== BlockType.AIR && !isItemOnly(type) ? `url(${blockTextureUrl(type)})` : undefined,
     backgroundSize: 'cover',
     imageRendering: 'pixelated',
     border: '2px solid #5c5c5c',
     boxShadow: 'inset 2px 2px 0 rgba(255,255,255,0.35), inset -2px -2px 0 rgba(0,0,0,0.3)',
+    ...getToolIconStyle(type),
   };
 }
 

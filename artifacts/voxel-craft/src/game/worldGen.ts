@@ -151,17 +151,28 @@ function generateChunk(cx: number, cz: number, worldType: WorldType): ChunkData 
           data[idx] = BlockType.BEDROCK;
         } else if (y < height - 4) {
           // Ore generation
-          const ore = oreNoise(wx * 0.25 + y * 0.7, wz * 0.25);
-          if (y < 16 && ore > 0.72)       data[idx] = BlockType.COAL_ORE;
-          else if (y < 30 && ore > 0.78)  data[idx] = BlockType.IRON_ORE;
-          else if (y < 20 && ore > 0.82)  data[idx] = BlockType.GOLD_ORE;
-          else if (y < 12 && ore > 0.86)  data[idx] = BlockType.DIAMOND_ORE;
-          else if (y < 32 && ore > 0.84)  data[idx] = BlockType.COPPER_ORE;
-          else if (y < 24 && ore > 0.88)  data[idx] = BlockType.EMERALD_ORE;
-          else if (y < 16 && ore > 0.90)  data[idx] = BlockType.LAPIS_ORE;
-          else if (y < 16 && ore > 0.92)  data[idx] = BlockType.REDSTONE_ORE;
-          else if (y < 8)                 data[idx] = biome === Biome.MOUNTAINS ? BlockType.DEEPSLATE : BlockType.STONE;
-          else                             data[idx] = BlockType.STONE;
+          const rareOre = y < 32 ? oreNoise(wx * 0.25 + y * 0.7, wz * 0.25) : -Infinity;
+          if (y <= -50 && oreNoise(wx * 0.33 + y * 0.83 + 211, wz * 0.33 + 257) > 0.94) {
+            data[idx] = BlockType.DIAMOND_ORE;
+          } else if (y <= 28 && oreNoise(wx * 0.27 + y * 0.59 + 83, wz * 0.27 + 107) > 0.60) {
+            data[idx] = BlockType.IRON_ORE;
+          } else if (y <= 64 && oreNoise(wx * 0.19 + y * 0.41 + 17, wz * 0.19 + 31) > 0.28) {
+            data[idx] = BlockType.COAL_ORE;
+          } else if (y < 20 && rareOre > 0.82) {
+            data[idx] = BlockType.GOLD_ORE;
+          } else if (y < 32 && rareOre > 0.84) {
+            data[idx] = BlockType.COPPER_ORE;
+          } else if (y < 24 && rareOre > 0.88) {
+            data[idx] = BlockType.EMERALD_ORE;
+          } else if (y < 16 && rareOre > 0.90) {
+            data[idx] = BlockType.LAPIS_ORE;
+          } else if (y < 16 && rareOre > 0.92) {
+            data[idx] = BlockType.REDSTONE_ORE;
+          } else if (y < 8) {
+            data[idx] = biome === Biome.MOUNTAINS ? BlockType.DEEPSLATE : BlockType.STONE;
+          } else {
+            data[idx] = BlockType.STONE;
+          }
         } else if (y < height) {
           data[idx] = bd.subSurfaceBlock;
         } else if (y === height) {
@@ -285,6 +296,35 @@ class WorldManager {
     this.resetWorld(snapshot.worldType, snapshot.seed);
     for (const chunk of snapshot.chunks) {
       this.chunks.set(chunk.key, chunk.data.slice());
+      if (chunk.renderMinY < DEFAULT_CHUNK_RENDER_MIN_Y) {
+        this.chunkRenderMinY.set(chunk.key, chunk.renderMinY);
+      }
+    }
+  }
+
+  getWorldSeed(): number {
+    return this.seed;
+  }
+
+  snapshotChunkNeighborhood(cx: number, cz: number): WorldChunkSnapshot[] {
+    const snapshots: WorldChunkSnapshot[] = [];
+    for (const [dx, dz] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      const key = getChunkKey(cx + dx, cz + dz);
+      const data = this.chunks.get(key);
+      if (!data) continue;
+      snapshots.push({
+        key,
+        data: data.slice(),
+        renderMinY: this.chunkRenderMinY.get(key) ?? DEFAULT_CHUNK_RENDER_MIN_Y,
+      });
+    }
+    return snapshots;
+  }
+
+  installGeneratedChunks(generatedChunks: WorldChunkSnapshot[]): void {
+    for (const chunk of generatedChunks) {
+      if (this.chunks.has(chunk.key)) continue;
+      this.chunks.set(chunk.key, chunk.data);
       if (chunk.renderMinY < DEFAULT_CHUNK_RENDER_MIN_Y) {
         this.chunkRenderMinY.set(chunk.key, chunk.renderMinY);
       }

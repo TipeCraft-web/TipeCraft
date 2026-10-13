@@ -237,10 +237,15 @@ function loadBlockTexture(bt: number, variant: BlockTextureVariant): THREE.Textu
 export function getBlockDropTextures(bt: number): [THREE.Texture, THREE.Texture, THREE.Texture] {
   const cached = blockDropTextures.get(bt);
   if (cached) return cached;
+  const textureType = bt === BlockType.COAL
+    ? BlockType.COAL_ORE
+    : bt === BlockType.DIAMOND
+      ? BlockType.DIAMOND_ORE
+      : bt;
   const textures: [THREE.Texture, THREE.Texture, THREE.Texture] = [
-    loadBlockTexture(bt, 'side'),
-    loadBlockTexture(bt, 'top'),
-    loadBlockTexture(bt, 'down'),
+    loadBlockTexture(textureType, 'side'),
+    loadBlockTexture(textureType, 'top'),
+    loadBlockTexture(textureType, 'down'),
   ];
   blockDropTextures.set(bt, textures);
   return textures;

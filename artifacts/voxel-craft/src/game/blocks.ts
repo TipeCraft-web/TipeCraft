@@ -127,6 +127,11 @@ export enum BlockType {
   // More
   LAPIS_BLOCK_DARK=221, IRON_BARS=222, CHAIN_BLOCK=223,
   TARGET_BLOCK=224, RAW_STONE=225,
+
+  // Inventory-only items and equipment
+  STICK=226, COAL=227, DIAMOND=228, IRON_INGOT=229,
+  WOODEN_PICKAXE=230, STONE_PICKAXE=231, IRON_PICKAXE=232, DIAMOND_PICKAXE=233,
+  WOODEN_SWORD=234, STONE_SWORD=235, IRON_SWORD=236, DIAMOND_SWORD=237,
 }
 
 const h = (hex: number): [number,number,number] => [(hex>>16&255)/255, (hex>>8&255)/255, (hex&255)/255];
@@ -358,6 +363,18 @@ export const BLOCK_COLORS: Record<number, [number,number,number]> = {
   [BlockType.CHAIN_BLOCK]: h(0x505858),
   [BlockType.TARGET_BLOCK]: h(0xD03028),
   [BlockType.RAW_STONE]:  h(0x888888),
+  [BlockType.STICK]: h(0x9b6b3d),
+  [BlockType.COAL]: h(0x292929),
+  [BlockType.DIAMOND]: h(0x51d9dc),
+  [BlockType.IRON_INGOT]: h(0xd4d4d4),
+  [BlockType.WOODEN_PICKAXE]: h(0x9b6b3d),
+  [BlockType.STONE_PICKAXE]: h(0x888888),
+  [BlockType.IRON_PICKAXE]: h(0xd4d4d4),
+  [BlockType.DIAMOND_PICKAXE]: h(0x51d9dc),
+  [BlockType.WOODEN_SWORD]: h(0x9b6b3d),
+  [BlockType.STONE_SWORD]: h(0x888888),
+  [BlockType.IRON_SWORD]: h(0xd4d4d4),
+  [BlockType.DIAMOND_SWORD]: h(0x51d9dc),
 };
 
 export const BLOCK_NAMES: Record<number, string> = {
@@ -464,7 +481,98 @@ export const BLOCK_NAMES: Record<number, string> = {
   [BlockType.LILY_PAD]:'Lily Pad',[BlockType.LAPIS_BLOCK_DARK]:'Dark Lapis Block',
   [BlockType.IRON_BARS]:'Iron Bars',[BlockType.CHAIN_BLOCK]:'Chain',
   [BlockType.TARGET_BLOCK]:'Target',[BlockType.RAW_STONE]:'Raw Stone',
+  [BlockType.STICK]:'Stock',[BlockType.COAL]:'Kohle',
+  [BlockType.DIAMOND]:'Diamant',[BlockType.IRON_INGOT]:'Eisenbarren',
+  [BlockType.WOODEN_PICKAXE]:'Holzspitzhacke',[BlockType.STONE_PICKAXE]:'Steinspitzhacke',
+  [BlockType.IRON_PICKAXE]:'Eisenspitzhacke',[BlockType.DIAMOND_PICKAXE]:'Diamantspitzhacke',
+  [BlockType.WOODEN_SWORD]:'Holzschwert',[BlockType.STONE_SWORD]:'Steinschwert',
+  [BlockType.IRON_SWORD]:'Eisenschwert',[BlockType.DIAMOND_SWORD]:'Diamantschwert',
 };
+
+export const ITEM_ONLY_TYPES: ReadonlySet<BlockType> = new Set([
+  BlockType.STICK, BlockType.COAL, BlockType.DIAMOND, BlockType.IRON_INGOT,
+  BlockType.WOODEN_PICKAXE, BlockType.STONE_PICKAXE, BlockType.IRON_PICKAXE, BlockType.DIAMOND_PICKAXE,
+  BlockType.WOODEN_SWORD, BlockType.STONE_SWORD, BlockType.IRON_SWORD, BlockType.DIAMOND_SWORD,
+]);
+
+export function isItemOnly(type: BlockType): boolean {
+  return ITEM_ONLY_TYPES.has(type);
+}
+
+export function isPlaceableBlock(type: BlockType): boolean {
+  return type !== BlockType.AIR && !isItemOnly(type);
+}
+
+function pickaxeTier(type: BlockType): number {
+  switch (type) {
+    case BlockType.WOODEN_PICKAXE: return 1;
+    case BlockType.STONE_PICKAXE: return 2;
+    case BlockType.IRON_PICKAXE: return 3;
+    case BlockType.DIAMOND_PICKAXE: return 4;
+    default: return 0;
+  }
+}
+
+const LEAF_BLOCKS = new Set<BlockType>([
+  BlockType.LEAF, BlockType.BIRCH_LEAF, BlockType.SPRUCE_LEAF,
+  BlockType.DARK_OAK_LEAF, BlockType.JUNGLE_LEAF, BlockType.ACACIA_LEAF,
+  BlockType.AZALEA_LEAF,
+]);
+
+const HAND_MINED_BLOCKS = new Set<BlockType>([
+  BlockType.GRASS, BlockType.DIRT, BlockType.COARSE_DIRT, BlockType.ROOTED_DIRT,
+  BlockType.MUD, BlockType.PODZOL, BlockType.MYCELIUM, BlockType.SOUL_SOIL,
+  BlockType.WOOD, BlockType.OAK_LOG, BlockType.BIRCH_LOG, BlockType.SPRUCE_LOG,
+  BlockType.DARK_OAK_LOG, BlockType.JUNGLE_LOG, BlockType.ACACIA_LOG,
+  BlockType.STRIPPED_OAK_LOG, BlockType.WARPED_STEM, BlockType.CRIMSON_STEM,
+  BlockType.PLANKS, BlockType.BIRCH_PLANKS, BlockType.SPRUCE_PLANKS,
+  BlockType.DARK_OAK_PLANKS, BlockType.JUNGLE_PLANKS, BlockType.ACACIA_PLANKS,
+  BlockType.BAMBOO_BLOCK, BlockType.BAMBOO_PLANKS, BlockType.WARPED_PLANKS,
+  BlockType.CRIMSON_PLANKS, BlockType.CRAFTING_TABLE, BlockType.CHEST,
+]);
+
+const PICKAXE_BLOCKS = new Set<BlockType>([
+  BlockType.STONE, BlockType.COBBLESTONE, BlockType.GRANITE, BlockType.GRANITE_SMOOTH,
+  BlockType.DIORITE, BlockType.DIORITE_SMOOTH, BlockType.ANDESITE, BlockType.ANDESITE_SMOOTH,
+  BlockType.DEEPSLATE, BlockType.COBBLED_DEEPSLATE, BlockType.TUFF, BlockType.CALCITE,
+  BlockType.SMOOTH_STONE, BlockType.STONE_BRICKS, BlockType.MOSSY_STONE_BRICKS,
+  BlockType.CRACKED_STONE_BRICKS, BlockType.CHISELED_STONE_BRICKS, BlockType.MOSSY_COBBLESTONE,
+  BlockType.POLISHED_GRANITE, BlockType.POLISHED_DIORITE, BlockType.POLISHED_ANDESITE,
+  BlockType.DEEPSLATE_BRICKS, BlockType.DEEPSLATE_TILES, BlockType.TUFF_BRICKS,
+  BlockType.POLISHED_TUFF, BlockType.CHISELED_DEEPSLATE, BlockType.BASALT,
+  BlockType.BLACKSTONE, BlockType.END_STONE, BlockType.END_STONE_BRICKS,
+  BlockType.OBSIDIAN, BlockType.FURNACE, BlockType.ANVIL, BlockType.REINFORCED_DEEPSLATE,
+]);
+
+export function canHarvestBlockWithTool(block: BlockType, heldItem: BlockType): boolean {
+  if (LEAF_BLOCKS.has(block) || block === BlockType.SNOW_BLOCK) return false;
+  const requiredTier = HAND_MINED_BLOCKS.has(block)
+    ? 0
+    : block === BlockType.DIAMOND_ORE || block === BlockType.DIAMOND_DEEPSLATE
+      ? 3
+      : block === BlockType.IRON_ORE || block === BlockType.COAL_ORE
+        ? 2
+        : PICKAXE_BLOCKS.has(block)
+          ? 1
+          : 4;
+  return pickaxeTier(heldItem) >= requiredTier;
+}
+
+export function getBlockDrop(block: BlockType): BlockType {
+  if (block === BlockType.COAL_ORE) return BlockType.COAL;
+  if (block === BlockType.DIAMOND_ORE || block === BlockType.DIAMOND_DEEPSLATE) return BlockType.DIAMOND;
+  return block;
+}
+
+export function getSwordDamage(heldItem: BlockType): number {
+  switch (heldItem) {
+    case BlockType.WOODEN_SWORD: return 3;
+    case BlockType.STONE_SWORD: return 4;
+    case BlockType.IRON_SWORD: return 6;
+    case BlockType.DIAMOND_SWORD: return 8;
+    default: return 1;
+  }
+}
 
 export function isSolid(type: BlockType): boolean {
   return type !== BlockType.AIR && type !== BlockType.WATER && type !== BlockType.LAVA;

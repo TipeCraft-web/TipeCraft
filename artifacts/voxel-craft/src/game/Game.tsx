@@ -3,7 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { KeyboardControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { BlockType, HOTBAR_CREATIVE } from './blocks';
-import { worldManager, type WorldType } from './worldGen';
+import { worldManager, CHUNK_SIZE, type WorldType } from './worldGen';
 import GameOptionsPanel from './GameOptionsPanel';
 import World, { type BreakingState } from './World';
 import Player from './Player';
@@ -12,12 +12,13 @@ import Mobs from './Mobs';
 import HUD from './HUD';
 import DayNight from './DayNight';
 import TouchControls, { TouchState, createTouchState } from './TouchControls';
-import Crafting from './Crafting';
 import Inventory from './Inventory';
 import ChestUI from './ChestUI';
 import Chat from './Chat';
 import ItemDrops, { type DroppedItem } from './ItemDrops';
 import CraftingTable from './CraftingTable';
+import FurnaceUI, { type FurnaceContents } from './FurnaceUI';
+import { createWorldArchive, readWorldArchive } from './worldArchive';
 import startBackgroundUrl from '@assets/IMG_1402_1791524151994.jpeg';
 
 export enum Controls {
@@ -70,17 +71,19 @@ export default function Game() {
   const [worldRevision, setWorldRevision] = useState(0);
   const [viewDistance,   setViewDistance   ] = useState(8);
   const [fogEnabled,     setFogEnabled     ] = useState(true);
+  const [worldBorderEnabled, setWorldBorderEnabled] = useState(true);
   const [started,        setStarted]        = useState(false);
   const [worldLoading, setWorldLoading] = useState(false);
   const [worldLoadProgress, setWorldLoadProgress] = useState(0);
   const [gamePaused, setGamePaused] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [craftingOpen,   setCraftingOpen]   = useState(false);
   const [inventoryOpen,  setInventoryOpen]  = useState(false);
   const [dead,           setDead]           = useState(false);
   const [respawnTrigger, setRespawnTrigger] = useState(0);
   const [openChest,      setOpenChest]      = useState<{ x: number; y: number; z: number } | null>(null);
   const [openCraftingTable, setOpenCraftingTable] = useState<{ x: number; y: number; z: number } | null>(null);
+  const [openFurnace, setOpenFurnace] = useState<{ x: number; y: number; z: number } | null>(null);
+  const [archiveMessage, setArchiveMessage] = useState('');
   const [drops,          setDrops]          = useState<DroppedItem[]>([]);
 
   const [uiState, setUiState] = useState<UIState>({
@@ -98,9 +101,11 @@ export default function Game() {
   });
   const touchRef       = useRef<TouchState>(createTouchState());
   const playerPosRef   = useRef(new THREE.Vector3(8, 30, 8));
+  const worldFileInputRef = useRef<HTMLInputElement>(null);
   const countsRef      = useRef<Record<number, number>>({});
   const nextDropIdRef  = useRef(1);
   const chestsRef      = useRef<Map<string, BlockType[]>>(new Map());
+  const furnacesRef    = useRef<Map<string, FurnaceContents>>(new Map());
   // Shared refs for Chat ↔ Player/DayNight communication
   const tpRef          = useRef<{ x: number; y: number; z: number } | null>(null);
   const pendingMobDamageRef = useRef(0);
@@ -110,10 +115,10 @@ export default function Game() {
     setGamePaused(true);
     setChatOpen(false);
     setOptionsOpen(false);
-    setCraftingOpen(false);
     setInventoryOpen(false);
     setOpenChest(null);
     setOpenCraftingTable(null);
+    setOpenFurnace(null);
     touchRef.current = createTouchState();
     breakingRef.current.active = false;
     document.exitPointerLock?.();
@@ -130,10 +135,10 @@ export default function Game() {
     setStarted(false);
     setOptionsOpen(false);
     setSinglePlayerMenuOpen(false);
-    setCraftingOpen(false);
     setInventoryOpen(false);
     setOpenChest(null);
     setOpenCraftingTable(null);
+    setOpenFurnace(null);
     touchRef.current = createTouchState();
     breakingRef.current.active = false;
     document.exitPointerLock?.();
@@ -143,7 +148,6 @@ export default function Game() {
   useEffect(() => {
     if (uiState.mode === 'SURVIVAL' && uiState.health <= 0 && !dead && started) {
       setDead(true);
-      setCraftingOpen(false);
       setInventoryOpen(false);
       setOpenChest(null);
       setOpenCraftingTable(null);
@@ -167,9 +171,8 @@ export default function Game() {
       const target = e.target as HTMLElement;
       const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
       if (isTyping) return;
-      if (e.code === 'KeyE') { e.preventDefault(); setCraftingOpen(o => !o); setInventoryOpen(false); }
-      if (e.code === 'KeyI') { e.preventDefault(); setInventoryOpen(o => !o); setCraftingOpen(false); }
-      if (e.code === 'Escape') { setCraftingOpen(false); setInventoryOpen(false); setOpenChest(null); setOpenCraftingTable(null); }
+      if (e.code === 'KeyE') { e.preventDefault(); setInventoryOpen(o => !o); }
+      if (e.code === 'Escape') { setInventoryOpen(false); setOpenChest(null); setOpenCraftingTable(null); setOpenFurnace(null); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -215,6 +218,92 @@ export default function Game() {
     setStarted(true);
   }, []);
 
+  const handleExportWorld = useCallback(() => {
+    try {
+      const archive = createWorldArchive(worldManager.snapshot(), {
+        mode: uiState.mode,
+        health: uiState.health,
+        hunger: uiState.hunger,
+        hotbar: [...uiState.hotbar],
+        selectedSlot: uiState.selectedSlot,
+        counts: { ...countsRef.current },
+        position: {
+          x: playerPosRef.current.x,
+          y: playerPosRef.current.y,
+          z: playerPosRef.current.z,
+        },
+        viewDistance,
+        fogEnabled,
+        worldBorderEnabled,
+        chests: [...chestsRef.current.entries()].map(([key, contents]) => [key, [...contents]]),
+        furnaces: [...furnacesRef.current.entries()].map(([key, contents]) => [key, { ...contents }]),
+      });
+      const buffer = archive.buffer.slice(archive.byteOffset, archive.byteOffset + archive.byteLength) as ArrayBuffer;
+      const url = URL.createObjectURL(new Blob([buffer], { type: 'application/zip' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `tipecraft-welt-${new Date().toISOString().slice(0, 10)}.tipeworld`;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setArchiveMessage('Weltdatei wurde heruntergeladen.');
+    } catch (error) {
+      setArchiveMessage(error instanceof Error ? error.message : 'Welt konnte nicht exportiert werden.');
+    }
+  }, [uiState, viewDistance, fogEnabled, worldBorderEnabled]);
+
+  const handleImportWorld = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const extension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+    if (extension !== '.tipeworld' && extension !== '.tipworld') {
+      setArchiveMessage('Bitte eine .tipeworld-Weltdatei auswählen.');
+      event.target.value = '';
+      return;
+    }
+    try {
+      const archive = readWorldArchive(new Uint8Array(await file.arrayBuffer()));
+      const { snapshot, game } = archive;
+      worldManager.restore(snapshot);
+      setSelectedWorldType(snapshot.worldType);
+      setSelectedGameMode(game.mode);
+      setViewDistance(game.viewDistance);
+      setFogEnabled(game.fogEnabled);
+      setWorldBorderEnabled(game.worldBorderEnabled);
+      countsRef.current = { ...game.counts };
+      chestsRef.current = new Map(game.chests.map(([key, contents]) => [key, contents as BlockType[]]));
+      furnacesRef.current = new Map(game.furnaces.map(([key, contents]) => [key, { ...contents }]));
+      playerPosRef.current.set(game.position.x, game.position.y, game.position.z);
+      tpRef.current = { ...game.position };
+      playerChunkRef.current = {
+        x: Math.floor(game.position.x / CHUNK_SIZE),
+        z: Math.floor(game.position.z / CHUNK_SIZE),
+      };
+      nextDropIdRef.current = 1;
+      setDrops([]);
+      setDead(false);
+      setGamePaused(false);
+      setSinglePlayerMenuOpen(false);
+      setArchiveMessage('');
+      setUiState({
+        health: game.health,
+        hunger: game.hunger,
+        hotbar: game.hotbar as BlockType[],
+        selectedSlot: game.selectedSlot,
+        pos: { ...game.position },
+        mode: game.mode,
+        counts: { ...game.counts },
+      });
+      setWorldLoadProgress(1);
+      setStarted(false);
+      setWorldLoading(true);
+      setWorldRevision(revision => revision + 1);
+    } catch (error) {
+      setArchiveMessage(error instanceof Error ? error.message : 'Diese Weltdatei kann nicht importiert werden.');
+    } finally {
+      event.target.value = '';
+    }
+  }, []);
+
   const handleCreateWorld = useCallback(() => {
     worldManager.resetWorld(selectedWorldType);
     setWorldRevision(revision => revision + 1);
@@ -223,10 +312,11 @@ export default function Game() {
     countsRef.current = {};
     pendingMobDamageRef.current = 0;
     chestsRef.current.clear();
+    furnacesRef.current.clear();
     nextDropIdRef.current = 1;
     setDrops([]);
     setDead(false);
-    setWorldLoadProgress(0);
+    setWorldLoadProgress(1);
     setWorldLoading(true);
     setUiState(prev => ({
       ...prev,
@@ -309,17 +399,46 @@ export default function Game() {
     const key = `${x},${y},${z}`;
     if (!chestsRef.current.has(key)) chestsRef.current.set(key, Array(CHEST_SLOTS).fill(BlockType.AIR));
     setOpenChest({ x, y, z });
-    setCraftingOpen(false);
     setInventoryOpen(false);
     setOpenCraftingTable(null);
+    setOpenFurnace(null);
   }, []);
 
   const handleCraftingTableOpen = useCallback((x: number, y: number, z: number) => {
     setOpenCraftingTable({ x, y, z });
-    setCraftingOpen(false);
     setInventoryOpen(false);
     setOpenChest(null);
+    setOpenFurnace(null);
   }, []);
+
+  const handleFurnaceOpen = useCallback((x: number, y: number, z: number) => {
+    const key = `${x},${y},${z}`;
+    if (!furnacesRef.current.has(key)) {
+      furnacesRef.current.set(key, { ironOre: 0, coal: 0, ironIngots: 0 });
+    }
+    setOpenFurnace({ x, y, z });
+    setOpenChest(null);
+    setOpenCraftingTable(null);
+    setInventoryOpen(false);
+  }, []);
+
+  const handleFurnaceChange = useCallback((
+    contents: FurnaceContents,
+    newCounts: Record<number, number>,
+  ) => {
+    if (!openFurnace) return;
+    furnacesRef.current.set(`${openFurnace.x},${openFurnace.y},${openFurnace.z}`, contents);
+    countsRef.current = { ...newCounts };
+    setUiState(prev => {
+      const hotbar = [...prev.hotbar];
+      if (prev.mode === 'SURVIVAL') {
+        for (let i = 0; i < hotbar.length; i++) {
+          if (hotbar[i] !== BlockType.AIR && !newCounts[hotbar[i]]) hotbar[i] = BlockType.AIR;
+        }
+      }
+      return { ...prev, hotbar, counts: { ...newCounts } };
+    });
+  }, [openFurnace]);
 
   const handleChestChange = useCallback((newContents: BlockType[], newCounts: Record<number, number>) => {
     if (!openChest) return;
@@ -450,6 +569,8 @@ export default function Game() {
               onViewDistanceChange={setViewDistance}
               fogEnabled={fogEnabled}
               onFogEnabledChange={setFogEnabled}
+              worldBorderEnabled={worldBorderEnabled}
+              onWorldBorderEnabledChange={setWorldBorderEnabled}
               onBack={() => setOptionsOpen(false)}
             />
           ) : (
@@ -543,6 +664,29 @@ export default function Game() {
                   }}
                 >WELT ERSTELLEN</button>
               </div>
+              <button
+                type="button"
+                data-touch-btn="1"
+                onClick={() => worldFileInputRef.current?.click()}
+                onTouchStart={event => { event.stopPropagation(); event.preventDefault(); worldFileInputRef.current?.click(); }}
+                style={{
+                  width:'100%', marginTop:10, background:'rgba(55,55,55,0.95)',
+                  border:'2px solid #ddd', color:'#fff', padding:'10px 8px',
+                  fontSize:12, letterSpacing:1, fontFamily:'"Courier New", monospace', cursor:'pointer',
+                }}
+              >WELTDATEI IMPORTIEREN</button>
+              <input
+                ref={worldFileInputRef}
+                type="file"
+                accept=".tipeworld,.tipworld"
+                onChange={handleImportWorld}
+                style={{ display:'none' }}
+              />
+              {archiveMessage && (
+                <div role="status" style={{ marginTop:8, color:'#ffe0a0', fontSize:11, lineHeight:1.4 }}>
+                  {archiveMessage}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -577,6 +721,8 @@ export default function Game() {
                 onViewDistanceChange={setViewDistance}
                 fogEnabled={fogEnabled}
                 onFogEnabledChange={setFogEnabled}
+                worldBorderEnabled={worldBorderEnabled}
+                onWorldBorderEnabledChange={setWorldBorderEnabled}
                 onBack={() => setOptionsOpen(false)}
               />
             ) : (
@@ -595,6 +741,22 @@ export default function Game() {
                     fontFamily:'"Courier New", monospace', cursor:'pointer',
                   }}
                 >FORTSETZEN</button>
+                <button
+                  type="button"
+                  data-touch-btn="1"
+                  onClick={handleExportWorld}
+                  onTouchStart={event => { event.stopPropagation(); event.preventDefault(); handleExportWorld(); }}
+                  style={{
+                    background:'rgba(55,95,125,0.95)', border:'2px solid #d5ecff',
+                    color:'#fff', padding:'12px 10px', fontSize:14, letterSpacing:1,
+                    fontFamily:'"Courier New", monospace', cursor:'pointer',
+                  }}
+                >WELT EXPORTIEREN (.tipeworld)</button>
+                {archiveMessage && (
+                  <div role="status" style={{ color:'#ffe0a0', fontSize:11, lineHeight:1.4, textAlign:'center' }}>
+                    {archiveMessage}
+                  </div>
+                )}
                 <button
                   type="button"
                   data-touch-btn="1"
@@ -676,6 +838,18 @@ export default function Game() {
           onOpenChange={setChatOpen}
         />
       )}
+      {started && !gamePaused && !worldBorderEnabled && (
+        <div
+          role="status"
+          style={{
+            position:'absolute', top:58, left:'50%', transform:'translateX(-50%)',
+            zIndex:31, padding:'5px 10px', borderRadius:5,
+            background:'rgba(90,20,12,0.86)', border:'1px solid #ff9b67',
+            color:'#ffe0c8', fontSize:11, fontWeight:700, textAlign:'center',
+            fontFamily:'"Courier New", monospace', pointerEvents:'none',
+          }}
+        >⚠ WELTGRENZE DEAKTIVIERT — Teleportieren und Reisen über die Grenze möglich</div>
+      )}
 
       {/* ── Top toolbar (mobile) ─────────────────────────────── */}
       {started && !dead && (
@@ -685,8 +859,8 @@ export default function Game() {
         }}>
           <div
             data-touch-btn="1"
-            onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setInventoryOpen(o => !o); setCraftingOpen(false); }}
-            onClick={() => { setInventoryOpen(o => !o); setCraftingOpen(false); }}
+            onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setInventoryOpen(o => !o); }}
+            onClick={() => { setInventoryOpen(o => !o); }}
             style={{ position:'absolute', top:0, right:'calc(50% + 50px)', padding:'6px 14px', borderRadius:16, background:'rgba(30,60,80,0.8)', border:'1px solid rgba(68,136,204,0.6)', color:'#7ac', fontSize:11, fontWeight:700, cursor:'pointer', userSelect:'none', pointerEvents:'auto' }}
           >📦 Bag</div>
           {!gamePaused && (
@@ -730,13 +904,6 @@ export default function Game() {
       )}
 
       {/* ── Modals ───────────────────────────────────────────── */}
-      {craftingOpen && (
-        <Crafting
-          counts={mode === 'CREATIVE' ? (() => { const c: Record<number,number> = {}; for (let i=1;i<=225;i++) c[i]=99; return c; })() : counts}
-          onCraft={handleCraft}
-          onClose={() => setCraftingOpen(false)}
-        />
-      )}
       {inventoryOpen && (
         <Inventory
           mode={mode} counts={counts} hotbar={hotbar}
@@ -749,7 +916,7 @@ export default function Game() {
       {openChest && chestContents && (
         <ChestUI
           contents={chestContents}
-          counts={mode === 'CREATIVE' ? (() => { const c: Record<number,number> = {}; for (let i=1;i<=225;i++) c[i]=99; return c; })() : counts}
+          counts={mode === 'CREATIVE' ? (() => { const c: Record<number,number> = {}; for (let i=1;i<=BlockType.DIAMOND_SWORD;i++) c[i]=99; return c; })() : counts}
           onContentsChange={handleChestChange}
           onClose={() => setOpenChest(null)}
         />
@@ -760,6 +927,15 @@ export default function Game() {
           counts={counts}
           onCraft={handleCraft}
           onClose={() => setOpenCraftingTable(null)}
+        />
+      )}
+      {openFurnace && (
+        <FurnaceUI
+          mode={mode}
+          counts={counts}
+          contents={furnacesRef.current.get(`${openFurnace.x},${openFurnace.y},${openFurnace.z}`) ?? { ironOre: 0, coal: 0, ironIngots: 0 }}
+          onChange={handleFurnaceChange}
+          onClose={() => setOpenFurnace(null)}
         />
       )}
 
@@ -816,6 +992,8 @@ export default function Game() {
                 onBlockPlace={onBlockPlace}
                 onChestOpen={handleChestOpen}
                 onCraftingTableOpen={handleCraftingTableOpen}
+                onFurnaceOpen={handleFurnaceOpen}
+                worldBorderEnabled={worldBorderEnabled}
                 isDead={dead}
                 respawnTrigger={respawnTrigger}
                 tpRef={tpRef}

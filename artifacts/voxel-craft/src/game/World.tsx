@@ -1,13 +1,15 @@
 import { useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { worldManager, CHUNK_SIZE, WORLD_MAX_Y, getChunkKey } from './worldGen';
-import { BlockType, isSolid, isTransparent } from './blocks';
-import { getAtlas, blockUV } from './textures';
+import {
+  worldManager,
+  getChunkKey,
+} from './worldGen';
+import { getAtlas } from './textures';
+import { buildChunkGeometryData, type ChunkGeometryData } from './chunkMeshing';
+import type { ChunkBuildResponse, ChunkBuildTask } from './chunkWorkerProtocol';
 
-const MAX_CHUNKS_PER_FRAME = 4;
-const MAX_CHUNKS_PER_LOAD_FRAME = 10;
-const LOAD_FRAME_BUDGET_MS = 28;
+const MAX_SYNC_CHUNKS_PER_FRAME = 1;
 
 export interface BreakingState {
   active: boolean;
@@ -64,115 +66,84 @@ function createCrackTexture(stage: number) {
   return texture;
 }
 
-const FACES: { dir: [number,number,number]; corners: [number,number,number][]; light: number }[] = [
-  { dir: [0, 1, 0],  corners: [[0,1,0],[0,1,1],[1,1,1],[1,1,0]], light: 1.0 },
-  { dir: [0,-1, 0],  corners: [[0,0,0],[1,0,0],[1,0,1],[0,0,1]], light: 0.78 },
-  { dir: [1, 0, 0],  corners: [[1,0,0],[1,1,0],[1,1,1],[1,0,1]], light: 0.90 },
-  { dir: [-1,0, 0],  corners: [[0,0,1],[0,1,1],[0,1,0],[0,0,0]], light: 0.90 },
-  { dir: [0, 0, 1],  corners: [[0,0,1],[1,0,1],[1,1,1],[0,1,1]], light: 0.84 },
-  { dir: [0, 0,-1],  corners: [[1,0,0],[0,0,0],[0,1,0],[1,1,0]], light: 0.84 },
-];
+interface ChunkEntry { opaque: THREE.Mesh | null; transparent: THREE.Mesh | null }
 
-function buildChunkGeometry(cx: number, cz: number): {
-  opaque: THREE.BufferGeometry | null;
-  transparent: THREE.BufferGeometry | null;
-} {
-  const oPos: number[] = [], oNorm: number[] = [], oColor: number[] = [], oUV: number[] = [], oIdx: number[] = [];
-  const tPos: number[] = [], tNorm: number[] = [], tColor: number[] = [], tUV: number[] = [], tIdx: number[] = [];
-  let oV = 0, tV = 0;
-
-  const ox = cx * CHUNK_SIZE;
-  const oz = cz * CHUNK_SIZE;
-
-  for (let lx = 0; lx < CHUNK_SIZE; lx++) {
-    for (let lz = 0; lz < CHUNK_SIZE; lz++) {
-      const minY = worldManager.getChunkRenderMinY(cx, cz);
-      for (let y = minY; y <= WORLD_MAX_Y; y++) {
-        const wx = ox + lx;
-        const wz = oz + lz;
-        const block = worldManager.getBlock(wx, y, wz);
-        if (block === BlockType.AIR) continue;
-
-        const transparent = isTransparent(block);
-
-        for (let fi = 0; fi < 6; fi++) {
-          const face = FACES[fi];
-          const [dx, dy, dz] = face.dir;
-          const neighbor = worldManager.getBlock(wx + dx, y + dy, wz + dz);
-
-          let show = false;
-          if (!transparent) show = isTransparent(neighbor);
-          else show = neighbor === BlockType.AIR || (isSolid(neighbor) && neighbor !== block);
-          if (!show) continue;
-
-          const lit = face.light;
-          const [nx, ny, nz] = face.dir;
-          const [u, v, uw, vh] = blockUV(block as number, fi);
-
-          // Keep the grass cap horizontal at the top of every side face.
-          // The z-facing faces use a different corner winding than the
-          // x-facing faces, so they need their own UV order.
-          const uvCorners = fi === 2 || fi === 3 ? [
-            u,      v,
-            u,      v + vh,
-            u + uw, v + vh,
-            u + uw, v,
-          ] : fi === 4 || fi === 5 ? [
-            u,      v,
-            u + uw, v,
-            u + uw, v + vh,
-            u,      v + vh,
-          ] : [
-            u,      v,
-            u,      v + vh,
-            u + uw, v + vh,
-            u + uw, v,
-          ];
-
-          if (!transparent) {
-            for (const [vx, vy, vz] of face.corners) {
-              oPos.push(wx + vx, y + vy, wz + vz);
-              oNorm.push(nx, ny, nz);
-              oColor.push(lit, lit, lit);
-            }
-            oUV.push(...uvCorners);
-            oIdx.push(oV, oV+1, oV+2, oV, oV+2, oV+3);
-            oV += 4;
-          } else {
-            for (const [vx, vy, vz] of face.corners) {
-              tPos.push(wx + vx, y + vy, wz + vz);
-              tNorm.push(nx, ny, nz);
-              tColor.push(lit, lit, lit);
-            }
-            tUV.push(...uvCorners);
-            tIdx.push(tV, tV+1, tV+2, tV, tV+2, tV+3);
-            tV += 4;
-          }
-        }
-      }
-    }
-  }
-
-  function makeGeo(
-    pos: number[], norm: number[], color: number[], uv: number[], idx: number[]
-  ): THREE.BufferGeometry | null {
-    if (pos.length === 0) return null;
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    geo.setAttribute('normal',   new THREE.Float32BufferAttribute(norm, 3));
-    geo.setAttribute('color',    new THREE.Float32BufferAttribute(color, 3));
-    geo.setAttribute('uv',       new THREE.Float32BufferAttribute(uv, 2));
-    geo.setIndex(idx);
-    return geo;
-  }
-
-  return {
-    opaque:      makeGeo(oPos, oNorm, oColor, oUV, oIdx),
-    transparent: makeGeo(tPos, tNorm, tColor, tUV, tIdx),
-  };
+interface ActiveChunkJob {
+  jobId: number;
+  key: string;
+  cx: number;
+  cz: number;
+  revision: number;
 }
 
-interface ChunkEntry { opaque: THREE.Mesh | null; transparent: THREE.Mesh | null }
+interface ChunkWorkerSlot {
+  worker: Worker;
+  busy: boolean;
+  failed: boolean;
+  job: ActiveChunkJob | null;
+}
+
+interface CompletedChunkJob {
+  job: ActiveChunkJob;
+  response: Extract<ChunkBuildResponse, { geometry: ChunkGeometryData }>;
+}
+
+function createGeometry(buffers: ChunkGeometryData['opaque']): THREE.BufferGeometry | null {
+  if (!buffers) return null;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(buffers.positions, 3));
+  geometry.setAttribute('normal', new THREE.BufferAttribute(buffers.normals, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(buffers.colors, 3));
+  geometry.setAttribute('uv', new THREE.BufferAttribute(buffers.uvs, 2));
+  geometry.setIndex(new THREE.BufferAttribute(buffers.indices, 1));
+  return geometry;
+}
+
+function removeChunkMeshes(
+  group: THREE.Group | null,
+  chunkMap: Map<string, ChunkEntry>,
+  key: string,
+): void {
+  const entry = chunkMap.get(key);
+  if (!entry) return;
+  if (entry.opaque) {
+    group?.remove(entry.opaque);
+    entry.opaque.geometry.dispose();
+  }
+  if (entry.transparent) {
+    group?.remove(entry.transparent);
+    entry.transparent.geometry.dispose();
+  }
+  chunkMap.delete(key);
+}
+
+function addChunkMeshes(
+  group: THREE.Group | null,
+  chunkMap: Map<string, ChunkEntry>,
+  cx: number,
+  cz: number,
+  data: ChunkGeometryData,
+  opaqueMaterial: THREE.MeshLambertMaterial,
+  transparentMaterial: THREE.MeshLambertMaterial,
+): boolean {
+  if (!group) return false;
+  const entry: ChunkEntry = { opaque: null, transparent: null };
+  const opaque = createGeometry(data.opaque);
+  if (opaque) {
+    const mesh = new THREE.Mesh(opaque, opaqueMaterial);
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    entry.opaque = mesh;
+  }
+  const transparent = createGeometry(data.transparent);
+  if (transparent) {
+    const mesh = new THREE.Mesh(transparent, transparentMaterial);
+    group.add(mesh);
+    entry.transparent = mesh;
+  }
+  chunkMap.set(getChunkKey(cx, cz), entry);
+  return true;
+}
 
 interface WorldProps {
   playerChunkRef: React.MutableRefObject<{ x: number; z: number }>;
@@ -231,38 +202,113 @@ export default function World({
     depthWrite: false,
   }));
 
-  function addChunk(cx: number, cz: number) {
-    if (!groupRef.current) return;
-    const key = getChunkKey(cx, cz);
-    const { opaque, transparent } = buildChunkGeometry(cx, cz);
-    const entry: ChunkEntry = { opaque: null, transparent: null };
-    if (opaque) {
-      const m = new THREE.Mesh(opaque, opaqueMat.current);
-      m.receiveShadow = true;
-      groupRef.current.add(m);
-      entry.opaque = m;
-    }
-    if (transparent) {
-      const m = new THREE.Mesh(transparent, transparentMat.current);
-      groupRef.current.add(m);
-      entry.transparent = m;
-    }
-    chunkMap.current.set(key, entry);
-  }
+  const workerSlotsRef = useRef<ChunkWorkerSlot[]>([]);
+  const workerSetupCompleteRef = useRef(false);
+  const pendingJobsRef = useRef<Map<string, number>>(new Map());
+  const completedJobsRef = useRef<CompletedChunkJob[]>([]);
+  const dirtyQueueRef = useRef(new Set<string>());
+  const nextJobIdRef = useRef(0);
+  const currentRevisionRef = useRef(worldRevision);
+  const currentViewDistanceRef = useRef(viewDistance);
+  currentRevisionRef.current = worldRevision;
+  currentViewDistanceRef.current = viewDistance;
 
-  function removeChunk(key: string) {
-    const entry = chunkMap.current.get(key);
-    if (!entry || !groupRef.current) return;
-    if (entry.opaque)      { groupRef.current.remove(entry.opaque);      entry.opaque.geometry.dispose(); }
-    if (entry.transparent) { groupRef.current.remove(entry.transparent); entry.transparent.geometry.dispose(); }
-    chunkMap.current.delete(key);
-  }
+  const buildChunkLocally = (job: ActiveChunkJob) => {
+    if (job.revision !== currentRevisionRef.current || !groupRef.current) return;
+    const data = worldManager.getOrGenerateChunk(job.cx, job.cz);
+    const geometry = buildChunkGeometryData(
+      job.cx,
+      job.cz,
+      data,
+      worldManager.getChunkRenderMinY(job.cx, job.cz),
+    );
+    worldManager.dirtyChunks.delete(job.key);
+    dirtyQueueRef.current.delete(job.key);
+    removeChunkMeshes(groupRef.current, chunkMap.current, job.key);
+    addChunkMeshes(
+      groupRef.current,
+      chunkMap.current,
+      job.cx,
+      job.cz,
+      geometry,
+      opaqueMat.current,
+      transparentMat.current,
+    );
+  };
 
   useLayoutEffect(() => {
-    for (const key of Array.from(chunkMap.current.keys())) removeChunk(key);
+    for (const key of Array.from(chunkMap.current.keys())) {
+      removeChunkMeshes(groupRef.current, chunkMap.current, key);
+    }
+    pendingJobsRef.current.clear();
+    completedJobsRef.current.length = 0;
+    dirtyQueueRef.current.clear();
     lastLoadProgressRef.current = -1;
     readyWorldRevisionRef.current = -1;
   }, [worldRevision]);
+
+  useEffect(() => {
+    workerSetupCompleteRef.current = false;
+    const slots: ChunkWorkerSlot[] = [];
+    if (typeof Worker !== 'undefined') {
+      const hardwareThreads = typeof navigator === 'undefined' ? 2 : navigator.hardwareConcurrency || 2;
+      const workerCount = Math.max(1, Math.min(3, hardwareThreads - 1));
+
+      for (let index = 0; index < workerCount; index++) {
+        try {
+          const worker = new Worker(new URL('./chunkWorker.ts', import.meta.url), { type: 'module' });
+          const slot: ChunkWorkerSlot = { worker, busy: false, failed: false, job: null };
+          slots.push(slot);
+
+          worker.onmessage = (event: MessageEvent<ChunkBuildResponse>) => {
+            const job = slot.job;
+            slot.busy = false;
+            slot.job = null;
+            if (!job) return;
+            if (pendingJobsRef.current.get(job.key) !== job.jobId) return;
+
+            const response = event.data;
+            if (response.jobId !== job.jobId || response.key !== job.key) return;
+            if ('error' in response) {
+              pendingJobsRef.current.delete(job.key);
+              console.error(`Chunk worker failed for ${job.key}: ${response.error}`);
+              buildChunkLocally(job);
+              return;
+            }
+            if (response.revision !== currentRevisionRef.current) {
+              pendingJobsRef.current.delete(job.key);
+              return;
+            }
+            completedJobsRef.current.push({ job, response });
+          };
+
+          worker.onerror = event => {
+            event.preventDefault();
+            console.error('Chunk worker crashed; falling back to main-thread generation.', event.message);
+            slot.failed = true;
+            slot.worker.terminate();
+            const job = slot.job;
+            slot.busy = false;
+            slot.job = null;
+            if (job && pendingJobsRef.current.get(job.key) === job.jobId) {
+              pendingJobsRef.current.delete(job.key);
+              buildChunkLocally(job);
+            }
+          };
+        } catch (error) {
+          console.error('Unable to start a chunk worker; using main-thread generation.', error);
+        }
+      }
+    }
+
+    workerSlotsRef.current = slots;
+    workerSetupCompleteRef.current = true;
+    return () => {
+      for (const slot of slots) slot.worker.terminate();
+      if (workerSlotsRef.current === slots) workerSlotsRef.current = [];
+      workerSetupCompleteRef.current = false;
+    };
+  }, []);
 
   useFrame(() => {
     if (!groupRef.current) return;
@@ -291,30 +337,122 @@ export default function World({
       }
     }
 
-    for (const key of worldManager.dirtyChunks) {
-      const [cxStr, czStr] = key.split(',');
-      removeChunk(key);
-      addChunk(parseInt(cxStr), parseInt(czStr));
-    }
+    for (const key of worldManager.dirtyChunks) dirtyQueueRef.current.add(key);
     worldManager.dirtyChunks.clear();
 
-    let built = 0;
-    const buildBudget = isWorldLoading ? MAX_CHUNKS_PER_LOAD_FRAME : MAX_CHUNKS_PER_FRAME;
-    const buildStartedAt = performance.now();
-    for (const offset of chunkLoadOrder) {
-      if (built >= buildBudget) break;
-      if (isWorldLoading && built > 0 && performance.now() - buildStartedAt >= LOAD_FRAME_BUDGET_MS) break;
-
-      const cx = pcx + offset.x, cz = pcz + offset.z;
-      const key = getChunkKey(cx, cz);
-      if (!chunkMap.current.has(key)) { addChunk(cx, cz); built++; }
+    const completed = completedJobsRef.current.shift();
+    if (completed) {
+      const { job, response } = completed;
+      if (pendingJobsRef.current.get(job.key) === job.jobId) {
+        pendingJobsRef.current.delete(job.key);
+        const stillInRange = Math.abs(job.cx - pcx) <= viewDistance + 1
+          && Math.abs(job.cz - pcz) <= viewDistance + 1;
+        if (job.revision === worldRevision && response.revision === worldRevision && stillInRange) {
+          if (dirtyQueueRef.current.has(job.key) || worldManager.dirtyChunks.has(job.key)) {
+            dirtyQueueRef.current.add(job.key);
+          } else {
+            worldManager.installGeneratedChunks(response.generatedChunks);
+            removeChunkMeshes(groupRef.current, chunkMap.current, job.key);
+            addChunkMeshes(
+              groupRef.current,
+              chunkMap.current,
+              job.cx,
+              job.cz,
+              response.geometry,
+              opaqueMat.current,
+              transparentMat.current,
+            );
+          }
+        }
+      }
     }
 
     for (const key of Array.from(chunkMap.current.keys())) {
       const [cxStr, czStr] = key.split(',');
-      const cx = parseInt(cxStr), cz = parseInt(czStr);
+      const cx = Number(cxStr), cz = Number(czStr);
       if (Math.abs(cx - pcx) > viewDistance + 1 || Math.abs(cz - pcz) > viewDistance + 1) {
-        removeChunk(key);
+        removeChunkMeshes(groupRef.current, chunkMap.current, key);
+      }
+    }
+
+    const nextJobKey = (): string | null => {
+      for (const key of dirtyQueueRef.current) {
+        if (pendingJobsRef.current.has(key)) continue;
+        const [cxStr, czStr] = key.split(',');
+        const cx = Number(cxStr), cz = Number(czStr);
+        if (Math.abs(cx - pcx) > viewDistance + 1 || Math.abs(cz - pcz) > viewDistance + 1) {
+          dirtyQueueRef.current.delete(key);
+          continue;
+        }
+        return key;
+      }
+      for (const offset of chunkLoadOrder) {
+        const key = getChunkKey(pcx + offset.x, pcz + offset.z);
+        if (!chunkMap.current.has(key) && !pendingJobsRef.current.has(key)) return key;
+      }
+      return null;
+    };
+
+    const dispatchJob = (slot: ChunkWorkerSlot, key: string) => {
+      const [cxStr, czStr] = key.split(',');
+      const cx = Number(cxStr), cz = Number(czStr);
+      const job: ActiveChunkJob = {
+        jobId: ++nextJobIdRef.current,
+        key,
+        cx,
+        cz,
+        revision: worldRevision,
+      };
+      const chunks = worldManager.snapshotChunkNeighborhood(cx, cz);
+      const task: ChunkBuildTask = {
+        ...job,
+        worldType: worldManager.worldType,
+        seed: worldManager.getWorldSeed(),
+        renderMinY: worldManager.getChunkRenderMinY(cx, cz),
+        chunks,
+      };
+      slot.busy = true;
+      slot.job = job;
+      pendingJobsRef.current.set(key, job.jobId);
+      dirtyQueueRef.current.delete(key);
+
+      try {
+        slot.worker.postMessage(task, chunks.map(chunk => chunk.data.buffer as ArrayBuffer));
+      } catch (error) {
+        slot.busy = false;
+        slot.job = null;
+        pendingJobsRef.current.delete(key);
+        console.error('Unable to send chunk data to a worker; using main-thread generation.', error);
+        buildChunkLocally(job);
+      }
+    };
+
+    if (workerSetupCompleteRef.current) {
+      const availableWorkers = workerSlotsRef.current.filter(slot => !slot.failed);
+      if (availableWorkers.length > 0) {
+        const maxOutstandingJobs = availableWorkers.length + 1;
+        for (const slot of availableWorkers) {
+          if (pendingJobsRef.current.size >= maxOutstandingJobs) break;
+          if (slot.busy) continue;
+          const key = nextJobKey();
+          if (!key) break;
+          dispatchJob(slot, key);
+        }
+      } else {
+        for (let built = 0; built < MAX_SYNC_CHUNKS_PER_FRAME; built++) {
+          const key = nextJobKey();
+          if (!key) break;
+          const [cxStr, czStr] = key.split(',');
+          const job: ActiveChunkJob = {
+            jobId: ++nextJobIdRef.current,
+            key,
+            cx: Number(cxStr),
+            cz: Number(czStr),
+            revision: worldRevision,
+          };
+          dirtyQueueRef.current.delete(key);
+          buildChunkLocally(job);
+        }
       }
     }
 

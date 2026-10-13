@@ -13,6 +13,12 @@ An **artifact** is a runnable project the agent creates -- the primary unit of o
 
 When the user asks to "build a website" or "create an app", call `createArtifact()` once, then continue implementation. The workspace includes a shared backend service; new web artifacts are primarily frontend packages and must treat `previewPath` as a required URL prefix for all app routes and API calls.
 
+
+Choose `expo` for an app creation request without a specified platform, including "design me an app", unless the user specifies a web app or browser experience (`react-vite`), or a visual-only mockup (`mockup-sandbox`). A responsive webpage is not a native mobile app. Respect the platform established in the conversation or handoff.
+
+When a user says the result does not match their request, reassess their intended outcome before changing the implementation. Correct the mismatch without inventing new requirements. Ask a focused question only if the intended outcome remains unclear.
+
+
 ## When to Use
 
 Use this skill when:
@@ -44,7 +50,7 @@ Choose your approach based on artifact type:
   - **mockup-sandbox** (design mockups, UI prototypes, variant comparisons): Read the `mockup-sandbox` skill. Uses its own Vite dev server and canvas iframes. Delegate design work to a DESIGN subagent. No artifact is needed if the mockup sandbox is present.
   - **openscad** (parametric 3D CAD models — mechanical or printable parts defined by dimensions and boolean primitives, e.g. enclosures, brackets, fixtures, organizers, and functional curved parts like handles, grips, and fairings): Create an OpenSCAD artifact and follow the `openscad` skill. Edit `src/model.scad`; the artifact renders it to `public/model.stl` with the OpenSCAD binary and previews the STL in a Three.js viewer. Do NOT use openscad for realistic or sculptural shapes (vehicles, characters, animals, figurines, product replicas) — constructive solid geometry models those poorly; for a visual 3D mesh use `media-generation`'s `generate3DModel` (textured `.glb`), or an image/web artifact when a flat render or app is wanted.
   - **slides** (slide decks, presentations): Read the `slides` skill BEFORE creating the artifact -- for a new deck it asks the user's missing direction first (deck length, visual style, content outline) and says when to create the artifact. Do not call `createArtifact` for a new deck until that skill's pre-generation flow is settled. No subagent needed. Use `media-generation` for images.
-  - **video-js** (short animated videos, up to ~2 minutes max; most are 30-60s): Create a video artifact, then read the `video-js` skill it installs and follow it yourself: it resolves the missing ratio and style, then you script, source assets, build the scenes, and verify. Do not delegate the video to a DESIGN subagent. This is for animated content from code, not a video editor. Size runtime to the content; long videos are unreliable to export.
+  - **video-js** (short animated videos, up to ~2 minutes max; most are 30-60s): Read the `video-js` skill and run its platform steps (ratio inferred from the request, never asked; the style picker only when its gate is on), create the video artifact, then delegate the whole film (script, assets, scenes, controls, validation) to a DESIGN subagent exactly as that skill's first-build reference describes. You run only the callbacks around it (brand assets, workflow restart, present); write no video code yourself. This is for animated content from code, not a video editor. Size runtime to the content; long videos are unreliable to export.
 - **Full-stack artifacts** (react-vite, data-visualization, expo): Follow the OpenAPI-first workflow below.
   - If a `react-vite` artifact is frontend-only and doesn't need a backend, skip the OpenAPI spec and codegen -- go straight to building the frontend after `createArtifact()`, still using a design subagent.
   - **Expo apps: skip the OpenAPI workflow by default.** Most mobile apps don't need a backend on the first build. Use AsyncStorage for persistence. Do NOT use the database, write an OpenAPI spec, or create backend routes unless the user explicitly asks for server-side features. After `createArtifact()`, go straight to the Expo skill's `<first_build>` sequence.

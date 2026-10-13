@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BlockType, BLOCK_COLORS, BLOCK_NAMES } from './blocks';
+import { getToolIconStyle } from './itemIcons';
 
 interface Props {
   contents:    BlockType[];
@@ -42,6 +43,7 @@ function SlotCell({
           <div style={{
             width: 28, height: 28, borderRadius: 3,
             background: colorStr(block),
+            ...getToolIconStyle(block),
             border: '1px solid rgba(0,0,0,0.5)',
             boxShadow: 'inset -2px -2px 4px rgba(0,0,0,0.3)',
           }} />

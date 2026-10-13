@@ -92,6 +92,34 @@ Grep every slide file for emoji characters. If any emoji appears anywhere in the
 
 For each slide, mentally sum the stacked height of all direct children (including padding, gaps, headings, and subtitles). It must be ≤ 100vh. Card grids, long bullet lists, and multi-column layouts are the most frequent offenders — if total height exceeds the budget, reduce items, shrink sizing, or split the slide.
 
+### Bottom-edge test
+
+For each slide, find the lowest element. Estimate its bottom: top padding + every block's height + gaps. A 2vw line at relaxed leading is about 6vh; a card with a label and two lines is about 16vh. If the lowest text outside the footer safe zone (the bottom 8vh reserved for the page counter) ends below 92vh, or any text overlaps a footer, page counter, or another text block, cut words or remove a block. Last lines cut off at the bottom of a card or the slide are the most common defect in shipped decks.
+
+### Word count test
+
+Count the body words on each content slide (exclude the title). Over about 45 words, cut or split. Any card with more than one line of body text under its label: shorten it.
+
+### Palette test
+
+List the background color of every slide. If more than half are navy, charcoal, near-black, or dark teal, and the brand or subject does not call for dark, switch to the light or mid-tone palette from your plan. If the accent color appears only in thin rules, labels, and small numerals, give it a large surface on at least a third of the slides.
+
+### Placeholder test
+
+Grep the deck for `XXX`, `example.com`, `Add your`, `[`, `Lorem`, `TBD`, and phone-number patterns. Remove every placeholder and every contact detail that neither the user supplied nor you verified on an official source.
+
+### Repetition test
+
+Write one line per slide: its archetype, whether it uses boxes, and whether it uses `01/02/03` numerals. Unless the deck is a board-style deck with a repeatable format, fix it if any archetype exceeds the repetition budget in `design-principles.md`, two adjacent slides share one, more than a third of the content slides use boxes, or numbered sequences appear more than twice. Then compare adjacent slides in the JSX: if two slides would look like the same template with different words, redesign one.
+
+### Spacing and balance test
+
+In the JSX of each content slide, check that the title sits at the same position as on the other content slides, that text edges line up on shared vertical lines, and that gaps between groups are clearly larger than gaps inside a group. If the content ends above the middle of the frame and leaves the lower part empty, enlarge it, re-anchor it, or change archetype. Text pressed against a card edge or the frame edge fails.
+
+### Font render test
+
+Check the cover screenshot from the build sequence closely. Uneven letter gaps, broken hairlines, fallback system glyphs, or monospace body copy fail: switch to a vetted pairing from `design-principles.md`.
+
 ### Platform contract sanity check
 
 Before telling the user the deck is ready, verify `src/App.tsx` still matches the platform contract. Most export-related violations below silently time out with `NO_SLIDES_FOUND` after 60 seconds even if the preview looks fine; the `data-slide-id` violation affects thumbnail-to-slide pairing instead.

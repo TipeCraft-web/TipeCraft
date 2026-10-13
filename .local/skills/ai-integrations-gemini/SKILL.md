@@ -15,8 +15,9 @@ Set up Gemini AI integration via Replit AI Integrations proxy. Keys are automati
 
 ## Supported Gemini Models
 
+- gemini-3.8-flash: latest Flash model for coding, agentic workflows, and general-purpose multimodal tasks. Prefer this one over other Flash series models.
 - gemini-3.1-pro-preview: latest and most powerful model for agentic workflows and vibe-coding. Prefer this one over other pro series models.
-- gemini-3-flash-preview: hybrid reasoning model good for daily use and high-volume tasks. Prefer this one over flash series models.
+- gemini-3-flash-preview: hybrid reasoning model good for daily use and high-volume tasks.
 - gemini-3-pro-image (nano banana pro): thinking model that is good for high-quality image generation tasks where detail and accuracy matters most.
 - gemini-2.5-pro: excels at coding and complex reasoning tasks
 - gemini-2.5-flash: hybrid reasoning model good for daily use and high-volume tasks
@@ -38,6 +39,7 @@ The following capabilities are NOT supported by Gemini AI integrations. Do NOT p
 
 Some example use cases (non-exhaustive):
 
+- gemini-3.8-flash: coding, agentic workflows, general-purpose chat, and image/audio/video analysis
 - gemini-3.1-pro-preview: tasks requiring complex reasoning
 - gemini-2.5-flash: general purpose chat, image/audio/video transcription/summary/analysis, high-volume tasks
 - gemini-2.5-flash-image: image generation

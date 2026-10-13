@@ -1,37 +1,18 @@
 
-Every video targets ONE aspect ratio, chosen before any work begins:
+Every video targets ONE aspect ratio, resolved before any work begins:
 
-- **16:9 landscape** -- YouTube, web, presentations, and the default when the user asks to skip the question.
+- **16:9 landscape** -- YouTube, web, presentations, and the default when the request does not say.
 - **9:16 vertical** -- TikTok, Instagram Reels, YouTube Shorts, Stories, or an explicit vertical/mobile request.
 - **1:1 square** -- square social feed posts.
 - **4:5 portrait** -- Instagram feed posts.
 
-For a NEW video, first determine whether the user selected a ratio or gave one unambiguous platform or orientation. If the ratio is missing or ambiguous, ask before research, artifact creation, planning, or file changes.
+For a NEW video, resolve the ratio from the request. Never ask the user for it:
 
-Call `AskQuestion` directly as a model tool. Do not call it inside `CodeExecution`. Use this required single-select question:
+- An explicit ratio, or one unambiguous platform or orientation word, decides it: TikTok, Reels, Shorts, Stories, "vertical", "mobile", "portrait" -> 9:16; "square" -> 1:1; Instagram feed post -> 4:5; YouTube, web, presentation, "landscape", "widescreen" -> 16:9.
+- Anything else, including no mention at all or a mix of platforms, is 16:9.
+- An existing video keeps its persisted ratio unless the user asks for a change.
 
-
-```json
-{
-  "question": "What aspect ratio should the video use?",
-  "fields": [
-    {
-      "kind": "singleSelect",
-      "name": "videoAspectRatio",
-      "title": "Aspect ratio",
-      "required": true,
-      "options": [
-        { "value": "16:9", "label": "16:9 (YouTube, presentations, default)" },
-        { "value": "9:16", "label": "9:16 (TikTok, Instagram Reels, Shorts)" },
-        { "value": "1:1", "label": "1:1 (Square social posts)" },
-        { "value": "4:5", "label": "4:5 (Instagram feed posts)" }
-      ]
-    }
-  ]
-}
-```
-
-Whichever way you ask, end the turn and wait for the user's answer. Do not start work while the question is open. Skip the question only for edits to an existing video, an explicit ratio, one unambiguous platform or orientation, or when the user asks to skip it. If the user asks to skip it, use 16:9. State the selected ratio in your director's treatment.
+State the selected ratio in your director's treatment and in the brief.
 
 Before writing the composition, persist the selected ratio in the target video artifact's `.replit-artifact/artifact.toml` while preserving all existing artifact configuration:
 

@@ -116,10 +116,10 @@ existing checkpoints if recovery is needed.
 
      ```bash
      # pnpm projects
-     pnpm add --save-dev --save-exact create-launch@0.3.6
+     pnpm add --save-dev --save-exact create-launch@0.4.1
 
      # npm projects
-     npm install --save-dev --save-exact create-launch@0.3.6
+     npm install --save-dev --save-exact create-launch@0.4.1
      ```
 
      Run the command from the app package. In a pnpm workspace, target that

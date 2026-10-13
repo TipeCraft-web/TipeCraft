@@ -3,6 +3,8 @@ interface GameOptionsPanelProps {
   onViewDistanceChange: (value: number) => void;
   fogEnabled: boolean;
   onFogEnabledChange: (enabled: boolean) => void;
+  worldBorderEnabled: boolean;
+  onWorldBorderEnabledChange: (enabled: boolean) => void;
   onBack: () => void;
 }
 
@@ -11,6 +13,8 @@ export default function GameOptionsPanel({
   onViewDistanceChange,
   fogEnabled,
   onFogEnabledChange,
+  worldBorderEnabled,
+  onWorldBorderEnabledChange,
   onBack,
 }: GameOptionsPanelProps) {
   return (
@@ -69,6 +73,28 @@ export default function GameOptionsPanel({
           }}
         >{fogEnabled ? 'AN' : 'AUS'}</button>
       </label>
+      <label style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, fontSize:14, marginBottom:8 }}>
+        <span>Weltgrenze (±1.048.576 Blöcke)</span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={worldBorderEnabled}
+          data-touch-btn="1"
+          onClick={() => onWorldBorderEnabledChange(!worldBorderEnabled)}
+          onTouchStart={event => { event.stopPropagation(); event.preventDefault(); onWorldBorderEnabledChange(!worldBorderEnabled); }}
+          style={{
+            width:70, height:32, borderRadius:16,
+            border:'2px solid #eee', cursor:'pointer',
+            background:worldBorderEnabled ? '#5f9fbd' : '#444',
+            color:'#fff', fontFamily:'"Courier New", monospace',
+          }}
+        >{worldBorderEnabled ? 'AN' : 'AUS'}</button>
+      </label>
+      {!worldBorderEnabled && (
+        <div role="status" style={{ color:'#ffc16b', fontSize:11, lineHeight:1.4, marginBottom:18 }}>
+          Warnung: Ohne Weltgrenze kannst du weit reisen und dich hinter die Grenze teleportieren.
+        </div>
+      )}
       <button
         type="button"
         data-touch-btn="1"

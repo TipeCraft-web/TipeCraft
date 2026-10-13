@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { BlockType } from './blocks';
+import { BlockType, isSolid } from './blocks';
 import { getBlockDropTextures } from './textures';
+import { worldManager } from './worldGen';
+
+const DROP_GRAVITY = 22;
+const DROP_HALF_SIZE = 0.17;
 
 export interface DroppedItem {
   id: number;
@@ -49,6 +53,7 @@ function DroppedBlock({ drop, meshRef }: {
 
 export default function ItemDrops({ drops, playerPosRef, onCollect }: ItemDropsProps) {
   const meshRefs = useRef(new Map<number, THREE.Mesh>());
+  const verticalVelocity = useRef(new Map<number, number>());
   const collectedIds = useRef(new Set<number>());
   const tempPlayer = useRef(new THREE.Vector3());
 
@@ -57,16 +62,43 @@ export default function ItemDrops({ drops, playerPosRef, onCollect }: ItemDropsP
     for (const id of collectedIds.current) {
       if (!activeIds.has(id)) collectedIds.current.delete(id);
     }
+    for (const id of verticalVelocity.current.keys()) {
+      if (!activeIds.has(id)) verticalVelocity.current.delete(id);
+    }
+    for (const drop of drops) {
+      if (!verticalVelocity.current.has(drop.id)) verticalVelocity.current.set(drop.id, 0);
+    }
   }, [drops]);
 
-  useFrame(({ clock }, delta) => {
+  useFrame((_, delta) => {
+    const dt = Math.min(delta, 0.05);
     tempPlayer.current.copy(playerPosRef.current);
     for (const drop of drops) {
       const mesh = meshRefs.current.get(drop.id);
       if (!mesh) continue;
 
       mesh.rotation.y += delta * 2.4;
-      mesh.position.y = drop.position.y + 0.28 + Math.sin(clock.elapsedTime * 3 + drop.id) * 0.06;
+      let velocity = verticalVelocity.current.get(drop.id) ?? 0;
+      const blockX = Math.floor(drop.position.x);
+      const blockZ = Math.floor(drop.position.z);
+      let nextY = mesh.position.y;
+      const supportY = Math.floor(mesh.position.y - DROP_HALF_SIZE - 0.001);
+      const resting = velocity === 0 && isSolid(worldManager.getBlock(blockX, supportY, blockZ));
+      if (!resting) {
+        velocity = Math.max(-32, velocity - DROP_GRAVITY * dt);
+        nextY += velocity * dt;
+
+        const startBlockY = Math.floor(mesh.position.y - DROP_HALF_SIZE);
+        const endBlockY = Math.floor(nextY - DROP_HALF_SIZE);
+        for (let blockY = startBlockY; blockY >= endBlockY; blockY--) {
+          if (!isSolid(worldManager.getBlock(blockX, blockY, blockZ))) continue;
+          nextY = blockY + 1 + DROP_HALF_SIZE;
+          velocity = 0;
+          break;
+        }
+      }
+      mesh.position.y = nextY;
+      verticalVelocity.current.set(drop.id, velocity);
 
       if (!collectedIds.current.has(drop.id) &&
           mesh.position.distanceTo(tempPlayer.current) < 1.15) {

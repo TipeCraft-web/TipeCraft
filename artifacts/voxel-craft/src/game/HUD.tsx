@@ -1,5 +1,6 @@
-import { BlockType, BLOCK_COLORS } from './blocks';
+import { BlockType, BLOCK_COLORS, isItemOnly } from './blocks';
 import { blockTextureUrl } from './textures';
+import { getToolIconStyle } from './itemIcons';
 
 interface HUDProps {
   mode: 'CREATIVE' | 'SURVIVAL';
@@ -14,7 +15,7 @@ interface HUDProps {
 
 function colorStyle(type: BlockType): string {
   if (type === BlockType.AIR) return 'rgba(255,255,255,0.08)';
-  const [r, g, b] = BLOCK_COLORS[type];
+  const [r, g, b] = BLOCK_COLORS[type] ?? [0.35, 0.35, 0.35];
   return `rgb(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)})`;
 }
 
@@ -179,11 +180,12 @@ export default function HUD({ mode, health, hunger, hotbar, counts, selectedSlot
               <div style={{
                 width: 32, height: 32,
                 background: colorStyle(block),
-                 ...(block !== BlockType.AIR ? {
+                 ...(block !== BlockType.AIR && !isItemOnly(block) ? {
                    backgroundImage: `url(${blockTextureUrl(block)})`,
                    backgroundSize: 'cover',
                    imageRendering: 'pixelated' as const,
                  } : {}),
+                 ...getToolIconStyle(block),
                 border: '1px solid rgba(0,0,0,0.4)',
                 boxShadow: block !== BlockType.AIR ? 'inset -2px -2px 4px rgba(0,0,0,0.3), inset 2px 2px 4px rgba(255,255,255,0.15)' : 'none',
               }} />
@@ -208,7 +210,7 @@ export default function HUD({ mode, health, hunger, hotbar, counts, selectedSlot
         color: 'rgba(255,255,255,0.35)', fontSize: 9, textAlign: 'center', whiteSpace: 'nowrap',
         pointerEvents: 'none',
       }}>
-        WASD · Space: Jump · 1–9: Hotbar · E: Craft · I: Inventory · Tab: Mode
+        WASD · Space: Jump · 1–9: Hotbar · E: Inventory · Tab: Mode
       </div>
     </div>
   );

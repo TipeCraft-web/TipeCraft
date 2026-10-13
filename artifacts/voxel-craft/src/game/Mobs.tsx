@@ -306,13 +306,18 @@ export default function Mobs({ playerPos, onPlayerDamage, dayTimeRef }: Props) {
     const mobs = getMobs();
     frameCount.current++;
 
-    // ── Spawn — more mobs at night ──────────────────────────────────
+    // Hostile mobs only exist at night; clear them when daylight returns.
     spawnTimer.current -= dt;
     const isNight = dayTimeRef.current < 0.22 || dayTimeRef.current > 0.78;
     const maxSpawn = isNight ? MAX_SPAWN + 10 : MAX_SPAWN;
     const spawnInterval = isNight ? SPAWN_INTERVAL * 0.6 : SPAWN_INTERVAL;
 
-    if (spawnTimer.current <= 0 && mobs.length < maxSpawn) {
+    if (!isNight) {
+      for (const mob of mobs) {
+        mob.state = 'dead';
+        mob.deathTimer = 0;
+      }
+    } else if (spawnTimer.current <= 0 && mobs.length < maxSpawn) {
       spawnTimer.current = spawnInterval;
       const seed  = Date.now() * 0.001;
       const angle = pseudoRand(seed) * Math.PI * 2;
@@ -320,10 +325,8 @@ export default function Mobs({ playerPos, onPlayerDamage, dayTimeRef }: Props) {
       const sx    = playerPos.x + Math.cos(angle) * dist;
       const sz    = playerPos.z + Math.sin(angle) * dist;
       const sy    = worldManager.getTerrainHeight(Math.floor(sx), Math.floor(sz)) + 1;
-      const dayTypes: MobType[]   = ['slime', 'spider', 'spider'];
       const nightTypes: MobType[] = ['zombie', 'zombie', 'zombie', 'skeleton', 'skeleton', 'creeper', 'spider', 'slime'];
-      const pool = isNight ? nightTypes : dayTypes;
-      spawnMob(pool[Math.floor(pseudoRand(seed * 3.3) * pool.length)], sx, sy, sz);
+      spawnMob(nightTypes[Math.floor(pseudoRand(seed * 3.3) * nightTypes.length)], sx, sy, sz);
     }
 
     // ── AI update ──────────────────────────────────────────────────
