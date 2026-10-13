@@ -25,10 +25,12 @@ The project is cross-platform optimized and runs smoothly in web browsers, as a 
 - **Living World:** Fully functional 5-minute day/night cycle (updating to 20 mins soon), hostile Zombies spawning in the dark, and an integrated chat command system (`/help`, `/tp`, `/time day/night`).
 - **Custom Save System:** Worlds will soon be saved using a custom-built, highly efficient file format (`.tipeworld`).
 - **Cross-Platform:** Optimized controls for keyboard/mouse (PC) and dynamic touch overlays for mobile devices.
+- **Ore Generation & Smelting:** Natural underground ore veins and a fully functional furnace logic to smelt items.
+- **Tool-Tier System:** Pickaxes with specific mining tiers required to get block drops.
 
-### 🛠️ Roadmap (Upcoming Update: beta-v2.0.0 date:13.10.26)
-- [ ] **Ore Generation & Smelting:** Natural underground ore veins and a fully functional furnace logic to smelt items.
-- [ ] **Tool-Tier System:** Pickaxes with specific mining tiers required to get block drops.
+### 🛠️ Roadmap 
+
+
 
 ### 📄 License & Open Source Guidelines
 This project is **Open Source** under the **Creative Commons Attribution-NonCommercial-ShareAlike (CC BY-NC-SA)** license. The game is 100% free and will always remain completely ad-free! No commercial use allowed.
@@ -56,10 +58,11 @@ Das Projekt ist plattformübergreifend optimiert und läuft flüssig im Webbrows
 - **Lebendige Welt:** Funktionierendes Tag/Nacht-System (aktuell 5 Minuten, bald 20), angreifende Zombies in der Nacht und ein integriertes Befehlssystem (`/help`, `/tp`, `/time day/night`).
 - **Eigenes Speichersystem:** Welten werden bald in einem eigens dafür entwickelten, hocheffizienten Dateiformat (`.tipeworld`) gesichert.
 - **Cross-Platform:** Optimierte Steuerung für Tastatur/Maus (PC) sowie dynamische Touch-Overlays für Mobilgeräte.
-
-### 🛠️ Nächste Features (Geplant für das Update Beta-v2.0.0 am 13.10.26)
-- [ ] **Erzgenerierung & Ofen:** Natürliche Erze unter Tage und eine funktionierende Schmelzlogik für den Ofen.
-- [ ] **Werkzeug-Stufen (Tool-Tiers):** Spitzhaken, die benötigt werden, damit bestimmte Blöcke überhaupt Items droppen.
+- **Erzgenerierung & Ofen:** Natürliche Erze unter Tage und eine funktionierende Schmelzlogik für den Ofen.
+- **Werkzeug-Stufe (Tool-Tiers):** Spitzhaken, die benötigt werden, damit bestimmte Blöcke überhaupt Items droppen.
+- **World-Border(2^20):** Die Worldborder schütz Spieler vor floating Point Fehlern
+- **Speichersystem(.tipeworld):** so verliert man seinen Fortschritt nicht
+### 🛠️ Nächste Features (Geplant)
 
 
 ### 📄 Lizenz & Open Source Richtlinien
