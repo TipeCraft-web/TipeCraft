@@ -7,6 +7,7 @@ interface Props {
   dayTimeRef:  React.MutableRefObject<number>;
   onSetMode?:  (m: 'CREATIVE' | 'SURVIVAL') => void;
   currentMode: 'CREATIVE' | 'SURVIVAL';
+  commandsEnabled: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -19,10 +20,16 @@ const HELP = [
   '/clear            — Chat leeren',
 ];
 
-export default function Chat({ tpRef, dayTimeRef, onSetMode, currentMode, open, onOpenChange }: Props) {
+export default function Chat({ tpRef, dayTimeRef, onSetMode, currentMode, commandsEnabled, open, onOpenChange }: Props) {
   const [input,    setInput]    = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { text: 'Drücke T um den Chat zu öffnen. /help für Befehle.', color: '#aaa', ts: Date.now() },
+    {
+      text: commandsEnabled
+        ? 'Drücke T um den Chat zu öffnen. /help für Befehle.'
+        : 'Drücke T um den Chat zu öffnen. Befehle sind in dieser Survival-Welt deaktiviert.',
+      color: '#aaa',
+      ts: Date.now(),
+    },
   ]);
   const inputRef  = useRef<HTMLInputElement>(null);
   const listRef   = useRef<HTMLDivElement>(null);
@@ -32,6 +39,10 @@ export default function Chat({ tpRef, dayTimeRef, onSetMode, currentMode, open, 
   }, []);
 
   const runCommand = useCallback((raw: string) => {
+    if (!commandsEnabled) {
+      addMsg('Befehle sind in dieser Survival-Welt deaktiviert.', '#ff8888');
+      return;
+    }
     const parts = raw.trim().split(/\s+/);
     const cmd   = parts[0].toLowerCase();
     if (cmd === '/tp') {
@@ -56,7 +67,7 @@ export default function Chat({ tpRef, dayTimeRef, onSetMode, currentMode, open, 
     } else {
       addMsg(`Unbekannter Befehl: ${cmd} — /help`, '#ff8888');
     }
-  }, [tpRef, dayTimeRef, onSetMode, addMsg]);
+  }, [tpRef, dayTimeRef, onSetMode, commandsEnabled, addMsg]);
 
   const submit = useCallback(() => {
     const txt = input.trim();

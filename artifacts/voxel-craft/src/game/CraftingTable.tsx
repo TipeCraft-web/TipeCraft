@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { BlockType, BLOCK_COLORS, BLOCK_NAMES, isItemOnly } from './blocks';
+import { BlockType, BLOCK_COLORS, BLOCK_NAMES, ITEM_ONLY_TYPES, isItemOnly } from './blocks';
 import { blockTextureUrl } from './textures';
 import { getCraftOutput } from './craftingRecipes';
 import { getToolIconStyle } from './itemIcons';
@@ -11,7 +11,9 @@ interface Props {
   onClose: () => void;
 }
 
-const ALL_BLOCKS: BlockType[] = Array.from({ length: 225 }, (_, i) => i + 1) as BlockType[];
+const BLOCK_TYPES: BlockType[] = Array.from({ length: BlockType.RAW_STONE }, (_, i) => i + 1) as BlockType[];
+const ITEM_TYPES: BlockType[] = [...ITEM_ONLY_TYPES];
+const ALL_BLOCKS: BlockType[] = [...ITEM_TYPES, ...BLOCK_TYPES];
 
 function colorStr(type: BlockType): string {
   const color = BLOCK_COLORS[type];

@@ -15,6 +15,7 @@ export interface WorldArchiveFurnace {
 
 export interface WorldArchiveGameState {
   mode: 'CREATIVE' | 'SURVIVAL';
+  modeLocked?: boolean;
   health: number;
   hunger: number;
   hotbar: number[];
@@ -58,6 +59,7 @@ function validateGameState(value: unknown): value is WorldArchiveGameState {
   const position = value.position;
   if (!isRecord(position) || !['x', 'y', 'z'].every(axis => isFiniteNumber(position[axis]))) return false;
   if (value.mode !== 'CREATIVE' && value.mode !== 'SURVIVAL') return false;
+  if (value.modeLocked !== undefined && typeof value.modeLocked !== 'boolean') return false;
   if (!isFiniteNumber(value.health) || !isFiniteNumber(value.hunger)) return false;
   if (!Array.isArray(value.hotbar) || value.hotbar.length !== 9 ||
       !value.hotbar.every(item => Number.isInteger(item) && item >= 0 && item <= BlockType.DIAMOND_SWORD)) return false;

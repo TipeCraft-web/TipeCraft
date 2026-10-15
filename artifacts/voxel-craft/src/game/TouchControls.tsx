@@ -11,13 +11,16 @@ export function createTouchState(): TouchState {
   return { dx:0, dz:0, jump:false, doBreak:false, doPlace:false, flyDown:false, toggleMode:false, lookDx:0, lookDy:0 };
 }
 
-interface Props { stateRef: React.MutableRefObject<TouchState>; }
+interface Props {
+  stateRef: React.MutableRefObject<TouchState>;
+  allowModeToggle?: boolean;
+}
 
 const RADIUS = 52;
 const LONG_PRESS_MS = 450;
 const ACTION_MOVE_TOLERANCE = 10;
 
-export default function TouchControls({ stateRef }: Props) {
+export default function TouchControls({ stateRef, allowModeToggle = true }: Props) {
   const baseRef    = useRef<HTMLDivElement>(null);
   const thumbRef   = useRef<HTMLDivElement>(null);
   const joyTouchId = useRef<number | null>(null);
@@ -221,21 +224,22 @@ export default function TouchControls({ stateRef }: Props) {
         <div {...makeBtn('↓ Fly Dn', 'flyDown', '#9966ff')} />
       </div>
 
-      {/* Mode toggle (top-right) */}
-      <div
-        data-touch-btn="1"
-        onTouchStart={(e) => { e.stopPropagation(); stateRef.current.toggleMode = true; }}
-        onTouchEnd={(e)   => { e.stopPropagation(); stateRef.current.toggleMode = false; }}
-        style={{
-          position:'absolute', top:14, right:14, pointerEvents:'auto', touchAction:'none',
-          padding:'7px 16px', borderRadius:20,
-          background:'rgba(80,40,120,0.75)', border:'2px solid rgba(180,130,255,0.6)',
-          color:'#ddd', fontSize:11, fontWeight:700,
-          userSelect:'none',
-        }}
-      >
-        ⚙ MODE
-      </div>
+      {allowModeToggle && (
+        <div
+          data-touch-btn="1"
+          onTouchStart={(e) => { e.stopPropagation(); stateRef.current.toggleMode = true; }}
+          onTouchEnd={(e)   => { e.stopPropagation(); stateRef.current.toggleMode = false; }}
+          style={{
+            position:'absolute', top:14, right:14, pointerEvents:'auto', touchAction:'none',
+            padding:'7px 16px', borderRadius:20,
+            background:'rgba(80,40,120,0.75)', border:'2px solid rgba(180,130,255,0.6)',
+            color:'#ddd', fontSize:11, fontWeight:700,
+            userSelect:'none',
+          }}
+        >
+          ⚙ MODE
+        </div>
+      )}
     </div>
   );
 }

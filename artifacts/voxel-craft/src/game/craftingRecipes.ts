@@ -15,12 +15,14 @@ const LOG_TO_PLANKS: Partial<Record<BlockType, BlockType>> = {
   [BlockType.JUNGLE_LOG]: BlockType.JUNGLE_PLANKS,
   [BlockType.ACACIA_LOG]: BlockType.ACACIA_PLANKS,
   [BlockType.BAMBOO_BLOCK]: BlockType.BAMBOO_PLANKS,
+  [BlockType.WARPED_STEM]: BlockType.WARPED_PLANKS,
+  [BlockType.CRIMSON_STEM]: BlockType.CRIMSON_PLANKS,
 };
 
 const PLANK_TYPES = new Set<BlockType>([
   BlockType.PLANKS, BlockType.BIRCH_PLANKS, BlockType.SPRUCE_PLANKS,
   BlockType.DARK_OAK_PLANKS, BlockType.JUNGLE_PLANKS, BlockType.ACACIA_PLANKS,
-  BlockType.BAMBOO_PLANKS,
+  BlockType.BAMBOO_PLANKS, BlockType.WARPED_PLANKS, BlockType.CRIMSON_PLANKS,
 ]);
 
 const RECIPE_MATERIALS: { material: BlockType; pickaxe: BlockType; sword: BlockType }[] = [
@@ -38,6 +40,7 @@ const RECIPE_MATERIALS: { material: BlockType; pickaxe: BlockType; sword: BlockT
 export function getCraftOutput(grid: BlockType[]): CraftOutput | null {
   const filled = grid.filter(type => type !== BlockType.AIR);
 
+  // --- STICK RECIPE ---
   if (filled.length === 2 && filled.every(type => PLANK_TYPES.has(type))) {
     const plankCounts = new Map<BlockType, number>();
     filled.forEach(type => plankCounts.set(type, (plankCounts.get(type) ?? 0) + 1));
@@ -48,7 +51,9 @@ export function getCraftOutput(grid: BlockType[]): CraftOutput | null {
     };
   }
 
+  // --- TOOL & WEAPON RECIPES ---
   for (const { material, pickaxe, sword } of RECIPE_MATERIALS) {
+    // 1. PICKAXE
     const acceptedMaterials = material === BlockType.PLANKS
       ? filled.filter(type => PLANK_TYPES.has(type))
       : filled.filter(type => type === material);
@@ -68,12 +73,13 @@ export function getCraftOutput(grid: BlockType[]): CraftOutput | null {
       };
     }
 
+    // 2. SWORD (Fixed: Now requires exactly 1 stick instead of 2)
     const swordMaterials = material === BlockType.PLANKS
       ? filled.filter(type => PLANK_TYPES.has(type))
       : filled.filter(type => type === material);
-    if (filled.length === 4 && swordMaterials.length === 2 &&
-        filled.filter(type => type === BlockType.STICK).length === 2 &&
-        swordMaterials.length + 2 === filled.length) {
+    if (filled.length === 3 && swordMaterials.length === 2 &&
+        filled.filter(type => type === BlockType.STICK).length === 1 &&
+        swordMaterials.length + 1 === filled.length) {
       const consumedMaterial: { type: BlockType; count: number }[] = material === BlockType.PLANKS
         ? [...new Set(swordMaterials)].map(type => ({
             type,
@@ -83,11 +89,12 @@ export function getCraftOutput(grid: BlockType[]): CraftOutput | null {
       return {
         type: sword,
         count: 1,
-        consume: [...consumedMaterial, { type: BlockType.STICK, count: 2 }],
+        consume: [...consumedMaterial, { type: BlockType.STICK, count: 1 }],
       };
     }
   }
 
+  // --- LOG TO PLANKS ---
   if (filled.length === 1) {
     const result = LOG_TO_PLANKS[filled[0]];
     if (result !== undefined) {
@@ -95,15 +102,20 @@ export function getCraftOutput(grid: BlockType[]): CraftOutput | null {
     }
   }
 
-  if (filled.length === 4 && filled.every(type => type === BlockType.PLANKS)) {
+  // --- CRAFTING TABLE ---
+  if (filled.length === 4 && filled.every(type => PLANK_TYPES.has(type))) {
+    const plankCounts = new Map<BlockType, number>();
+    filled.forEach(type => plankCounts.set(type, (plankCounts.get(type) ?? 0) + 1));
     return {
       type: BlockType.CRAFTING_TABLE,
       count: 1,
-      consume: [{ type: BlockType.PLANKS, count: 4 }],
+      consume: [...plankCounts].map(([type, count]) => ({ type, count })),
     };
   }
 
+  // --- CHEST & FURNACE ---
   if (grid.length >= 9 && filled.length === 8 && grid[4] === BlockType.AIR) {
+    // Chest
     if (filled.every(type => type === BlockType.PLANKS)) {
       return {
         type: BlockType.CHEST,
@@ -111,11 +123,22 @@ export function getCraftOutput(grid: BlockType[]): CraftOutput | null {
         consume: [{ type: BlockType.PLANKS, count: 8 }],
       };
     }
+
+    // Furnace from Cobblestone
     if (filled.every(type => type === BlockType.COBBLESTONE)) {
       return {
         type: BlockType.FURNACE,
         count: 1,
         consume: [{ type: BlockType.COBBLESTONE, count: 8 }],
+      };
+    }
+
+    // Furnace from plain Stone (New)
+    if (filled.every(type => type === BlockType.STONE)) {
+      return {
+        type: BlockType.FURNACE,
+        count: 1,
+        consume: [{ type: BlockType.STONE, count: 8 }],
       };
     }
   }

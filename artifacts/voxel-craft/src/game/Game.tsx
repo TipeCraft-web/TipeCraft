@@ -67,6 +67,7 @@ export default function Game() {
   const [optionsOpen,    setOptionsOpen    ] = useState(false);
   const [singlePlayerMenuOpen, setSinglePlayerMenuOpen] = useState(false);
   const [selectedGameMode, setSelectedGameMode] = useState<'CREATIVE' | 'SURVIVAL'>('CREATIVE');
+  const [survivalRulesLocked, setSurvivalRulesLocked] = useState(false);
   const [selectedWorldType, setSelectedWorldType] = useState<WorldType>('normal');
   const [worldRevision, setWorldRevision] = useState(0);
   const [viewDistance,   setViewDistance   ] = useState(8);
@@ -119,6 +120,7 @@ export default function Game() {
     setOpenChest(null);
     setOpenCraftingTable(null);
     setOpenFurnace(null);
+    setSurvivalRulesLocked(false);
     touchRef.current = createTouchState();
     breakingRef.current.active = false;
     document.exitPointerLock?.();
@@ -198,6 +200,7 @@ export default function Game() {
   }, [uiState.mode, dead, started]);
 
   const handleSetMode = useCallback((m: 'CREATIVE' | 'SURVIVAL') => {
+    if (survivalRulesLocked) return;
     countsRef.current = {};
     setDrops([]);
     setUiState(prev => ({
@@ -205,7 +208,7 @@ export default function Game() {
       hotbar: m === 'CREATIVE' ? [...HOTBAR_CREATIVE] : [...SURVIVAL_HOTBAR],
       counts: {},
     }));
-  }, []);
+  }, [survivalRulesLocked]);
 
   const handleWorldLoadProgress = useCallback((loadedChunks: number, totalChunks: number) => {
     const progress = Math.floor((loadedChunks / totalChunks) * 100);
@@ -222,6 +225,7 @@ export default function Game() {
     try {
       const archive = createWorldArchive(worldManager.snapshot(), {
         mode: uiState.mode,
+        modeLocked: survivalRulesLocked,
         health: uiState.health,
         hunger: uiState.hunger,
         hotbar: [...uiState.hotbar],
@@ -249,7 +253,7 @@ export default function Game() {
     } catch (error) {
       setArchiveMessage(error instanceof Error ? error.message : 'Welt konnte nicht exportiert werden.');
     }
-  }, [uiState, viewDistance, fogEnabled, worldBorderEnabled]);
+  }, [uiState, viewDistance, fogEnabled, worldBorderEnabled, survivalRulesLocked]);
 
   const handleImportWorld = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -266,6 +270,7 @@ export default function Game() {
       worldManager.restore(snapshot);
       setSelectedWorldType(snapshot.worldType);
       setSelectedGameMode(game.mode);
+      setSurvivalRulesLocked(game.modeLocked ?? (game.mode === 'SURVIVAL'));
       setViewDistance(game.viewDistance);
       setFogEnabled(game.fogEnabled);
       setWorldBorderEnabled(game.worldBorderEnabled);
@@ -305,6 +310,7 @@ export default function Game() {
   }, []);
 
   const handleCreateWorld = useCallback(() => {
+    setSurvivalRulesLocked(selectedGameMode === 'SURVIVAL');
     worldManager.resetWorld(selectedWorldType);
     setWorldRevision(revision => revision + 1);
     playerChunkRef.current = { x: 0, z: 0 };
@@ -834,6 +840,7 @@ export default function Game() {
           dayTimeRef={dayTimeRef}
           onSetMode={handleSetMode}
           currentMode={mode}
+          commandsEnabled={!survivalRulesLocked}
           open={chatOpen}
           onOpenChange={setChatOpen}
         />
@@ -940,7 +947,9 @@ export default function Game() {
       )}
 
       {/* ── Touch controls ───────────────────────────────────── */}
-      {started && !gamePaused && <TouchControls stateRef={touchRef} />}
+      {started && !gamePaused && (
+        <TouchControls stateRef={touchRef} allowModeToggle={!survivalRulesLocked} />
+      )}
 
       {/* ── 3D Canvas ────────────────────────────────────────── */}
       <KeyboardControls map={KEY_MAP}>
