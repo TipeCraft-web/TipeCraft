@@ -54,6 +54,10 @@ const METAL_BLOCKS = new Set<BlockType>([
 
 let audioContext: AudioContext | null = null;
 let noiseBuffer: AudioBuffer | null = null;
+const SOUND_ASSETS = ['wood', 'soft', 'stone', 'glass', 'metal', 'leaf', 'wool', 'menu-click'] as const;
+type SoundAsset = typeof SOUND_ASSETS[number];
+const decodedSounds = new Map<SoundAsset, AudioBuffer>();
+const soundLoads = new Map<SoundAsset, Promise<AudioBuffer | null>>();
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -74,6 +78,59 @@ function getNoiseBuffer(context: AudioContext): AudioBuffer {
     samples[i] = (Math.random() * 2 - 1) * fade * fade;
   }
   return noiseBuffer;
+}
+
+function loadTextureSound(context: AudioContext, name: SoundAsset): Promise<AudioBuffer | null> {
+  const decoded = decodedSounds.get(name);
+  if (decoded) return Promise.resolve(decoded);
+  const existingLoad = soundLoads.get(name);
+  if (existingLoad) return existingLoad;
+
+  const path = `${import.meta.env.BASE_URL}textures/sounds/${name}.wav`;
+  const loading = fetch(path)
+    .then(response => {
+      if (!response.ok) throw new Error(`Sound asset not found: ${name}`);
+      return response.arrayBuffer();
+    })
+    .then(data => context.decodeAudioData(data))
+    .then(buffer => {
+      decodedSounds.set(name, buffer);
+      return buffer;
+    })
+    .catch(() => null);
+  soundLoads.set(name, loading);
+  return loading;
+}
+
+function blockSoundAsset(block: BlockType): SoundAsset {
+  if (WOOD_BLOCKS.has(block)) return 'wood';
+  if (SOFT_BLOCKS.has(block)) return 'soft';
+  if (GLASS_BLOCKS.has(block)) return 'glass';
+  if (METAL_BLOCKS.has(block)) return 'metal';
+  if (LEAF_BLOCKS.has(block)) return 'leaf';
+  if (WOOL_BLOCKS.has(block)) return 'wool';
+  return 'stone';
+}
+
+function playTextureSound(
+  context: AudioContext,
+  name: SoundAsset,
+  playbackRate = 1,
+  volume = 0.45,
+): boolean {
+  const buffer = decodedSounds.get(name);
+  if (!buffer) return false;
+
+  const now = context.currentTime;
+  const source = context.createBufferSource();
+  const gain = context.createGain();
+  source.buffer = buffer;
+  source.playbackRate.setValueAtTime(playbackRate, now);
+  gain.gain.setValueAtTime(volume, now);
+  source.connect(gain);
+  gain.connect(context.destination);
+  source.start(now);
+  return true;
 }
 
 function soundProfile(block: BlockType): SoundProfile {
@@ -111,6 +168,9 @@ function soundProfile(block: BlockType): SoundProfile {
 export function primeBlockAudio(): void {
   const context = getAudioContext();
   if (context?.state === 'suspended') void context.resume().catch(() => {});
+  if (context) {
+    for (const name of SOUND_ASSETS) void loadTextureSound(context, name);
+  }
 }
 
 export function playBlockBreakSound(block: BlockType): void {
@@ -119,6 +179,10 @@ export function playBlockBreakSound(block: BlockType): void {
 
   const play = () => {
     const profile = soundProfile(block);
+    const asset = blockSoundAsset(block);
+    const pitch = 0.9 + (Number(block) % 13) * 0.014;
+    if (playTextureSound(context, asset, pitch, Math.min(0.78, profile.volume * 2.8))) return;
+    void loadTextureSound(context, asset);
     const now = context.currentTime;
     const source = context.createBufferSource();
     const filter = context.createBiquadFilter();
@@ -164,6 +228,8 @@ export function playMenuClickSound(): void {
   if (!context) return;
 
   const play = () => {
+    if (playTextureSound(context, 'menu-click', 1, 0.32)) return;
+    void loadTextureSound(context, 'menu-click');
     const now = context.currentTime;
     const oscillator = context.createOscillator();
     const gain = context.createGain();

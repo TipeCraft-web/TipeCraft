@@ -5,7 +5,8 @@
 body, html {
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background-color: #000;
   user-select: none;
   -webkit-user-select: none;
@@ -22,6 +23,135 @@ body, html {
    */
   height: calc(100vh - 8px);
   height: calc(100dvh - env(safe-area-inset-bottom, 0px) - 8px);
+}
+
+.startup-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
+  box-sizing: border-box;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  color: #fff;
+  background:
+    radial-gradient(ellipse at center, rgba(255, 83, 70, 0.42), transparent 58%),
+    linear-gradient(145deg, #d9232f 0%, #a90d20 100%);
+  font-family: "Courier New", monospace;
+  text-align: center;
+}
+
+.startup-splash-title {
+  font-size: clamp(48px, 12vw, 88px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-shadow: 4px 5px 0 #65101a, 0 0 28px rgba(255, 208, 195, 0.38);
+  animation: startup-title-pulse 1.5s ease-in-out infinite alternate;
+}
+
+.startup-splash-caption {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-shadow: 1px 2px 0 #65101a;
+}
+
+.startup-splash-track {
+  width: min(280px, 70vw);
+  height: 10px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: rgba(72, 0, 10, 0.42);
+  box-shadow: 0 3px 0 rgba(72, 0, 10, 0.48);
+}
+
+.startup-splash-track span {
+  display: block;
+  width: 38%;
+  height: 100%;
+  background: #fff0dc;
+  animation: startup-progress 1.15s ease-in-out infinite;
+}
+
+@keyframes startup-title-pulse {
+  from { transform: scale(0.98); }
+  to { transform: scale(1.02); }
+}
+
+@keyframes startup-progress {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(280%); }
+}
+
+.game-info {
+  box-sizing: border-box;
+  width: min(100% - 40px, 940px);
+  margin: 0 auto;
+  padding: 64px 0 80px;
+  color: #e8eee5;
+  font-family: Inter, system-ui, sans-serif;
+  line-height: 1.75;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.game-info-header {
+  margin-bottom: 44px;
+}
+
+.game-info-eyebrow {
+  margin: 0 0 12px;
+  color: #9ed888;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.game-info h1 {
+  margin: 0 0 18px;
+  color: #fff;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+
+.game-info h2 {
+  margin: 0 0 12px;
+  color: #d8f5c9;
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+  line-height: 1.25;
+}
+
+.game-info p {
+  color: #c8d2c5;
+  font-size: 1rem;
+}
+
+.game-info-lead {
+  max-width: 760px;
+  color: #e1e9dd !important;
+  font-size: clamp(1.05rem, 2vw, 1.2rem) !important;
+}
+
+.game-info section {
+  margin-top: 34px;
+}
+
+.game-info a {
+  color: #a8e68a;
+  text-underline-offset: 3px;
+}
+
+.game-info a:hover {
+  color: #d1ffc0;
 }
 
 .text-shadow-sm {

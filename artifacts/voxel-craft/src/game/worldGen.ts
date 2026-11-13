@@ -1,6 +1,6 @@
 import { createNoise2D } from 'simplex-noise';
 import { BlockType, isSolid } from './blocks';
-import { Biome, BIOME_DEFS, BiomeDef } from './biomes';
+import { Biome, BIOME_DEFS } from './biomes';
 import { STRUCTURE_GENERATORS, StructureKey, BP } from './structures';
 
 export const CHUNK_SIZE = 16;
@@ -23,6 +23,7 @@ export function blockIndex(lx: number, y: number, lz: number): number {
 let terrainNoise = createNoise2D();
 let terrainNoise2 = createNoise2D();
 let terrainNoise3 = createNoise2D();
+let terrainNoise4 = createNoise2D();
 let biomeNoise    = createNoise2D();
 let oreNoise      = createNoise2D();
 
@@ -45,6 +46,7 @@ function seedWorldNoise(seed: number): void {
   terrainNoise = createNoise2D(random);
   terrainNoise2 = createNoise2D(random);
   terrainNoise3 = createNoise2D(random);
+  terrainNoise4 = createNoise2D(random);
   biomeNoise = createNoise2D(random);
   oreNoise = createNoise2D(random);
 }
@@ -71,37 +73,41 @@ function getBiome(wx: number, wz: number): Biome {
   return Math.min(9, Math.floor((n + 1) / 2 * 10)) as Biome;
 }
 
-function getTerrainHeightAtPoint(wx: number, wz: number, def: BiomeDef): number {
-  const n1 = terrainNoise(wx * 0.012, wz * 0.012);
-  const n2 = terrainNoise2(wx * 0.04, wz * 0.04) * 0.5;
-  const n3 = terrainNoise3(wx * 0.09, wz * 0.09) * 0.25;
-  return Math.floor(def.baseHeight + (n1 + n2 + n3) * def.heightVariation);
+function getTerrainElevationNoise(wx: number, wz: number): number {
+  // Keep the broad landforms, but let smaller noise add natural variation
+  // instead of smoothing every region into the same gentle profile.
+  return terrainNoise(wx * 0.008, wz * 0.008) * 0.68
+    + terrainNoise2(wx * 0.024, wz * 0.024) * 0.22
+    + terrainNoise3(wx * 0.065, wz * 0.065) * 0.10;
 }
 
-// Blend terrain height from nearby biomes to eliminate hard edges at biome boundaries
-function getBlendedHeight(wx: number, wz: number): number {
-  const n1 = terrainNoise(wx * 0.012, wz * 0.012);
-  const n2 = terrainNoise2(wx * 0.04, wz * 0.04) * 0.5;
-  const n3 = terrainNoise3(wx * 0.09, wz * 0.09) * 0.25;
-  const noiseVal = n1 + n2 + n3;
+function getTerrainHilliness(wx: number, wz: number): number {
+  // Low-frequency modulation creates broad regions with noticeably hillier,
+  // less regular terrain while preserving calmer areas between them.
+  const regionalNoise = terrainNoise4(wx * 0.0017 + 29.7, wz * 0.0017 - 71.3);
+  return 0.72 + smoothStep((regionalNoise + 0.18) * 0.75) * 0.9;
+}
 
-  // Sample biome parameters from center + 8 surrounding points (Gaussian-like weights)
-  const D = 16;
-  const pts: [number, number, number][] = [
-    [wx,     wz,     2.5],
-    [wx-D,   wz,     1.0], [wx+D,   wz,     1.0],
-    [wx,     wz-D,   1.0], [wx,     wz+D,   1.0],
-    [wx-D,   wz-D,   0.5], [wx+D,   wz-D,   0.5],
-    [wx-D,   wz+D,   0.5], [wx+D,   wz+D,   0.5],
-  ];
-  let totalW = 0, blendBase = 0, blendVar = 0;
-  for (const [sx, sz, w] of pts) {
-    const def = BIOME_DEFS[getBiome(sx, sz)];
-    blendBase += def.baseHeight      * w;
-    blendVar  += def.heightVariation * w;
-    totalW    += w;
-  }
-  return Math.max(1, Math.floor(blendBase / totalW + noiseVal * (blendVar / totalW)));
+function smoothStep(value: number): number {
+  const t = Math.max(0, Math.min(1, value));
+  return t * t * (3 - 2 * t);
+}
+
+// Interpolate biome elevation continuously so biome borders do not create
+// abrupt changes in the terrain profile.
+function getBlendedHeight(wx: number, wz: number): number {
+  const biomeValue = biomeNoise(wx * 0.003, wz * 0.003);
+  const biomePosition = Math.max(0, Math.min(10, ((biomeValue + 1) * 0.5) * 10));
+  const lowerIndex = Math.min(9, Math.floor(biomePosition));
+  const upperIndex = Math.min(9, lowerIndex + 1);
+  const blend = lowerIndex === upperIndex ? 0 : smoothStep(biomePosition - lowerIndex);
+  const lower = BIOME_DEFS[lowerIndex as Biome];
+  const upper = BIOME_DEFS[upperIndex as Biome];
+  const baseHeight = lower.baseHeight + (upper.baseHeight - lower.baseHeight) * blend;
+  const heightVariation = lower.heightVariation + (upper.heightVariation - lower.heightVariation) * blend;
+
+  const localVariation = heightVariation * getTerrainHilliness(wx, wz);
+  return Math.max(1, Math.floor(baseHeight + getTerrainElevationNoise(wx, wz) * localVariation));
 }
 
 // Biome structures mapping
@@ -136,7 +142,6 @@ function generateChunk(cx: number, cz: number, worldType: WorldType): ChunkData 
   const chunkCenterX = cx * CHUNK_SIZE + CHUNK_SIZE / 2;
   const chunkCenterZ = cz * CHUNK_SIZE + CHUNK_SIZE / 2;
   const chunkBiome = getBiome(chunkCenterX, chunkCenterZ);
-  const def = BIOME_DEFS[chunkBiome];
 
   for (let lx = 0; lx < CHUNK_SIZE; lx++) {
     for (let lz = 0; lz < CHUNK_SIZE; lz++) {
@@ -241,9 +246,7 @@ function generateChunk(cx: number, cz: number, worldType: WorldType): ChunkData 
     const sCx = cx * CHUNK_SIZE + 4;
     const sCz = cz * CHUNK_SIZE + 4;
     // Find height at that point
-    const sBiome = getBiome(sCx, sCz);
-    const sDef = BIOME_DEFS[sBiome];
-    const sH = getTerrainHeightAtPoint(sCx, sCz, sDef);
+    const sH = getBlendedHeight(sCx, sCz);
 
     // For dungeon: place underground
     const baseY = structureKey === 'DUNGEON' ? Math.max(5, sH - 8) : structureKey === 'UNDERWATER_RUIN' || structureKey === 'OCEAN_MONUMENT' ? Math.max(1, sH - 2) : sH;

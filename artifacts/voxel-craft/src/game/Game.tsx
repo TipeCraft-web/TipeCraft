@@ -31,6 +31,7 @@ import {
 import RemotePlayerAvatar, { type RemotePlayerSnapshot } from './RemotePlayerAvatar';
 import startBackgroundUrl from '@assets/IMG_1402_1791524151994.jpeg';
 import { playMenuClickSound } from './blockSounds';
+import StartupSplash from './StartupSplash';
 
 export enum Controls {
   forward = 'forward',
@@ -83,6 +84,7 @@ export default function Game() {
   const [optionsOpen,    setOptionsOpen    ] = useState(false);
   const [singlePlayerMenuOpen, setSinglePlayerMenuOpen] = useState(false);
   const [multiplayerMenuOpen, setMultiplayerMenuOpen] = useState(false);
+  const [linksOpen, setLinksOpen] = useState(false);
   const [joiningCode, setJoiningCode] = useState('');
   const [multiplayerStatus, setMultiplayerStatus] = useState('');
   const [multiplayerRole, setMultiplayerRole] = useState<MultiplayerRole | null>(null);
@@ -367,6 +369,7 @@ export default function Game() {
     setConnectedPlayerCount(0);
     setRemotePlayers([]);
     setMultiplayerMenuOpen(false);
+    setLinksOpen(false);
     setMultiplayerStatus('');
     setGamePaused(false);
     setChatOpen(false);
@@ -810,6 +813,7 @@ export default function Game() {
         userSelect:'none', WebkitUserSelect:'none', WebkitTouchCallout:'none',
       }}
     >
+      <StartupSplash />
 
       {/* ── Start screen ─────────────────────────────────────── */}
       {(!started || worldLoading) && (
@@ -862,7 +866,7 @@ export default function Game() {
                 {worldLoadProgress}%
               </div>
             </div>
-          ) : !optionsOpen && !singlePlayerMenuOpen && !multiplayerMenuOpen ? (
+          ) : !optionsOpen && !singlePlayerMenuOpen && !multiplayerMenuOpen && !linksOpen ? (
             <>
               <div style={{ display:'flex', flexDirection:'column', gap:10, width:'min(270px, 84vw)' }}>
                 <button
@@ -901,6 +905,18 @@ export default function Game() {
                     boxShadow:'0 3px 0 rgba(0,0,0,0.65)',
                   }}
                 >OPTIONS</button>
+                <button
+                  type="button"
+                  data-touch-btn="1"
+                  onClick={() => runStartMenuAction(() => setLinksOpen(true))}
+                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); runStartMenuAction(() => setLinksOpen(true)); }}
+                  style={{
+                    background:'rgba(35,35,35,0.88)', border:'2px solid #d7d7d7',
+                    color:'#fff', padding:'12px 20px', fontSize:17, letterSpacing:2,
+                    fontFamily:'"Courier New", monospace', cursor:'pointer',
+                    boxShadow:'0 3px 0 rgba(0,0,0,0.65)',
+                  }}
+                >VERLINKUNGEN</button>
               </div>
               <div style={{ marginTop:30, fontSize:11, color:'rgba(255,255,255,0.84)', textShadow:'1px 1px 0 #000', lineHeight:2, textAlign:'center' }}>
                 WASD — Bewegen &nbsp;|&nbsp; SPACE — Springen &nbsp;|&nbsp; SHIFT — Runter fliegen<br/>
@@ -980,6 +996,44 @@ export default function Game() {
                   {multiplayerStatus}
                 </div>
               )}
+            </div>
+          ) : linksOpen ? (
+            <div
+              data-no-look="1"
+              onClick={event => event.stopPropagation()}
+              onTouchStart={event => event.stopPropagation()}
+              style={{
+                width:'min(430px, 92vw)', padding:22, boxSizing:'border-box',
+                background:'rgba(30,30,30,0.95)', border:'2px solid #eee',
+                boxShadow:'0 4px 0 rgba(0,0,0,0.7)', color:'#fff', textAlign:'center',
+              }}
+            >
+              <div style={{ fontSize:22, letterSpacing:2, marginBottom:14 }}>VERLINKUNGEN</div>
+              <p style={{ margin:'0 0 16px', fontSize:13, lineHeight:1.6, color:'#e5e5e5' }}>
+                Möchtest du einen Fehler melden, mehr über TipeCraft erfahren oder den Quellcode ansehen?
+                Im GitHub-Projekt findest du Informationen zum Spiel und kannst Fehler melden.
+              </p>
+              <a
+                href="https://github.com/TipeCraft-web/TipeCraft"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display:'inline-block', marginBottom:18, color:'#c8f3b8',
+                  fontSize:14, lineHeight:1.5, overflowWrap:'anywhere',
+                  textDecoration:'underline', textUnderlineOffset:3,
+                }}
+              >https://github.com/TipeCraft-web/TipeCraft</a>
+              <button
+                type="button"
+                data-touch-btn="1"
+                onClick={() => runStartMenuAction(() => setLinksOpen(false))}
+                onTouchStart={event => { event.stopPropagation(); event.preventDefault(); runStartMenuAction(() => setLinksOpen(false)); }}
+                style={{
+                  display:'block', width:'100%', background:'rgba(55,55,55,0.95)',
+                  border:'2px solid #ddd', color:'#fff', padding:'11px 8px',
+                  fontSize:13, letterSpacing:1, fontFamily:'"Courier New", monospace', cursor:'pointer',
+                }}
+              >ZURÜCK</button>
             </div>
           ) : (
             <div

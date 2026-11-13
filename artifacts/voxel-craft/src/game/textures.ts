@@ -184,8 +184,9 @@ const PATS: Record<number, Pat> = {
 };
 
 let _atlas: THREE.CanvasTexture | null = null;
-let _atlasLoading = false;
+let _atlasReadyPromise: Promise<void> | null = null;
 const mobTextures = new Map<string, THREE.Texture>();
+const mobTextureLoads = new Map<string, Promise<void>>();
 const blockDropTextures = new Map<number, [THREE.Texture, THREE.Texture, THREE.Texture]>();
 
 const blockKeys: Record<number, string> = {};
@@ -218,7 +219,16 @@ export function getMobTexture(kind: string): THREE.Texture {
   const cached = mobTextures.get(kind);
   if (cached) return cached;
 
-  const texture = new THREE.TextureLoader().load(assetUrl(`mobs/${kind}.png`));
+  let resolveLoad!: () => void;
+  const loaded = new Promise<void>(resolve => { resolveLoad = resolve; });
+  mobTextureLoads.set(kind, loaded);
+  const finishLoad = () => resolveLoad();
+  const texture = new THREE.TextureLoader().load(
+    assetUrl(`mobs/${kind}.png`),
+    finishLoad,
+    undefined,
+    finishLoad,
+  );
   texture.magFilter = THREE.NearestFilter;
   texture.minFilter = THREE.NearestFilter;
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -268,24 +278,34 @@ function drawFallback(ctx: CanvasRenderingContext2D, bt: number, variant: 0 | 1 
   }
 }
 
-function loadBlockImages(canvas: HTMLCanvasElement, texture: THREE.CanvasTexture) {
-  if (_atlasLoading) return;
-  _atlasLoading = true;
+function loadBlockImages(canvas: HTMLCanvasElement, texture: THREE.CanvasTexture): Promise<void> {
   const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+  if (!ctx) return Promise.resolve();
 
+  const imageLoads: Promise<void>[] = [];
   for (let bt = 1; bt < BLOCK_COLS * ROWS; bt++) {
     for (const [variant, name] of [[0, 'top'], [1, 'side'], [2, 'down']] as const) {
       const image = new Image();
-      image.onload = () => {
-        const col = (bt % BLOCK_COLS) * VARIANTS + variant;
-        const row = Math.floor(bt / BLOCK_COLS);
-        ctx.drawImage(image, col * TILE, row * TILE, TILE, TILE);
-        texture.needsUpdate = true;
-      };
-      image.src = blockTextureUrl(bt, name);
+      imageLoads.push(new Promise<void>(resolve => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        image.onload = () => {
+          const col = (bt % BLOCK_COLS) * VARIANTS + variant;
+          const row = Math.floor(bt / BLOCK_COLS);
+          ctx.drawImage(image, col * TILE, row * TILE, TILE, TILE);
+          texture.needsUpdate = true;
+          finish();
+        };
+        image.onerror = finish;
+        image.src = blockTextureUrl(bt, name);
+      }));
     }
   }
+  return Promise.all(imageLoads).then(() => undefined);
 }
 
 export function getAtlas(): THREE.CanvasTexture {
@@ -312,8 +332,19 @@ export function getAtlas(): THREE.CanvasTexture {
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.needsUpdate = true;
   _atlas = tex;
-  loadBlockImages(canvas, tex);
+  _atlasReadyPromise = loadBlockImages(canvas, tex);
   return tex;
+}
+
+export function preloadGameTextures(): Promise<void> {
+  getAtlas();
+  for (const kind of ['cow', 'pig', 'sheep', 'zombie', 'skeleton', 'creeper', 'spider', 'slime']) {
+    getMobTexture(kind);
+  }
+  return Promise.all([
+    _atlasReadyPromise ?? Promise.resolve(),
+    ...mobTextureLoads.values(),
+  ]).then(() => undefined);
 }
 
 export function blockUV(bt: number, faceIndex = 1): [number, number, number, number] {
