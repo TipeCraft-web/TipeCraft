@@ -6,10 +6,10 @@
 
 ## English
 
-👉 **Play TipeCraft directly in your browser:** [voxel-world-builder--tbctnnwmh9jkjhh.replit.app](https://voxel-world-builder--tbctnnwmh9jkjhh.replit.app/)  
-💾 **Download Windows Desktop App:** [Download via OneDrive](https://onedrive.live.com/?id=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments%2FTipeCraft&listurl=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3UvYy8yRjlFNDQ1MDUwNURGQzVGL0lRRGhmdjlEMy1MLVNJX25TUVNXZktNUUFUZ2xvajZfaGRuM1hrVGk4TjU5MjZJ&ga=1)  
+👉 **Play TipeCraft directly in your browser:** [tipe-craft--tbctnnwmh9jkjhh.replit.app](https://tipe-craft--tbctnnwmh9jkjhh.replit.app/)  
+💾 **Download Windows Desktop App:** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQDYlazUxcogQpmL5iocYNSuAecset6ArlFdx1-T0AsySjI)  
 🐧 **Download Linux Desktop-App :** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQCqbTC_JD3jSbIPg-KmnJPHAQWWRj6GpJ_CjXQpXMxkdI0)
-🍎 **macOS App (Apple Silicon M1/M2/M3):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAEi5jvQvm-Rr6QJiS_aiqTAdzebWGzObCkSPX_6HGLzqU)  
+🍎 **macOS App (Apple Silicon M1/M2/M3):** [Download via OneDrive](https://1drv.ms/f/c/2F9E4450505DFC5F/IgCNGaq1PoogTo_JxAH997voAajSmVspT1eynbftF94I2Dk)  
 💻 **macOS App (Intel):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQDEYYMNtlUzTbKVITLzPZ3UAUHd9iw9JqzBtk8OH8)
 📱 **Download Android App (.APK):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAcEDPbTUsGQIS8d3MNmsEXAYJqlvNqa0e_oMEohSuLlUo)  
 *⏳ Coming soon: iOS versions!*
@@ -40,10 +40,10 @@ This project is **Open Source** under the **Creative Commons Attribution-NonComm
 ## Deutsche Version
 
 👉 **Spiele TipeCraft direkt im Browser:** [voxel-world-builder--tbctnnwmh9jkjhh.replit.app](voxel-world-builder--tbctnnwmh9jkjhh.replit)  
-💾 **Windows Desktop-App herunterladen:** [Download via OneDrive](https://onedrive.live.com/?id=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments%2FTipeCraft&listurl=%2Fpersonal%2F2F9E4450505DFC5F%2FDocuments&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3UvYy8yRjlFNDQ1MDUwNURGQzVGL0lRRGhmdjlEMy1MLVNJX25TUVNXZktNUUFUZ2xvajZfaGRuM1hrVGk4TjU5MjZJ&ga=1)  
+💾 **Windows Desktop-App herunterladen:** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQDYlazUxcogQpmL5iocYNSuAecset6ArlFdx1-T0AsySjI)  
 🐧 **Linux Desktop-App herunterladen:** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQCqbTC_JD3jSbIPg-KmnJPHAQWWRj6GpJ_CjXQpXMxkdI0)
-🍎 **macOS App (Apple Silicon M1/M2/M3):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAEi5jvQvm-Rr6QJiS_aiqTAdzebWGzObCkSPX_6HGLzqU)  
-💻 **macOS App (Intel-Prozessoren):** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQDEYYMNtlUzTbKVITLzPZ3UAUHd9iw9JqzBtk8OH8
+🍎 **macOS App (Apple Silicon M1/M2/M3):** [Download via OneDrive](https://1drv.ms/f/c/2F9E4450505DFC5F/IgCNGaq1PoogTo_JxAH997voAajSmVspT1eynbftF94I2Dk)  
+💻 **macOS App (Intel-Prozessoren):** [Download via OneDrive](https://1drv.ms/f/c/2F9E4450505DFC5F/IgBLbzeJo3tTRI1EQt92WcWpAS6qe6c-PyFydCV7ZT36s5A)
 📱 **Android-App (.APK) herunterladen:** [Download via OneDrive](https://1drv.ms/u/c/2F9E4450505DFC5F/IQAcEDPbTUsGQIS8d3MNmsEXAYJqlvNqa0e_oMEohSuLlUo)  
 *⏳ Demnächst verfügbar: Versionen für  iOS!*
 
