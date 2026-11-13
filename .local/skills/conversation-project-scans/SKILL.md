@@ -1,6 +1,6 @@
 ---
 name: conversation-project-scans
-description: "Start a tracked security or SEO scan in a project named from an above-project conversation."
+description: "Start a tracked security, SEO, or performance scan in a project named from an above-project conversation."
 ---
 
 # Named Project Scans
@@ -17,7 +17,7 @@ await startProjectScanInRepl({
 ```
 
 
-- `kind` (str): `"security"` or `"seo"`.
+- `kind` (str): `"security"`, `"seo"`, or `"performance"`.
 
 - `replSlug` (str): the exact project `path` from `findResources`, or a project
   URL the user shared. Never construct or modify the reference.

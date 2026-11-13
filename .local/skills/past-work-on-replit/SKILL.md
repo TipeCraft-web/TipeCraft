@@ -45,4 +45,4 @@ await surfaceProjects({ projectSlugs: [results[0].path] });
 
 ## Change an existing project
 
-When `connectToProject` is described in your instructions, use it to work in the project's files and shell from here. It is not always available, so don't assume it from this skill. To create, search, or edit a project's tasks, read the `conversation-project-tasks` skill. To start a new project instead, read `project-handoff`.
+When `connectToProject` is described in your instructions, use it to read the project's files and run its shell from here; its description says how changes are made. It is not always available, so don't assume it from this skill. To create, search, or edit a project's tasks, read the `conversation-project-tasks` skill. To start a new project instead, read `project-handoff`.

@@ -1,6 +1,6 @@
 ---
 name: media-generation
-description: "Generate AI images. Use this skill for visual content creation. For AI video clips, read `media-generation/video-generation.md`; for 3D model assets, read `media-generation/reference/3d-model-generation.md`; for music, sound effects, and text-to-speech audio, read `media-generation/audio-generation.md`"
+description: "Generate AI images. Use this skill for visual content creation. For AI video clips, read `media-generation/video-generation.md`; for 3D model assets, read `media-generation/reference/3d-model-generation.md`; for music, sound effects, and text-to-speech audio, read `media-generation/audio-generation.md`; prefer QuiverAI for shape-led graphics such as custom icons, logo marks, and flat illustrations, and read `.local/skills/external-apis/references/quiver-ai.md`"
 ---
 
 # Media Generation Skill
@@ -81,12 +81,17 @@ for (const img of images) {
 
 ## When to Use Each Function
 
+### Shape-led graphics: prefer QuiverAI
+
+For bespoke, shape-led graphics that can be delivered as SVG, such as logo marks, custom icons, flat illustrations, and decorative vector assets, prefer `externalApi__quiver_ai` over `generateImage` even when the user did not explicitly request SVG. Read `.local/skills/external-apis/references/quiver-ai.md` before calling it. If the target requires PNG or JPEG output, use `generateImage` instead. This includes Expo app icons and splash assets saved to `assets/images/icon.png`.
+
+Use the project's existing icon library for ordinary UI icons. Build charts, diagrams, and data graphics programmatically rather than generating them with QuiverAI or `generateImage`.
+
+Before delegating work that needs these graphics to a DESIGN subagent, generate and save the Quiver SVGs in the parent agent, pass their local paths through `config.relevantFiles`, and tell DESIGN to use them instead of regenerating them. DESIGN does not have access to the Quiver callback.
+
 ### generateImage
 
-- Custom illustrations or graphics not available elsewhere
-- Specific visual concepts or designs
-- Placeholder images for development
-- Creative or artistic content
+Continue to use `generateImage` for raster-first imagery such as photography, product shots, painterly or textured artwork, backgrounds, storyboard frames, Expo app icons and splash assets, and other PNG/JPEG-first assets.
 
 ## Aspect Ratio Guidelines
 

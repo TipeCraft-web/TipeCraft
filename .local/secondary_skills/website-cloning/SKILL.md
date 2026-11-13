@@ -113,32 +113,7 @@ If the target URL contains a locale path (e.g., `/es-do`,`/fr`,`/de`,`/ja`), the
 
 #### Detection steps
 
-1. After `page.wait_for_timeout(8000)` (extra wait for JS locale loading), extract all visible text from key areas:
-
-```python
-
-locale_info = page.evaluate("""
-
-() => ({
-
-bannerText: document.querySelector('[class*="banner"], [class*="announcement"]')?.innerText?.trim(),
-
-navLinks: [...document.querySelectorAll('nav a, .main-nav a')].map(a => a.innerText.trim()).filter(t => t).slice(0, 8),
-
-loyaltyText: document.querySelector('[class*="loyalty"], [class*="rewards"]')?.innerText?.trim(),
-
-headerText: document.querySelector('header')?.innerText?.trim()?.slice(0, 500),
-
-htmlLang: document.documentElement.lang,
-
-url: window.location.href
-
-})
-
-""")
-
-```
-
+1. After `page.wait_for_timeout(8000)` (extra wait for JS locale loading), extract all visible text from key areas (banner, nav links, loyalty/rewards UI, header, `<html lang>`, URL) with the script in `references/locale-detection.md`.
 1. If the URL locale doesn't match the extracted text language, the page probably needs more time for JS to run, or the locale is cookie-based.
 2. **When in doubt, use the language implied by the URL locale.** If `/es-do` shows English text in the raw HTML, translate all user-facing text to Spanish when building. The URL locale is the user's intent.
 
@@ -175,77 +150,11 @@ Extract CSS custom properties, body font-family, heading font-family, primary co
 1. **Download actual font files** -- Check `@font-face`rules for`.woff2`/`.woff`URLs. Download to`public/fonts/`and declare`@font-face`in`index.css`.
 2. **Use Google Fonts if available** -- If the site uses Google Fonts, add the `@import`or`<link>` tag.
 
-3. **Map to closest equivalent** -- Only as a last resort:
-
-| Proprietary Font | Google Fonts Equivalent |
-
-|-----------------|----------------------|
-
-| Proxima Nova | DM Sans |
-
-| Geograph | DM Sans |
-
-| Self Modern | DM Serif Text |
-
-| Graphik | Inter |
-
-| Circular | DM Sans |
-
-| GT Walsheim | Plus Jakarta Sans |
-
-| Tiempos | Playfair Display |
-
-| Apercu | Source Sans Pro |
-
-| Founders Grotesk | Space Grotesk |
-
-| National | DM Sans |
-
-| Futura | Jost |
-
-| Avenir | Nunito Sans |
-
-| Gotham | Montserrat |
-
-| Brandon Grotesque | Raleway |
+3. **Map to closest equivalent** -- Only as a last resort: use the proprietary-to-Google-Fonts table in `references/font-mapping.md`.
 
 ### 1.7 SVG Logo Extraction (CRITICAL)
 
-The site's logo is almost always an inline SVG in the `raw.html`, NOT just text. Search for it:
-
-```bash
-
-# Search raw HTML for SVG near logo references
-
-python3 -c "
-
-with open('clone-data/raw.html') as f:
-
-html = f.read()
-
-# Search around 'logo' class references
-
-import re
-
-for m in re.finditer(r'logo', html[:15000], re.IGNORECASE):
-
-idx = m.start()
-
-# Look for SVG nearby
-
-svg_start = html.find('<svg', max(0, idx-200))
-
-if svg_start != -1 and svg_start < idx + 500:
-
-svg_end = html.find('</svg>', svg_start) + 6
-
-print(html[svg_start:svg_end])
-
-break
-
-"
-
-```
+The site's logo is almost always an inline SVG in the `raw.html`, NOT just text. Search for it with the SVG logo snippet in `references/header-logo-footer.md`.
 
 **Never use an SVG `<text>`element as a logo substitute.** Extract the real SVG`<path>` elements from the source HTML. The logo is the most recognizable element on the page -- getting it wrong immediately signals "fake."
 
@@ -267,99 +176,13 @@ Download every image, video, SVG, background image, and font file before buildin
 
 ### 1.9 Header Deep Extraction (CRITICAL)
 
-The header is the most error-prone section. Extract detailed information beyond the basic inventory:
-
-```python
-
-header_info = page.evaluate("""
-
-() => {
-
-const header = document.querySelector('header');
-
-if (!header) return null;
-
-// Banner/announcement bar
-
-const banner = document.querySelector('[class*="banner"], [class*="announcement"], [class*="uni-banner"]');
-
-const bannerBg = banner ? getComputedStyle(banner.querySelector('[class*="col"], div') || banner).backgroundColor : null;
-
-// Logo position
-
-const logo = header.querySelector('svg, [class*="logo"] img, [class*="logo"] svg');
-
-const logoRect = logo?.getBoundingClientRect();
-
-const headerRect = header.getBoundingClientRect();
-
-// Nav links
-
-const navLinks = [...header.querySelectorAll('nav a, [class*="nav"] a')].map(a => a.innerText.trim()).filter(t => t && t.length < 30);
-
-// Right-side elements (account, rewards, search, cart, wishlist)
-
-const rightElements = [...header.querySelectorAll('[class*="loyalty"], [class*="rewards"], [class*="account"], [class*="cart"], [class*="wishlist"]')];
-
-return {
-
-bannerText: banner?.innerText?.trim(),
-
-bannerBgColor: bannerBg,
-
-bannerTextColor: banner ? getComputedStyle(banner).color : null,
-
-logoPosition: logoRect ? (logoRect.left < headerRect.width / 3 ? 'left' : logoRect.left < headerRect.width * 2/3 ? 'center' : 'right') : 'unknown',
-
-navLinks: navLinks.slice(0, 10),
-
-rightSideText: rightElements.map(el => el.innerText?.trim()).filter(t => t),
-
-rightSideHTML: rightElements.map(el => el.innerHTML?.slice(0, 300)),
-
-};
-
-}
-
-""")
-
-```
+The header is the most error-prone section. Extract detailed information beyond the basic inventory: banner text, banner background and text colors, logo position (left/center/right), nav links, and right-side account/rewards/search/cart/wishlist text. Use the header deep extraction script in `references/header-logo-footer.md`.
 
 This prevents the three most common header mistakes: wrong banner color, wrong logo position, missing account/rewards text.
 
 ### 1.10 Footer Link Extraction
 
-Extract all footer links separately -- they're needed for the footer component:
-
-```python
-
-footer_data = page.evaluate("""
-
-() => {
-
-const footer = document.querySelector('footer');
-
-if (!footer) return null;
-
-return {
-
-text: footer.innerText,
-
-bgColor: getComputedStyle(footer).backgroundColor,
-
-links: [...footer.querySelectorAll('a')].map(a => ({
-
-text: a.innerText.trim(), href: a.getAttribute('href')
-
-})).filter(l => l.text)
-
-};
-
-}
-
-""")
-
-```
+Extract all footer links separately -- they're needed for the footer component. Use the footer script in `references/header-logo-footer.md`.
 
 ---
 
@@ -452,51 +275,7 @@ Build all components from the section inventory, referencing `raw.html` for exac
 
 ## Component Specification Format
 
-For complex sections dispatched to subagents, write specs at `docs/research/components/<name>.md`:
-
-```markdown
-
-# <ComponentName> Specification
-
-## Overview
-
-- Target file: `src/components/<ComponentName>.tsx`
-- Interaction model: <static | click | scroll | time>
-
-## DOM Structure (from raw.html)
-
-<Exact element hierarchy with tag names, classes, nesting>
-
-## Computed Styles (exact values)
-
-### Container
-
-- display: flex; flex-direction: row; gap: 24px; padding: 60px 80px;
-
-### Heading
-
-- font-size: 48px; font-weight: 400; color: \#230d0d;
-
-### Button
-
-- background-color: \#f195a7; border-radius: 999px; padding: 12px 32px;
-
-## Text Content (verbatim from raw.html)
-
-<Every heading, paragraph, button label -- copy-pasted exactly>
-
-## Assets (local paths)
-
-- /images/products/charm-1.webp
-
-## States & Behaviors
-
-### Hover on card
-
-- transform: none -- scale(1.02)
-- transition: transform 0.3s ease
-
-```
+For complex sections dispatched to subagents, write specs at `docs/research/components/<name>.md`. Read `references/component-spec.md` for the required format before writing one.
 
 ---
 
@@ -542,3 +321,7 @@ For complex sections dispatched to subagents, write specs at `docs/research/comp
 
 - `extraction.md` -- Complete Python extraction scripts (Playwright)
 - `pitfalls.md` -- Detailed common pitfalls and solutions
+- `references/locale-detection.md` -- Locale text-extraction script; read when the URL has a locale path (section 1.2)
+- `references/font-mapping.md` -- Proprietary-to-Google-Fonts table; read only when fonts can't be downloaded or loaded from Google Fonts (section 1.6)
+- `references/header-logo-footer.md` -- SVG logo search, header deep extraction and footer link scripts; read during sections 1.7, 1.9 and 1.10
+- `references/component-spec.md` -- Spec format for complex sections; read before dispatching a section to a subagent

@@ -23,7 +23,7 @@ The provider is already known — do not ask, just hand off to the matching prov
 - The integration for `shopify-store`, `stripe`, `whop`, or `revenuecat` is already connected.
 - The conversation already established a provider.
 - The user is asking for follow-up CRUD on an existing payment integration.
-- The user explicitly asks for native in-app purchases or digital goods consumed in a mobile app → RevenueCat is the only supported provider. If it is not connected, resolve it with `searchIntegrations({ mode: "search", queries: ["revenuecat"] })` and propose that candidate, then hand off to the `revenuecat` skill. Do not offer Stripe or Whop for native IAP.
+- The user explicitly asks for native in-app purchases or digital goods consumed in a mobile app → RevenueCat is the only supported provider. If it is not connected, resolve it with `searchIntegrations({ query: ["revenuecat"] })` and propose that candidate, then hand off to the `revenuecat` skill. Do not offer Stripe or Whop for native IAP.
 - The user's intent is clearly to sell **physical goods** (shipping-required items or inventory-based products) → Hand off to the `shopify` skill. Signals:
   - Explicit mention of physical/tangible items, inventory management, stock, shipping, or fulfillment.
   - A concrete tangible product noun, even when the user never says the word "physical". Treat nouns like pens, shirts, t-shirts, apparel, clothing, mugs, books, ceramics, pottery, jewelry, candles, soap, posters, prints, stickers, accessories, merch, or merchandise as physical-goods signals. "Build an ecommerce site for selling pens with checkout and payments" is a Shopify request — route to `shopify` and recommend the Shopify Store integration + Shopify-hosted checkout, NOT a custom Stripe/Express checkout.
@@ -38,25 +38,25 @@ The connector shortlist allowlist is **Shopify, Stripe, and Whop**. For native-m
 
 Propose the connector-backed providers together so a single click both chooses and connects:
 
-1. Resolve the integration ids with **per-provider** `searchIntegrations` calls:
+1. Resolve the integration handles with **per-provider** `searchIntegrations` calls:
    - If the request does not establish whether commerce is physical or digital, search Shopify, Stripe, and Whop. For native-mobile apps, also search RevenueCat.
    - For clearly digital plain-web requests, search Stripe and Whop.
    - Explicit physical-goods and native-IAP requests use the direct-provider rules above instead of a shortlist.
-   If any provider comes back already attached (`status: "added"`), it is the provider-known case from above — stop and hand off to that provider's skill instead of proposing. Otherwise use the returned `connector:<id>` (`status: "not_setup"`) or `connection:<id>` (`status: "not_added"`) for each provider; skip providers with no result or an `added` result, and never fabricate an id. Do not call `addIntegration` for shortlist candidates before selection: pass the returned ids directly to `ProposeIntegration`, then continue only with the selected provider's skill and injected connection setup.
+   If any provider comes back `ready`, it is the provider-known case from above — stop and hand off to that provider's skill instead of proposing. Otherwise use each remaining provider's returned `handle`; skip providers with no result or a `ready` result, and never fabricate a handle. Do not call `addIntegration` for shortlist candidates before selection: pass the returned handles directly to `ProposeIntegration`, then continue only with the selected provider's skill and its skill file.
 2. Call the `ProposeIntegration` model tool with a `proposal` shortlist of the candidates that resolved (2-5), each with a one-line `reason`, e.g.:
 
    ```json
    {
      "proposal": [
-       { "integrationId": "connector:<shopify-ccfg-id>", "reason": "Best for physical goods and storefronts" },
-       { "integrationId": "connector:<stripe-ccfg-id>", "reason": "Most flexible" },
-       { "integrationId": "connector:<whop-ccfg-id>", "reason": "Fastest, no external setup" }
+       { "integrationId": "<shopify-handle>", "reason": "Best for physical goods and storefronts" },
+       { "integrationId": "<stripe-handle>", "reason": "Most flexible" },
+       { "integrationId": "<whop-handle>", "reason": "Fastest, no external setup" }
      ]
    }
    ```
 
    The user picks one candidate and that single click connects it — there is no follow-up confirm step.
-3. If only one provider's search returned an integration, call `ProposeIntegration` with `{ "proposal": [{ "integrationId": "<returned-id>" }] }` instead (still no separate question). If none resolved, tell the user no billing connector is available in this workspace rather than presenting a fake choice.
+3. If only one provider's search returned an integration, call `ProposeIntegration` with `{ "proposal": [{ "integrationId": "<returned-handle>" }] }` instead (still no separate question). If none resolved, tell the user no billing connector is available in this workspace rather than presenting a fake choice.
 4. After the user connects, continue with the matching provider skill (`stripe` / `whop` / `shopify` / `revenuecat`). It will see the connection is already established and proceed to build, skipping its own re-proposal.
 
 ### Native-mobile provider shortlist

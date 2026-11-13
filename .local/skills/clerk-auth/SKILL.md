@@ -58,6 +58,10 @@ IMPORTANT: DO NOT start this step if the management status you found was unknown
 
 Identify the user's intent and follow the matching section below.
 
+### Intent: User Roles and First-Admin Setup
+
+For application roles, RBAC, admin-only pages, user-management portals, approval-gated access, or "I am an admin in preview but not in production", read `.local/skills/clerk-auth/references/user-roles.md` before choosing a storage model or seeding users. This includes invitation-only app requests where the actual blocker is establishing the first administrator. For factual platform-capability questions, also follow the inquiry documentation lookup below. For authentication failures, also follow **Intent: Troubleshooting**.
+
 ### Intent: Inquiry, Configuration, Login Providers, and Setup Questions
 
 The user is asking a factual or conceptual question about Clerk Auth (how something works, whether a feature is supported, pricing, setup requirements, configuration options, environment behavior, etc.) or is asking you to change their login providers, OAuth credentials, or consent screen branding. Do not match on this section if the user is asking you about build/setup, migration, troubleshooting, etc.

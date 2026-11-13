@@ -302,7 +302,7 @@ const clerkAppearance = {
     colorBackground: "...",       // card background
     colorInput: "...",            // input background
     colorInputForeground: "...",  // input text
-    colorNeutral: "...",          // borders
+    colorNeutral: "...",          // same as colorForeground. Clerk fades it for borders and social button text, so never use the border color here.
     fontFamily: "...",
     borderRadius: "...",
   },

@@ -1,21 +1,23 @@
 ---
 name: project-scans
-description: "Start a tracked security or SEO scan task in a project. Use when the user requests a full project scan whose findings should appear in Security Center or the Growth pane."
+description: "Start a tracked security, SEO, or performance scan task in a project. Use when the user requests a full project scan whose findings should appear in Security Center, the Growth pane, or the Monitoring pane."
 ---
 
 # Project Scans
 
 
-Start a security or SEO scan as a background task in a project.
-The scan runs separately from this conversation. Security findings appear
-in Security Center. SEO findings appear in the Growth pane.
+Start a security, SEO, or performance scan as a background task in a
+project. The scan runs separately from this conversation. Security findings
+appear in Security Center. SEO findings appear in the Growth pane.
+Performance findings appear in the Monitoring pane.
 
 
 ## When to Use
 
 
-- The user requests a full security or SEO scan of a project.
-- The user wants findings tracked in Security Center or the Growth pane.
+- The user requests a full security, SEO, or performance scan of a project.
+- The user wants findings tracked in Security Center, the Growth pane, or
+  the Monitoring pane.
 
 - The user requests another scan after the prior scan completes.
 
@@ -25,6 +27,9 @@ in Security Center. SEO findings appear in the Growth pane.
   Use the `security-scan` skill and its inline scanners instead.
 - The user requests an SEO audit that you perform and explain in this
   conversation. Use the `seo-auditor` skill instead.
+
+- The user asks you to profile or speed up specific code now. Investigate
+  and fix it directly; a performance scan only reports findings.
 
 - The user asks to fix an existing finding. That requires a fix task, not a
   scan task.
@@ -38,10 +43,11 @@ Call `startProjectScan` for the current project. Pass one object:
 ```javascript
 await startProjectScan({ kind: "security" });
 await startProjectScan({ kind: "seo", onlyScanChanges: true });
+await startProjectScan({ kind: "performance" });
 ```
 
 
-- `kind` (str): `"security"` or `"seo"`.
+- `kind` (str): `"security"`, `"seo"`, or `"performance"`.
 
 - `onlyScanChanges` (bool, optional): scan only changes since the last scan.
   The default is false, which scans the full project.
@@ -56,7 +62,8 @@ existing task instead.
 
 
 - Success: `{ok: true, status: "completed", taskId, taskUrl}`. The scan
-  finished and its findings are in Security Center or the Growth pane.
+  finished and its findings are in Security Center, the Growth pane, or
+  the Monitoring pane.
 
 - The scan stopped without finishing:
   `{ok: false, status, error, taskId, taskUrl}`. `status` is

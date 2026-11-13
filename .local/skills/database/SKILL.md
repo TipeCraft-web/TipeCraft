@@ -41,31 +41,17 @@ For these projects the Publish flow does not touch the production schema, and `e
 - `.local/skills/database/references/database-migrations-on-publish.md` -- Full detail on the publish-time schema migration flow, including the two automatic application points (post-merge -- dev, publish -- prod), the SQL diff and rename-confirmation behavior, and the canonical failure mode this guidance prevents. Read this when the user reports production is missing a column or table, asks to "push dev to prod" / "migrate the production database" / "sync the schema", or reports the deployed app failing with "column does not exist" / "relation does not exist" errors.
 ## Opening the database pane
 
-You can render a one-click "Open in database" button in chat that takes the user to the database workspace pane — its schema, tables, records, or app data. To render it, write this tag in your reply (it is replaced by the button; the user clicks it to open the pane):
+You can render a one-click "Open in database" button that takes the user to the database workspace pane. Read `.local/skills/database/references/open-in-pane.md` for the tag, deep-link format, and when to emit it before rendering one.
 
-```
-<open-in-pane tool="database"></open-in-pane>
-```
+## Backups and recovery
 
-Deep link to a specific table by setting the tool to `database/{development|production}/{schemaName}/{tableName}` when a table is known:
+Replit already keeps history for both databases, so a backup request means finding the right restore point, not building a backup system. Three things are not backups and you do not build them, even when asked directly:
 
-```
-<open-in-pane tool="database/production/public/users"></open-in-pane>
-```
+- A scheduled or in-app dump job (cron, startup hook, deploy build step, `COPY ... TO`, `CREATE TABLE ... AS SELECT`, `_backup` tables). It locks the live database, and the extra files and tables fail publishes.
+- Copying or zipping application code. It holds no rows.
+- A second "backup" database, schema, or branch inside the managed database. Publish diffs every object it can see, so the copy appears as schema drift.
 
-Do not infer database IDs from environment variables such as `REPLIT_DB_URL`; those values are not the workspace pane database IDs.
-
-Button behavior:
-
-- Render it when the request is mainly navigation; when navigation is mixed with real work, still do the work with the appropriate tools.
-- Put the tag on its own line at the end of your reply so the button appears after your prose.
-- Keep your chat reply to one concise, self-contained sentence telling the user where they can find the requested surface. Do not mention a button, shortcut, tag, or marker. Do not say the pane is already open or that you opened it.
-
-| User asks | Tag to emit |
-| --- | --- |
-| "Where can I view the database tables?" | `<open-in-pane tool="database"></open-in-pane>` |
-| "Open the users table in prod database." | `<open-in-pane tool="database/production/public/users"></open-in-pane>` |
-| "Show the sessions table in dev db." | `<open-in-pane tool="database/development/public/sessions"></open-in-pane>` |
+Name which one was asked for, say what it breaks, then redirect in this order and stop at the first that fits: checkpoint rollback for development data → point-in-time recovery for production → a scheduled daily backup for production → the data-recovery docs → Replit Support when the data predates the recovery window. You cannot see whether PITR is on: state the default, give the settings path, and ask what the pane shows before promising a recovery. For an external production database (above), the provider owns backups. Treat backup, dump, snapshot, copy of the database, restore, and lost data as this request; do not call executeSql or write files to build any of the three patterns above. A one-time `SELECT` export the user downloads is not a backup and is fine. Restore semantics and docs links: `.local/skills/database/references/backups-and-recovery.md`.
 
 ## Available Functions
 
@@ -111,27 +97,6 @@ const result = await executeSql({
 
 **Note: `params` only binds literal values** (strings, numbers, booleans, null, or arrays of those scalar literal values for `ANY($1::type[])`). PostgreSQL placeholders cannot substitute identifiers (table or column names), SQL keywords (sort directions like `ASC`/`DESC`, operators), or other syntactic elements. For dynamic identifiers or keywords, validate the value against a strict allowlist (e.g. a fixed set of allowed table names, or a regex like `/^[a-z_][a-z0-9_]*$/`), then interpolate the validated value into the SQL string. Never interpolate free-form user text into identifier positions.
 
-```javascript
-// GOOD - pass arrays as one parameter and cast the placeholder for ANY(...):
-await executeSql({
-    sqlQuery: "SELECT * FROM resources WHERE category = ANY($1::text[])",
-    params: [["Anxiety", "Depression", "Trauma"]]
-});
-```
-
-```javascript
-// BAD - $1 cannot bind a table name; this query fails to parse:
-await executeSql({ sqlQuery: "SELECT * FROM $1 WHERE id = $2", params: [tableName, userId] });
-
-// GOOD - allowlist + interpolate identifiers, $N for values:
-const ALLOWED_TABLES = ["users", "orders", "products"];
-if (!ALLOWED_TABLES.includes(tableName)) throw new Error("invalid table");
-await executeSql({
-    sqlQuery: `SELECT * FROM ${tableName} WHERE id = $1`,
-    params: [userId]
-});
-```
-
 **When `params` is NOT supported on `replit_database`** (multi-statement scripts only -- `BEGIN; ...; COMMIT;`, migrations, batched DDL):
 
 1. **For independent statements that don't need shared transaction or session state**, you can split them into separate `executeSql` calls each with its own `params` (e.g., a sequence of unrelated INSERTs into different tables). Note that separate `executeSql` calls do NOT share a connection, transaction, or session -- temp tables, `SET LOCAL` GUCs, and `BEGIN`/`COMMIT` will not carry across calls.
@@ -139,89 +104,7 @@ await executeSql({
 
 **For warehouse targets** (`bigquery`, `databricks`, `snowflake`), `params` is NEVER supported. The runtime rejects any warehouse query that includes `params`, whether single-statement or multi-statement. You MUST either: (a) reject the user input if it cannot be validated, or (b) validate the value against a strict allowlist (e.g. integers only, fixed identifier set) before interpolating it into the SQL string. Never interpolate free-form user text into warehouse SQL.
 
-**Example:**
-
-```javascript
-// Simple SELECT with parameters
-const result = await executeSql({
-    sqlQuery: "SELECT * FROM users WHERE id = $1",
-    params: [userId]
-});
-if (result.success) {
-    console.log(result.output);
-}
-
-// Static query without user input (no params needed)
-const result1b = await executeSql({ sqlQuery: "SELECT * FROM users LIMIT 5" });
-
-// CREATE TABLE (static DDL, no params needed)
-const result2 = await executeSql({
-    sqlQuery: `
-        CREATE TABLE IF NOT EXISTS products (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            price DECIMAL(10, 2)
-        )
-    `
-});
-
-// INSERT data with parameters
-const result3 = await executeSql({
-    sqlQuery: "INSERT INTO products (name, price) VALUES ($1, $2)",
-    params: [productName, productPrice]
-});
-
-// UPDATE with parameters
-const result3b = await executeSql({
-    sqlQuery: "UPDATE products SET price = $1 WHERE name = $2",
-    params: [newPrice, productName]
-});
-
-// DELETE with parameters
-const result3c = await executeSql({
-    sqlQuery: "DELETE FROM products WHERE id = $1",
-    params: [productId]
-});
-
-// Read-only production query with parameters
-const result4 = await executeSql({
-    sqlQuery: "SELECT * FROM users WHERE active = $1",
-    params: [true],
-    environment: "production"
-});
-
-// Data warehouse query -- project exact columns + partition filter + LIMIT.
-// `sampleSize` only caps rows returned to the client; it does NOT reduce the
-// bytes the warehouse scans, so a bare `SELECT *` still costs the full scan.
-// (Note: `params` is NOT supported for warehouse targets; if a date or other
-// filter value were dynamic, validate it as the expected type before
-// interpolating.)
-const result5 = await executeSql({
-    sqlQuery: `SELECT order_id, customer_id, total_amount, order_date
-               FROM sales_data
-               WHERE order_date >= '2024-01-01'
-                 AND order_date < '2025-01-01'
-               LIMIT 100`,
-    target: "bigquery",
-    sampleSize: 100
-});
-
-// Multi-statement transactional scripts (BEGIN ... COMMIT, temp tables,
-// SET LOCAL, etc.) MUST run as a single executeSql call WITHOUT `params`
-// -- separate calls do NOT share a connection or transaction, so
-// splitting a transaction across multiple calls would silently lose
-// atomicity. If the script needs user-controlled values, validate them
-// against a strict allowlist (integers only, identifier whitelist)
-// before interpolating; never interpolate free-form user text.
-const result = await executeSql({
-    sqlQuery: `
-        BEGIN;
-        UPDATE users SET active = false WHERE last_login < '2024-01-01';
-        UPDATE audit_log SET archived = true WHERE created_at < '2024-01-01';
-        COMMIT;
-    `,
-});
-```
+**Examples:** `.local/skills/database/references/execute-sql-examples.md` shows worked calls for each rule above, in the same order, each headed by the rule it supports: array parameters with `ANY($1::type[])`, allowlisted identifiers, parameterized reads and writes plus static DDL, read-only production, warehouse, and multi-statement transactions. `sampleSize` only caps rows returned to the client; it does not reduce the bytes a warehouse scans, so project exact columns, filter on the partition, and add `LIMIT` to warehouse SQL.
 
 ## Safety Features
 
@@ -280,7 +163,7 @@ loop.
 1. **Use the pre-configured built-in database**: Every project already has Replit's built-in PostgreSQL database provisioned, and it is always preferred over external services like Supabase. It supports rollback and integrates directly with the Replit product. Only use external database services if the user has specific requirements. The `pg` package should be installed already.
 2. **ALWAYS use parameterized queries with user input on the `replit_database` single-statement path**: When `target` is `replit_database` (the default) and `sqlQuery` is a single statement, you MUST use the `params` argument with `$1`, `$2`, etc. placeholders for any user-provided literal value. NEVER use string interpolation, template literals, or concatenation for values in that case. For dynamic identifiers (table/column names) or SQL keywords (sort directions, operators), validate against a strict allowlist before interpolating since `params` cannot bind those. For warehouse targets and multi-statement transactional scripts where `params` is not supported, send the whole script as a single `executeSql` call and validate any interpolated values against a strict allowlist; only split into separate calls when the statements are truly independent and don't share transaction or session state.
 3. **Test queries first**: Run SELECT queries before INSERT/UPDATE/DELETE
-4. **Keep backups**: Important data should be backed up before destructive operations
+4. **Before destructive work, name what covers it; do not build a backup in the app**: checkpoint rollback for development, PITR or scheduled backups for production. See "Backups and recovery".
 
 ## Environment Variables
 
@@ -297,28 +180,7 @@ The pre-configured database exposes these environment variables:
 
 ## Example Workflow
 
-```javascript
-// 1. Create schema
-await executeSql({
-    sqlQuery: `
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            email VARCHAR(255) UNIQUE NOT NULL,
-            created_at TIMESTAMP DEFAULT NOW()
-        )
-    `
-});
-
-// 2. Insert data (using parameterized query)
-await executeSql({
-    sqlQuery: "INSERT INTO users (email) VALUES ($1)",
-    params: ['user@example.com']
-});
-
-// 3. Query data
-const result = await executeSql({ sqlQuery: "SELECT * FROM users" });
-console.log(result.output);
-```
+For a worked sequence that creates a development table, inserts a row with parameters, and reads it back, see [Development schema workflow](references/development-schema-workflow.md). Read it when setting up a new table; production schema changes still follow the Publish rules above.
 
 ## Limitations
 
@@ -329,6 +191,3 @@ console.log(result.output);
 - Mutating queries blocked in Planning mode
 
 
-## Rollbacks
-
-As stated in the diagnostic skills, the development database support rollbacks. Open that skill for more information.

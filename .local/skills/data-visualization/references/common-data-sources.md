@@ -15,8 +15,8 @@ For apps that use the built-in Postgres database with Drizzle ORM, see `referenc
 
 ## Priority 2: External Data Sources (Integrations)
 
-1. Search: `searchIntegrations({ mode: "search", queries: ["stripe"] })`
-2. Check status: `"added"`, `"not_added"`, `"not_setup"`, or `"requires_setup"`
+1. Search: `searchIntegrations({ query: ["stripe"] })`, then use the exact `handle` it returns
+2. Check status: `"ready"`, `"connect"`, or `"loading"`
 3. Use existing integrations -- they handle auth, secrets, and setup automatically
 
 ### CRITICAL: Efficient Data Fetching from Integration SDKs

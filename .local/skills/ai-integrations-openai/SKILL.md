@@ -23,6 +23,7 @@ All listed non-use-case-specific gpt models support text + image inputs and text
 
 - gpt-6-astra: most capable OpenAI model. Use for the hardest tasks when capability matters more than cost.
 - gpt-6.1-sol: newer Sol model with lower cached-input pricing than gpt-6-sol.
+- gpt-6.1-terra: general-purpose model in the gpt-6.1 fleet.
 - gpt-6-sol: general-purpose model in the gpt-6 fleet.
 - gpt-6-luna: affordable model in the gpt-6 fleet. Use for cost-sensitive or high-volume tasks.
 
@@ -32,7 +33,6 @@ All listed non-use-case-specific gpt models support text + image inputs and text
 - gpt-5.4: highly capable general-purpose model, prefer gpt-5.6-terra for non-coding tasks.
 - gpt-5.3-codex: specialized coding model; prefer gpt-5.6-terra for most coding tasks. Responses API only (not chat completions).
 - gpt-5.2: good for most tasks, prefer gpt-5.6-terra
-- gpt-5.2-codex: code-optimized gpt-5.2 variant. Responses API only (not chat completions).
 - gpt-5.1, gpt-5: good for most tasks, prefer gpt-5.6-terra
 - gpt-5.4-mini: cost-effective small model, faster and cheaper than gpt-5.4.
 - gpt-5-mini: cost-effective for high-volume tasks

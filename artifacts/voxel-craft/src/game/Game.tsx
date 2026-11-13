@@ -2,10 +2,11 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { KeyboardControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { BlockType, HOTBAR_CREATIVE } from './blocks';
-import { worldManager, CHUNK_SIZE, type WorldType } from './worldGen';
+import { BlockType, HOTBAR_CREATIVE, isPlaceableBlock } from './blocks';
+import { worldManager, CHUNK_SIZE, WORLD_MIN_Y, WORLD_MAX_Y, type WorldType } from './worldGen';
 import GameOptionsPanel from './GameOptionsPanel';
 import World, { type BreakingState } from './World';
+import WorldBorderVisual from './WorldBorder';
 import Player from './Player';
 import Animals from './Animals';
 import Mobs from './Mobs';
@@ -19,7 +20,17 @@ import ItemDrops, { type DroppedItem } from './ItemDrops';
 import CraftingTable from './CraftingTable';
 import FurnaceUI, { type FurnaceContents } from './FurnaceUI';
 import { createWorldArchive, readWorldArchive } from './worldArchive';
+import {
+  MultiplayerSession,
+  type BlockChangeMessage,
+  type MultiplayerGameMessage,
+  type MultiplayerRole,
+  type PlayerStateMessage,
+  type WorldInitMessage,
+} from './multiplayer';
+import RemotePlayerAvatar, { type RemotePlayerSnapshot } from './RemotePlayerAvatar';
 import startBackgroundUrl from '@assets/IMG_1402_1791524151994.jpeg';
+import { playMenuClickSound } from './blockSounds';
 
 export enum Controls {
   forward = 'forward',
@@ -41,6 +52,11 @@ const KEY_MAP = [
 
 const SURVIVAL_HOTBAR: BlockType[] = Array(9).fill(BlockType.AIR);
 const CHEST_SLOTS = 27;
+
+function runStartMenuAction(action: () => void): void {
+  playMenuClickSound();
+  action();
+}
 
 function SceneSettings({ viewDistance }: { viewDistance: number }) {
   const { camera } = useThree();
@@ -66,6 +82,13 @@ interface UIState {
 export default function Game() {
   const [optionsOpen,    setOptionsOpen    ] = useState(false);
   const [singlePlayerMenuOpen, setSinglePlayerMenuOpen] = useState(false);
+  const [multiplayerMenuOpen, setMultiplayerMenuOpen] = useState(false);
+  const [joiningCode, setJoiningCode] = useState('');
+  const [multiplayerStatus, setMultiplayerStatus] = useState('');
+  const [multiplayerRole, setMultiplayerRole] = useState<MultiplayerRole | null>(null);
+  const [multiplayerCode, setMultiplayerCode] = useState('');
+  const [connectedPlayerCount, setConnectedPlayerCount] = useState(0);
+  const [remotePlayers, setRemotePlayers] = useState<RemotePlayerSnapshot[]>([]);
   const [selectedGameMode, setSelectedGameMode] = useState<'CREATIVE' | 'SURVIVAL'>('CREATIVE');
   const [survivalRulesLocked, setSurvivalRulesLocked] = useState(false);
   const [selectedWorldType, setSelectedWorldType] = useState<WorldType>('normal');
@@ -73,6 +96,7 @@ export default function Game() {
   const [viewDistance,   setViewDistance   ] = useState(8);
   const [fogEnabled,     setFogEnabled     ] = useState(true);
   const [worldBorderEnabled, setWorldBorderEnabled] = useState(true);
+  const [thirdPerson, setThirdPerson] = useState(false);
   const [started,        setStarted]        = useState(false);
   const [worldLoading, setWorldLoading] = useState(false);
   const [worldLoadProgress, setWorldLoadProgress] = useState(0);
@@ -98,7 +122,7 @@ export default function Game() {
   const playerChunkRef = useRef({ x: 0, z: 0 });
   const breakingRef = useRef<BreakingState>({
     active: false, x: 0, y: 0, z: 0,
-    nx: 0, ny: 0, nz: 0, progress: 0,
+    progress: 0,
   });
   const touchRef       = useRef<TouchState>(createTouchState());
   const playerPosRef   = useRef(new THREE.Vector3(8, 30, 8));
@@ -111,6 +135,202 @@ export default function Game() {
   const tpRef          = useRef<{ x: number; y: number; z: number } | null>(null);
   const pendingMobDamageRef = useRef(0);
   const dayTimeRef     = useRef<number>(0.5);
+  const multiplayerSessionRef = useRef<MultiplayerSession | null>(null);
+  const multiplayerRoleRef = useRef<MultiplayerRole | null>(null);
+  const awaitingHostWorldRef = useRef(false);
+  const blockHistoryRef = useRef<Map<string, BlockChangeMessage>>(new Map());
+  const uiStateRef = useRef(uiState);
+  const sessionSettingsRef = useRef({
+    mode: uiState.mode,
+    modeLocked: survivalRulesLocked,
+    worldBorderEnabled,
+    viewDistance,
+    fogEnabled,
+  });
+  multiplayerRoleRef.current = multiplayerRole;
+  uiStateRef.current = uiState;
+  sessionSettingsRef.current = {
+    mode: uiState.mode,
+    modeLocked: survivalRulesLocked,
+    worldBorderEnabled,
+    viewDistance,
+    fogEnabled,
+  };
+
+  const handleWorldInit = useCallback((message: WorldInitMessage) => {
+    if (multiplayerRoleRef.current !== 'guest' || !awaitingHostWorldRef.current) return;
+    if (!Number.isInteger(message.seed) ||
+        (message.worldType !== 'normal' && message.worldType !== 'superflat') ||
+        (message.mode !== 'CREATIVE' && message.mode !== 'SURVIVAL') ||
+        !message.spawn ||
+        ![message.spawn.x, message.spawn.y, message.spawn.z].every(Number.isFinite)) {
+      setMultiplayerStatus('Der Host hat ungültige Weltinformationen gesendet.');
+      return;
+    }
+    if (typeof message.modeLocked !== 'boolean' ||
+        typeof message.worldBorderEnabled !== 'boolean' ||
+        typeof message.fogEnabled !== 'boolean' ||
+        !Number.isInteger(message.viewDistance) ||
+        message.viewDistance < 5 || message.viewDistance > 32 ||
+        message.spawn.y < WORLD_MIN_Y || message.spawn.y > WORLD_MAX_Y) {
+      setMultiplayerStatus('Der Host hat ungültige Weltoptionen gesendet.');
+      return;
+    }
+
+    worldManager.resetWorld(message.worldType, message.seed);
+    blockHistoryRef.current.clear();
+    const spawn = { x: message.spawn.x + 3, y: message.spawn.y, z: message.spawn.z + 3 };
+    tpRef.current = spawn;
+    playerChunkRef.current = {
+      x: Math.floor(spawn.x / CHUNK_SIZE),
+      z: Math.floor(spawn.z / CHUNK_SIZE),
+    };
+    playerPosRef.current.set(spawn.x, spawn.y, spawn.z);
+    countsRef.current = {};
+    chestsRef.current.clear();
+    furnacesRef.current.clear();
+    setSelectedWorldType(message.worldType);
+    setSelectedGameMode(message.mode);
+    setSurvivalRulesLocked(message.modeLocked);
+    setWorldBorderEnabled(message.worldBorderEnabled);
+    setViewDistance(Math.max(5, Math.min(32, message.viewDistance)));
+    setFogEnabled(message.fogEnabled);
+    setUiState(prev => ({
+      ...prev,
+      mode: message.mode,
+      health: 20,
+      hunger: 20,
+      hotbar: message.mode === 'CREATIVE' ? [...HOTBAR_CREATIVE] : [...SURVIVAL_HOTBAR],
+      selectedSlot: 0,
+      counts: {},
+      pos: spawn,
+    }));
+    awaitingHostWorldRef.current = false;
+    setWorldLoadProgress(1);
+    setWorldLoading(true);
+    setStarted(false);
+    setDead(false);
+    setGamePaused(false);
+    setMultiplayerStatus('Welt empfangen. Chunks werden lokal geladen …');
+    setWorldRevision(revision => revision + 1);
+  }, []);
+
+  const handleMultiplayerData = useCallback((message: MultiplayerGameMessage) => {
+    if (message.type === 'world-init') {
+      handleWorldInit(message);
+      return;
+    }
+    if (message.type === 'block-change') {
+      const { x, y, z, blockType } = message;
+      if (![x, y, z, blockType].every(Number.isInteger) ||
+          Math.abs(x) > 1_048_576 || Math.abs(z) > 1_048_576 ||
+          y < WORLD_MIN_Y || y > WORLD_MAX_Y ||
+          (blockType !== BlockType.AIR && !isPlaceableBlock(blockType as BlockType))) return;
+      worldManager.setBlock(x, y, z, blockType as BlockType);
+      blockHistoryRef.current.set(`${x},${y},${z}`, message);
+      return;
+    }
+    if (message.type === 'block-history') {
+      for (const change of message.changes) {
+        if (![change.x, change.y, change.z, change.blockType].every(Number.isInteger) ||
+            Math.abs(change.x) > 1_048_576 || Math.abs(change.z) > 1_048_576 ||
+            change.y < WORLD_MIN_Y || change.y > WORLD_MAX_Y ||
+            (change.blockType !== BlockType.AIR && !isPlaceableBlock(change.blockType as BlockType))) continue;
+        worldManager.setBlock(change.x, change.y, change.z, change.blockType as BlockType);
+        blockHistoryRef.current.set(`${change.x},${change.y},${change.z}`, change);
+      }
+      return;
+    }
+    if (message.type === 'player-state') {
+      if (!message.playerId || message.playerId === multiplayerSessionRef.current?.localPlayerId ||
+          ![message.x, message.y, message.z, message.yaw].every(Number.isFinite) ||
+          Math.abs(message.x) > 1_048_576 || Math.abs(message.z) > 1_048_576) return;
+      const player: RemotePlayerSnapshot = {
+        playerId: message.playerId,
+        x: message.x,
+        y: message.y,
+        z: message.z,
+        yaw: message.yaw,
+      };
+      setRemotePlayers(previous => {
+        const next = previous.filter(entry => entry.playerId !== player.playerId);
+        next.push(player);
+        return next;
+      });
+    }
+  }, [handleWorldInit]);
+
+  const createMultiplayerSession = useCallback(() => new MultiplayerSession({
+    onRoomCreated: code => {
+      setMultiplayerCode(code);
+      setMultiplayerStatus('Web-Welt bereit. Teile diesen Code mit deinen Mitspielern.');
+    },
+    onJoined: () => setMultiplayerStatus('Verbunden. Warte auf die Welt des Hosts …'),
+    onPeerConnected: peerId => {
+      setConnectedPlayerCount(count => multiplayerRoleRef.current === 'guest' ? 2 : count + 1);
+      setMultiplayerStatus('Peer-to-Peer-Verbindung hergestellt.');
+      if (multiplayerRoleRef.current !== 'host') return;
+
+      const settings = sessionSettingsRef.current;
+      multiplayerSessionRef.current?.sendToPlayer(peerId, {
+        type: 'world-init',
+        seed: worldManager.getWorldSeed(),
+        worldType: worldManager.worldType,
+        mode: settings.mode,
+        modeLocked: settings.modeLocked,
+        worldBorderEnabled: settings.worldBorderEnabled,
+        viewDistance: settings.viewDistance,
+        fogEnabled: settings.fogEnabled,
+        spawn: {
+          x: playerPosRef.current.x,
+          y: playerPosRef.current.y,
+          z: playerPosRef.current.z,
+        },
+      });
+      const changes = [...blockHistoryRef.current.values()];
+      for (let index = 0; index < changes.length; index += 200) {
+        multiplayerSessionRef.current?.sendToPlayer(peerId, {
+          type: 'block-history',
+          changes: changes.slice(index, index + 200),
+        });
+      }
+    },
+    onPeerDisconnected: peerId => {
+      setConnectedPlayerCount(count => Math.max(multiplayerRoleRef.current === 'host' ? 1 : 0, count - 1));
+      setRemotePlayers(previous => multiplayerRoleRef.current === 'guest'
+        ? []
+        : previous.filter(player => player.playerId !== peerId));
+    },
+    onData: (_peerId, message) => handleMultiplayerData(message),
+    onError: message => {
+      setMultiplayerStatus(message);
+      if (multiplayerRoleRef.current === 'guest' && awaitingHostWorldRef.current) {
+        awaitingHostWorldRef.current = false;
+        multiplayerSessionRef.current?.close();
+        multiplayerSessionRef.current = null;
+        multiplayerRoleRef.current = null;
+        setMultiplayerRole(null);
+        setWorldLoading(false);
+        setMultiplayerMenuOpen(true);
+      }
+    },
+    onRoomClosed: reason => {
+      const wasWaitingForWorld = awaitingHostWorldRef.current;
+      multiplayerSessionRef.current?.close();
+      multiplayerSessionRef.current = null;
+      multiplayerRoleRef.current = null;
+      setMultiplayerRole(null);
+      setMultiplayerCode('');
+      setConnectedPlayerCount(0);
+      setRemotePlayers([]);
+      awaitingHostWorldRef.current = false;
+      setMultiplayerStatus(reason);
+      if (wasWaitingForWorld) {
+        setWorldLoading(false);
+        setMultiplayerMenuOpen(true);
+      }
+    },
+  }), [handleMultiplayerData]);
 
   const handlePauseGame = useCallback(() => {
     setGamePaused(true);
@@ -120,7 +340,6 @@ export default function Game() {
     setOpenChest(null);
     setOpenCraftingTable(null);
     setOpenFurnace(null);
-    setSurvivalRulesLocked(false);
     touchRef.current = createTouchState();
     breakingRef.current.active = false;
     document.exitPointerLock?.();
@@ -131,7 +350,24 @@ export default function Game() {
     setOptionsOpen(false);
   }, []);
 
+  const handleInventoryToggle = useCallback(() => {
+    const opening = !inventoryOpen;
+    if (opening) document.exitPointerLock?.();
+    setInventoryOpen(opening);
+  }, [inventoryOpen]);
+
   const handleReturnToTitle = useCallback(() => {
+    multiplayerSessionRef.current?.close();
+    multiplayerSessionRef.current = null;
+    multiplayerRoleRef.current = null;
+    awaitingHostWorldRef.current = false;
+    blockHistoryRef.current.clear();
+    setMultiplayerRole(null);
+    setMultiplayerCode('');
+    setConnectedPlayerCount(0);
+    setRemotePlayers([]);
+    setMultiplayerMenuOpen(false);
+    setMultiplayerStatus('');
     setGamePaused(false);
     setChatOpen(false);
     setStarted(false);
@@ -173,25 +409,50 @@ export default function Game() {
       const target = e.target as HTMLElement;
       const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
       if (isTyping) return;
-      if (e.code === 'KeyE') { e.preventDefault(); setInventoryOpen(o => !o); }
+      if (e.code === 'KeyE') {
+        e.preventDefault();
+        if (e.repeat) return;
+        if (openCraftingTable) setOpenCraftingTable(null);
+        else handleInventoryToggle();
+      }
       if (e.code === 'Escape') { setInventoryOpen(false); setOpenChest(null); setOpenCraftingTable(null); setOpenFurnace(null); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [started, dead, gamePaused, handlePauseGame, handleResumeGame]);
+  }, [started, dead, gamePaused, openCraftingTable, handleInventoryToggle, handlePauseGame, handleResumeGame]);
 
   const handleStateChange = useCallback((s: {
     health: number; hunger: number;
     hotbar: BlockType[]; selectedSlot: number;
     pos: THREE.Vector3;
+    yaw: number;
   }) => {
     playerPosRef.current.copy(s.pos);
+    const session = multiplayerSessionRef.current;
+    if (session && multiplayerRoleRef.current) {
+      const message: PlayerStateMessage = {
+        type: 'player-state',
+        playerId: session.localPlayerId,
+        x: s.pos.x,
+        y: s.pos.y,
+        z: s.pos.z,
+        yaw: s.yaw,
+      };
+      session.sendToAll(message);
+    }
     setUiState(prev => ({
       ...prev,
       health: s.health, hunger: s.hunger,
       hotbar: s.hotbar, selectedSlot: s.selectedSlot,
       pos: { x: s.pos.x, y: s.pos.y, z: s.pos.z },
     }));
+  }, []);
+
+  const handleWorldBlockChange = useCallback((x: number, y: number, z: number, blockType: BlockType) => {
+    if (!multiplayerRoleRef.current) return;
+    const change: BlockChangeMessage = { type: 'block-change', x, y, z, blockType };
+    blockHistoryRef.current.set(`${x},${y},${z}`, change);
+    multiplayerSessionRef.current?.sendToAll(change);
   }, []);
 
   const handleMobDamage = useCallback((amount: number) => {
@@ -216,6 +477,7 @@ export default function Game() {
   }, []);
 
   const handleWorldReady = useCallback(() => {
+    if (awaitingHostWorldRef.current) return;
     setWorldLoadProgress(100);
     setWorldLoading(false);
     setStarted(true);
@@ -310,8 +572,15 @@ export default function Game() {
   }, []);
 
   const handleCreateWorld = useCallback(() => {
-    setSurvivalRulesLocked(selectedGameMode === 'SURVIVAL');
+    const modeLocked = selectedGameMode === 'SURVIVAL';
+    sessionSettingsRef.current = {
+      ...sessionSettingsRef.current,
+      mode: selectedGameMode,
+      modeLocked,
+    };
+    setSurvivalRulesLocked(modeLocked);
     worldManager.resetWorld(selectedWorldType);
+    blockHistoryRef.current.clear();
     setWorldRevision(revision => revision + 1);
     playerChunkRef.current = { x: 0, z: 0 };
     breakingRef.current.active = false;
@@ -335,6 +604,67 @@ export default function Game() {
     }));
     setSinglePlayerMenuOpen(false);
   }, [selectedGameMode, selectedWorldType]);
+
+  const handleStartWebWorld = useCallback(async () => {
+    setMultiplayerStatus('Erstelle Web-Welt …');
+    setMultiplayerCode('');
+    setConnectedPlayerCount(1);
+    setRemotePlayers([]);
+    blockHistoryRef.current.clear();
+    multiplayerRoleRef.current = 'host';
+    setMultiplayerRole('host');
+
+    const session = createMultiplayerSession();
+    multiplayerSessionRef.current?.close();
+    multiplayerSessionRef.current = session;
+    try {
+      await session.createRoom();
+      handleCreateWorld();
+    } catch (error) {
+      session.close();
+      multiplayerSessionRef.current = null;
+      multiplayerRoleRef.current = null;
+      setMultiplayerRole(null);
+      setConnectedPlayerCount(0);
+      setMultiplayerStatus(error instanceof Error ? error.message : 'Web-Welt konnte nicht gestartet werden.');
+    }
+  }, [createMultiplayerSession, handleCreateWorld]);
+
+  const handleJoinWebWorld = useCallback(async () => {
+    const code = joiningCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setMultiplayerStatus('Bitte gib einen sechsstelligen Code ein.');
+      return;
+    }
+
+    setMultiplayerStatus('Verbinde mit der Web-Welt …');
+    setMultiplayerRole('guest');
+    multiplayerRoleRef.current = 'guest';
+    awaitingHostWorldRef.current = true;
+    setWorldLoadProgress(1);
+    setWorldLoading(true);
+    setStarted(false);
+    setConnectedPlayerCount(1);
+    setRemotePlayers([]);
+    setMultiplayerMenuOpen(false);
+
+    const session = createMultiplayerSession();
+    multiplayerSessionRef.current?.close();
+    multiplayerSessionRef.current = session;
+    try {
+      await session.joinRoom(code);
+    } catch (error) {
+      session.close();
+      multiplayerSessionRef.current = null;
+      multiplayerRoleRef.current = null;
+      awaitingHostWorldRef.current = false;
+      setMultiplayerRole(null);
+      setWorldLoading(false);
+      setConnectedPlayerCount(0);
+      setMultiplayerStatus(error instanceof Error ? error.message : 'Beitritt zur Web-Welt fehlgeschlagen.');
+      setMultiplayerMenuOpen(true);
+    }
+  }, [createMultiplayerSession, joiningCode]);
 
   const canPlace    = useCallback((type: BlockType) => (countsRef.current[type] || 0) > 0, []);
 
@@ -402,6 +732,7 @@ export default function Game() {
   }, []);
 
   const handleChestOpen = useCallback((x: number, y: number, z: number) => {
+    document.exitPointerLock?.();
     const key = `${x},${y},${z}`;
     if (!chestsRef.current.has(key)) chestsRef.current.set(key, Array(CHEST_SLOTS).fill(BlockType.AIR));
     setOpenChest({ x, y, z });
@@ -411,6 +742,7 @@ export default function Game() {
   }, []);
 
   const handleCraftingTableOpen = useCallback((x: number, y: number, z: number) => {
+    document.exitPointerLock?.();
     setOpenCraftingTable({ x, y, z });
     setInventoryOpen(false);
     setOpenChest(null);
@@ -418,6 +750,7 @@ export default function Game() {
   }, []);
 
   const handleFurnaceOpen = useCallback((x: number, y: number, z: number) => {
+    document.exitPointerLock?.();
     const key = `${x},${y},${z}`;
     if (!furnacesRef.current.has(key)) {
       furnacesRef.current.set(key, { ironOre: 0, coal: 0, ironIngots: 0 });
@@ -493,7 +826,9 @@ export default function Game() {
              TipeCraft
           </div>
           <div style={{ fontSize:13, color:'#f0f0f0', textShadow:'1px 2px 0 #000', marginBottom:28, letterSpacing:1, textAlign:'center' }}>
-            {worldLoading ? 'Deine Welt wird vorbereitet …' : '226 Blöcke · 10 Biome · Crafting · Mobs · Tag/Nacht · Chat'}
+                {worldLoading
+                  ? multiplayerRole === 'guest' ? multiplayerStatus || 'Verbinde mit dem Host …' : 'Deine Welt wird vorbereitet …'
+                  : '226 Blöcke · 10 Biome · Crafting · Mobs · Tag/Nacht · Chat'}
           </div>
           {worldLoading ? (
             <div
@@ -501,7 +836,9 @@ export default function Game() {
               aria-live="polite"
               style={{ width:'min(360px, 84vw)', textAlign:'center' }}
             >
-              <div style={{ fontSize:16, letterSpacing:2, marginBottom:12 }}>WELT WIRD GELADEN</div>
+                <div style={{ fontSize:16, letterSpacing:2, marginBottom:12 }}>
+                  {multiplayerRole === 'guest' ? 'WEB-WELT WIRD GELADEN' : 'WELT WIRD GELADEN'}
+                </div>
               <div
                 role="progressbar"
                 aria-label="Welt wird geladen"
@@ -525,14 +862,14 @@ export default function Game() {
                 {worldLoadProgress}%
               </div>
             </div>
-          ) : !optionsOpen && !singlePlayerMenuOpen ? (
+          ) : !optionsOpen && !singlePlayerMenuOpen && !multiplayerMenuOpen ? (
             <>
               <div style={{ display:'flex', flexDirection:'column', gap:10, width:'min(270px, 84vw)' }}>
                 <button
                   type="button"
                   data-touch-btn="1"
-                  onClick={() => setSinglePlayerMenuOpen(true)}
-                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setSinglePlayerMenuOpen(true); }}
+                  onClick={() => runStartMenuAction(() => setSinglePlayerMenuOpen(true))}
+                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); runStartMenuAction(() => setSinglePlayerMenuOpen(true)); }}
                   style={{
                     background:'rgba(35,35,35,0.88)', border:'2px solid #f1f1f1',
                     color:'#fff', padding:'12px 20px', fontSize:17, letterSpacing:2,
@@ -543,19 +880,20 @@ export default function Game() {
                 <button
                   type="button"
                   data-touch-btn="1"
-                  disabled
+                  onClick={() => runStartMenuAction(() => setMultiplayerMenuOpen(true))}
+                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); runStartMenuAction(() => setMultiplayerMenuOpen(true)); }}
                   style={{
-                    background:'rgba(35,35,35,0.65)', border:'2px solid rgba(210,210,210,0.55)',
-                    color:'rgba(255,255,255,0.6)', padding:'12px 20px', fontSize:17, letterSpacing:2,
-                    fontFamily:'"Courier New", monospace', cursor:'not-allowed',
-                    boxShadow:'0 3px 0 rgba(0,0,0,0.5)',
+                    background:'rgba(35,35,35,0.88)', border:'2px solid #f1f1f1',
+                    color:'#fff', padding:'12px 20px', fontSize:17, letterSpacing:2,
+                    fontFamily:'"Courier New", monospace', cursor:'pointer',
+                    boxShadow:'0 3px 0 rgba(0,0,0,0.65)',
                   }}
                 >MULTIPLAYER</button>
                 <button
                   type="button"
                   data-touch-btn="1"
-                  onClick={() => setOptionsOpen(true)}
-                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setOptionsOpen(true); }}
+                  onClick={() => runStartMenuAction(() => setOptionsOpen(true))}
+                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); runStartMenuAction(() => setOptionsOpen(true)); }}
                   style={{
                     background:'rgba(35,35,35,0.88)', border:'2px solid #d7d7d7',
                     color:'#fff', padding:'12px 20px', fontSize:17, letterSpacing:2,
@@ -577,8 +915,72 @@ export default function Game() {
               onFogEnabledChange={setFogEnabled}
               worldBorderEnabled={worldBorderEnabled}
               onWorldBorderEnabledChange={setWorldBorderEnabled}
-              onBack={() => setOptionsOpen(false)}
+              onBack={() => runStartMenuAction(() => setOptionsOpen(false))}
             />
+          ) : multiplayerMenuOpen ? (
+            <div
+              data-no-look="1"
+              onClick={event => event.stopPropagation()}
+              onTouchStart={event => event.stopPropagation()}
+              style={{
+                width:'min(390px, 92vw)', padding:22, boxSizing:'border-box',
+                background:'rgba(30,30,30,0.94)', border:'2px solid #eee',
+                boxShadow:'0 4px 0 rgba(0,0,0,0.7)', color:'#fff',
+              }}
+            >
+              <div style={{ fontSize:21, letterSpacing:2, textAlign:'center', marginBottom:10 }}>
+                MULTIPLAYER
+              </div>
+              <div style={{ fontSize:12, lineHeight:1.5, color:'#ddd', textAlign:'center', marginBottom:18 }}>
+                Gib den sechsstelligen Code der Web-Welt ein. Die Welt läuft auf dem Host-PC.
+              </div>
+              <input
+                aria-label="Sechsstelliger Web-Welt-Code"
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                maxLength={6}
+                value={joiningCode}
+                onChange={event => setJoiningCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                onKeyDown={event => { if (event.key === 'Enter' && joiningCode.length === 6) void handleJoinWebWorld(); }}
+                style={{
+                  width:'100%', boxSizing:'border-box', padding:'12px 10px',
+                  background:'#151515', border:'2px solid #aaa', color:'#fff',
+                  fontFamily:'"Courier New", monospace', fontSize:24, letterSpacing:8,
+                  textAlign:'center', outlineColor:'#84c86c',
+                }}
+              />
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:9, marginTop:14 }}>
+                <button
+                  type="button"
+                  data-touch-btn="1"
+                  onClick={() => runStartMenuAction(() => { setMultiplayerMenuOpen(false); setMultiplayerStatus(''); })}
+                  onTouchStart={event => { event.stopPropagation(); event.preventDefault(); runStartMenuAction(() => { setMultiplayerMenuOpen(false); setMultiplayerStatus(''); }); }}
+                  style={{
+                    background:'rgba(55,55,55,0.95)', border:'2px solid #ddd',
+                    color:'#fff', padding:'11px 8px', fontSize:13, letterSpacing:1,
+                    fontFamily:'"Courier New", monospace', cursor:'pointer',
+                  }}
+                >ZURÜCK</button>
+                <button
+                  type="button"
+                  data-touch-btn="1"
+                  disabled={joiningCode.length !== 6}
+                  onClick={() => runStartMenuAction(() => { void handleJoinWebWorld(); })}
+                  onTouchStart={event => { event.stopPropagation(); event.preventDefault(); if (joiningCode.length === 6) runStartMenuAction(() => { void handleJoinWebWorld(); }); }}
+                  style={{
+                    background:joiningCode.length === 6 ? 'rgba(75,130,60,0.96)' : '#454545',
+                    border:'2px solid #efffdc', color:'#fff', padding:'11px 8px',
+                    fontSize:13, letterSpacing:1, fontFamily:'"Courier New", monospace',
+                    cursor:joiningCode.length === 6 ? 'pointer' : 'not-allowed',
+                  }}
+                >BEITRETEN</button>
+              </div>
+              {multiplayerStatus && (
+                <div role="status" style={{ marginTop:12, color:'#d8f0c4', fontSize:12, textAlign:'center', lineHeight:1.4 }}>
+                  {multiplayerStatus}
+                </div>
+              )}
+            </div>
           ) : (
             <div
               data-no-look="1"
@@ -605,8 +1007,8 @@ export default function Game() {
                       type="button"
                       data-touch-btn="1"
                       aria-pressed={active}
-                      onClick={() => setSelectedGameMode(gameMode)}
-                      onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setSelectedGameMode(gameMode); }}
+                      onClick={() => runStartMenuAction(() => setSelectedGameMode(gameMode))}
+                      onTouchStart={e => { e.stopPropagation(); e.preventDefault(); runStartMenuAction(() => setSelectedGameMode(gameMode)); }}
                       style={{
                         background:active ? 'rgba(91,142,75,0.95)' : 'rgba(45,45,45,0.92)',
                         border:`2px solid ${active ? '#d8ffb0' : '#aaa'}`,
@@ -631,8 +1033,8 @@ export default function Game() {
                       type="button"
                       data-touch-btn="1"
                       aria-pressed={active}
-                      onClick={() => setSelectedWorldType(world.type)}
-                      onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setSelectedWorldType(world.type); }}
+                      onClick={() => runStartMenuAction(() => setSelectedWorldType(world.type))}
+                      onTouchStart={e => { e.stopPropagation(); e.preventDefault(); runStartMenuAction(() => setSelectedWorldType(world.type)); }}
                       style={{
                         minHeight:76, background:active ? 'rgba(91,142,75,0.95)' : 'rgba(45,45,45,0.92)',
                         border:`2px solid ${active ? '#d8ffb0' : '#aaa'}`,
@@ -650,8 +1052,8 @@ export default function Game() {
                 <button
                   type="button"
                   data-touch-btn="1"
-                  onClick={() => setSinglePlayerMenuOpen(false)}
-                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setSinglePlayerMenuOpen(false); }}
+                  onClick={() => runStartMenuAction(() => setSinglePlayerMenuOpen(false))}
+                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); runStartMenuAction(() => setSinglePlayerMenuOpen(false)); }}
                   style={{
                     background:'rgba(55,55,55,0.95)', border:'2px solid #ddd',
                     color:'#fff', padding:'11px 8px', fontSize:13, letterSpacing:1,
@@ -661,8 +1063,8 @@ export default function Game() {
                 <button
                   type="button"
                   data-touch-btn="1"
-                  onClick={handleCreateWorld}
-                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); handleCreateWorld(); }}
+                  onClick={() => runStartMenuAction(handleCreateWorld)}
+                  onTouchStart={e => { e.stopPropagation(); e.preventDefault(); runStartMenuAction(handleCreateWorld); }}
                   style={{
                     background:'rgba(75,130,60,0.96)', border:'2px solid #efffdc',
                     color:'#fff', padding:'11px 8px', fontSize:13, letterSpacing:1,
@@ -673,8 +1075,27 @@ export default function Game() {
               <button
                 type="button"
                 data-touch-btn="1"
-                onClick={() => worldFileInputRef.current?.click()}
-                onTouchStart={event => { event.stopPropagation(); event.preventDefault(); worldFileInputRef.current?.click(); }}
+                onClick={() => runStartMenuAction(() => { void handleStartWebWorld(); })}
+                onTouchStart={event => { event.stopPropagation(); event.preventDefault(); runStartMenuAction(() => { void handleStartWebWorld(); }); }}
+                style={{
+                  width:'100%', marginTop:10, background:'rgba(40,115,55,0.96)',
+                  border:'2px solid #cbf0b8', color:'#fff', padding:'11px 8px',
+                  fontSize:13, letterSpacing:1, fontFamily:'"Courier New", monospace', cursor:'pointer',
+                }}
+              >WEB-WELT STARTEN</button>
+              <div style={{ marginTop:5, color:'#d5e8cd', fontSize:10, lineHeight:1.4, textAlign:'center' }}>
+                Weltberechnung auf deinem PC · 6-stelliger Beitrittscode
+              </div>
+              {multiplayerStatus && (!multiplayerRole || (multiplayerRole === 'host' && !multiplayerCode)) && (
+                <div role="status" style={{ marginTop:8, color:'#ffe0a0', fontSize:11, lineHeight:1.4, textAlign:'center' }}>
+                  {multiplayerStatus}
+                </div>
+              )}
+              <button
+                type="button"
+                data-touch-btn="1"
+                onClick={() => runStartMenuAction(() => worldFileInputRef.current?.click())}
+                onTouchStart={event => { event.stopPropagation(); event.preventDefault(); runStartMenuAction(() => worldFileInputRef.current?.click()); }}
                 style={{
                   width:'100%', marginTop:10, background:'rgba(55,55,55,0.95)',
                   border:'2px solid #ddd', color:'#fff', padding:'10px 8px',
@@ -830,6 +1251,8 @@ export default function Game() {
           hotbar={hotbar} counts={counts}
           selectedSlot={selectedSlot} pos={pos}
           onSlotSelect={handleSlotSelect}
+          thirdPerson={thirdPerson}
+          onToggleThirdPerson={() => setThirdPerson(value => !value)}
         />
       )}
 
@@ -858,6 +1281,48 @@ export default function Game() {
         >⚠ WELTGRENZE DEAKTIVIERT — Teleportieren und Reisen über die Grenze möglich</div>
       )}
 
+      {started && !gamePaused && multiplayerRole && (
+        <div
+          data-no-look="1"
+          style={{
+            position:'absolute', top:56, right:10, zIndex:32,
+            padding:'7px 9px', borderRadius:6,
+            background:'rgba(10,35,20,0.88)', border:'1px solid rgba(135,210,140,0.75)',
+            color:'#e8ffe8', fontFamily:'"Courier New", monospace',
+            boxShadow:'0 2px 7px rgba(0,0,0,0.45)', textAlign:'center',
+          }}
+        >
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:1 }}>
+            WEB-WELT · {connectedPlayerCount} SPIELER
+          </div>
+          {multiplayerRole === 'host' && multiplayerCode && (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:7, marginTop:4 }}>
+              <span style={{ fontSize:18, fontWeight:700, letterSpacing:4 }}>{multiplayerCode}</span>
+              <button
+                type="button"
+                data-touch-btn="1"
+                aria-label="Web-Welt-Code kopieren"
+                onClick={() => {
+                  const clipboard = navigator.clipboard;
+                  if (clipboard) {
+                    void clipboard.writeText(multiplayerCode)
+                      .then(() => setMultiplayerStatus('Code kopiert.'))
+                      .catch(() => setMultiplayerStatus(`Code: ${multiplayerCode}`));
+                  } else {
+                    setMultiplayerStatus(`Code: ${multiplayerCode}`);
+                  }
+                }}
+                style={{
+                  padding:'4px 6px', border:'1px solid #bce6bc', borderRadius:4,
+                  background:'rgba(55,105,58,0.9)', color:'#fff', fontSize:10,
+                  cursor:'pointer', touchAction:'manipulation',
+                }}
+              >KOPIEREN</button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Top toolbar (mobile) ─────────────────────────────── */}
       {started && !dead && (
         <div style={{
@@ -866,8 +1331,8 @@ export default function Game() {
         }}>
           <div
             data-touch-btn="1"
-            onTouchStart={e => { e.stopPropagation(); e.preventDefault(); setInventoryOpen(o => !o); }}
-            onClick={() => { setInventoryOpen(o => !o); }}
+            onTouchStart={e => { e.stopPropagation(); e.preventDefault(); handleInventoryToggle(); }}
+            onClick={handleInventoryToggle}
             style={{ position:'absolute', top:0, right:'calc(50% + 50px)', padding:'6px 14px', borderRadius:16, background:'rgba(30,60,80,0.8)', border:'1px solid rgba(68,136,204,0.6)', color:'#7ac', fontSize:11, fontWeight:700, cursor:'pointer', userSelect:'none', pointerEvents:'auto' }}
           >📦 Bag</div>
           {!gamePaused && (
@@ -948,7 +1413,11 @@ export default function Game() {
 
       {/* ── Touch controls ───────────────────────────────────── */}
       {started && !gamePaused && (
-        <TouchControls stateRef={touchRef} allowModeToggle={!survivalRulesLocked} />
+        <TouchControls
+          stateRef={touchRef}
+          allowModeToggle={!survivalRulesLocked}
+          creativeMode={mode === 'CREATIVE'}
+        />
       )}
 
       {/* ── 3D Canvas ────────────────────────────────────────── */}
@@ -977,8 +1446,13 @@ export default function Game() {
             onWorldLoadProgress={handleWorldLoadProgress}
             onWorldReady={handleWorldReady}
           />
+          <WorldBorderVisual enabled={worldBorderEnabled} playerPosRef={playerPosRef} />
           <ItemDrops drops={drops} playerPosRef={playerPosRef} onCollect={onCollectDrop} />
           <Animals />
+
+          {started && remotePlayers.map(player => (
+            <RemotePlayerAvatar key={player.playerId} player={player} />
+          ))}
 
           {started && (
             <>
@@ -999,6 +1473,7 @@ export default function Game() {
                 canPlace={canPlace}
                 onBlockBreak={onBlockBreak}
                 onBlockPlace={onBlockPlace}
+                onWorldBlockChange={handleWorldBlockChange}
                 onChestOpen={handleChestOpen}
                 onCraftingTableOpen={handleCraftingTableOpen}
                 onFurnaceOpen={handleFurnaceOpen}
@@ -1007,6 +1482,7 @@ export default function Game() {
                 respawnTrigger={respawnTrigger}
                 tpRef={tpRef}
                 pendingMobDamageRef={pendingMobDamageRef}
+                thirdPerson={thirdPerson}
               />
             </>
           )}

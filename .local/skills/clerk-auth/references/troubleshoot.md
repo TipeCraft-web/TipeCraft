@@ -30,6 +30,8 @@ Rely on user-reported observations from the published app (error text, failing U
 
 ## The Most Common Culprit: Code Divergence
 
+If sign-in succeeds but the app denies admin access or says the account is not provisioned, first read `user-roles.md` in this reference directory. A missing production role or a DB record linked to a development Clerk ID is an authorization/bootstrap issue, not by itself a reason to upgrade SDKs, rewrite authentication, or change Clerk keys.
+
 The vast majority of Clerk Auth issues are caused by the user's Clerk-related code having diverged from the canonical code in `setup-and-customization.md` — typically from earlier edits, half-applied refactors, or out-of-date Clerk SDK patterns. The single most reliable fix is to **re-load the clerk-auth skill** (even if it is already open in this conversation, so you pick up the latest canonical snippets) and resync against `setup-and-customization.md`:
 
 1. **Update the `@clerk/*` packages first** to the latest version allowed by the workspace's `minimumReleaseAge` policy in `pnpm-workspace.yaml`. The skill is sometimes updated to fix issues or adopt features that depend on newer SDK versions, so the canonical snippets you're about to diff against may assume an SDK newer than what the user has installed.

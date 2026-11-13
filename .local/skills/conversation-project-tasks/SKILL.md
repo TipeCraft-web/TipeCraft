@@ -55,15 +55,17 @@ Propose new tasks in the target project. Created tasks start in `PROPOSED`; noth
 
 Each task's `description` is the inline markdown plan (what & why, what done looks like, steps). `dependsOn` entries may be existing task refs or the `alias` of another task in the same batch.
 
+If the user cannot start tasks in the project from this conversation, nothing is created: the result has an empty `proposed` list and a `continueInProject` note, and the user sees the project card. Follow the note: tell the user to open the project and ask its Agent for the change, and give them the request to paste.
+
 If the user approves the start offer, the tasks run as background work in isolated copies of the target project. If they decline, the tasks stay as drafts in that project's tasks panel.
 
 **Returns:**
 
-`{ projectSlug, proposed }` (plus `startOffer` when the approval card was shown)
+`{ projectSlug, proposed }` (plus `startOffer` when the approval card was shown, or `continueInProject` when nothing was created)
 
 ### updateProjectTask({ projectSlug, taskRef, title?, description?, dependsOn?, artifactKinds? })
 
-Edit an existing task. `description` replaces the whole plan; `dependsOn` is a full replacement list (`[]` clears all dependencies). Pass at least one field.
+Edit only `PROPOSED` tasks. Accepted tasks can no longer be edited, including their dependencies. You can create new tasks. `description` replaces the whole plan; `dependsOn` replaces all dependencies (`[]` clears them). Pass at least one field.
 
 **Returns:**
 

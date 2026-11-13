@@ -1,559 +1,167 @@
 ---
 name: canvas
-description: "Create, read, and manipulate shapes on the canvas. The canvas is the primary surface for showing live UI previews via iframe embeds (using the mockup-sandbox skill), as well as static shapes, text, notes, images, and videos. Use this skill for any canvas operation — reading board state, placing shapes, or managing iframe lifecycle. You must read this skill (0-500 lines) before any canvas operation"
+description: "Create, read, and manipulate canvas shapes: live UI previews via mockup-sandbox iframes, static shapes, text, notes, images, and videos. Read this skill before any canvas operation, including reading board state, placing shapes, or managing iframe lifecycle."
 ---
 
 # Canvas Skill
 
-## IMPORTANT: Place Building Iframes Before Building
+## Place building iframes before building
 
-When the user's request will produce **new visual content** on the canvas (e.g. "create a landing page", "show me 3 card variants", "mockup a dashboard"), your very first action must be to place building placeholders -- before writing any code or setting up servers:
+When a request produces **new visual content** (landing pages, card variants, dashboard mockups), first place placeholders, before writing code or setting up servers:
 
-1. Call `applyCanvasActions()` with a `create-auto` action to create iframe shapes with `state: "building"` and names for every element you plan to produce. No URL is needed -- the UI shows a building indicator.
-2. Only call `getCanvasState()` first when you must place shapes at exact coordinates or relative to existing content.
-3. Only then proceed with the rest of the work (mockup-sandbox setup, writing code, starting servers, etc.).
-4. As each element becomes ready, update its iframe to `state: "live"` with the real URL.
+1. Call `applyCanvasActions` with `create-auto`, `state: "building"`, stable IDs, and names for every planned iframe. No URL is needed.
+2. Call `getCanvasState` first only if exact coordinates or placement relative to existing content are needed.
+3. Then set up the mockup sandbox, write code, and start servers.
+4. As each element is ready, update its existing frame to `"live"` with the real URL and the required design suggestions below.
 
-Do not set up the mockup sandbox first. Do not write component code first. Place the building iframes first, then do everything else. The user sees the placeholders appear on the canvas immediately, giving them instant feedback that work is underway and showing the planned layout.
+This immediate feedback rule does not apply to read-only requests, modifications to existing shapes, or non-iframe work such as text labels.
 
-This does **not** apply to read-only requests (e.g. "what's on the canvas?"), modifications to existing shapes (e.g. "move the card to the right"), or non-iframe work (e.g. "add a text label").
+## Surface and callbacks
 
-## Overview
+The canvas is an infinite board for live iframes, artifact frames, and static geo/text/note/image/video shapes. To view frames full-size, users click the preview button above the frame. Tell users to "open the Preview tab and toggle on the canvas" using the button below the workspace-level preview window; there is no Canvas tab. Artifact frames cannot be deleted or freely resized (they maintain their snap-back ratio).
 
-The workspace canvas is an infinite board where you can create, position, and manipulate visual elements: iframes (primarily used for design exploration), artifacts (live-running apps such as websites or mobile apps), and static shapes (rectangles, ellipses, text, notes), images, and videos for diagrams, annotations, and layouts.
+All three callbacks are pre-registered, async, and called directly with `await` in `codeExecution`:
 
-When users want to view frames at full size, they must click the preview button above the frame. Users can also toggle in and out of the canvas using the canvas button below the workspace-level preview window. When telling the user where to view canvas content, say "open the Preview tab and toggle on the canvas" -- there is no "Canvas tab".
+- `getCanvasState({ focusArea? })`: board state near the viewport or an optional `{x, y, w, h}` region.
+- `applyCanvasActions({ actions })`: ordered atomic batch of create, create-auto, update, delete, move, resize, reorder, align, or distribute actions. Results include per-action generated `shapeId` values.
+- `focusCanvasShapes({ shapeIds, animateMs?, padding? })`: pan/zoom to shapes, subject to the viewport rule below; `animateMs: 500` gives a smooth transition.
 
-Artifact frames have special constraints - they cannot be deleted or freely resized (to maintain the snap back in ratio).
+Use **camelCase** (`shapeIds`, `animateMs`, `focusArea`, `shapeId`, `componentName`), not snake_case: wrong casing causes validation failures. Read [API schemas](references/api-schema.md) before constructing an action whose full fields, enums, or required keys are not shown here.
 
-### Callbacks
+Rendered component previews require **both** this skill and **mockup-sandbox**: that skill owns isolated Vite setup, source paths, and preview URLs; this one owns placement, lifecycle, and layout. Never use the main app URL as an isolated component preview.
 
-You have three callbacks available via `codeExecution`:
+Coordinates use top-left origin `(0,0)`, positive x right and y down, in canvas units.
 
-- **`getCanvasState`** -- Read what shapes are on the board, their positions, types, and properties.
-- **`applyCanvasActions`** -- Create, auto-place, update, delete, move, resize, reorder, align, or distribute shapes.
-- **`focusCanvasShapes`** -- Pan and zoom the viewport to show specific shapes.
+## Read the board
 
-All callbacks are async and must be awaited. Call them directly in `codeExecution` -- they are pre-registered.
+`getCanvasState()` returns:
 
-**Parameter casing.** All canvas callbacks accept **camelCase** keys (e.g. `shapeIds`, `animateMs`, `focusArea`, `shapeId`, `componentName`). Passing snake_case keys causes a pydantic validation error like `shapeIds Field required`. The schemas below reflect the camelCase keys you must actually pass.
-
-### Canvas + Mockup Sandbox
-
-For any request that involves showing rendered UI on the canvas, you need both this skill and the **mockup-sandbox** skill working together:
-
-- **mockup-sandbox** sets up the isolated vite dev server, creates the component files, and gives you preview URLs.
-- **canvas** (this skill) places those URLs as iframe shapes on the board, manages layout, and handles the iframe lifecycle.
-
-## Coordinate System
-
-- Origin `(0, 0)` is at the top-left of the canvas.
-- Positive `x` goes right, positive `y` goes down.
-- All positions and sizes are in canvas units.
-
-## Parameter Schema
-
-### `applyCanvasActions`
-
-Modify the canvas board by applying an ordered list of actions in a single atomic batch. For new iframes that just need automatic placement, use `create-auto`; for manual x/y placement, call `getCanvasState` first to see existing shapes and find empty space.
-
-Create a shapeId once — creating an existing shapeId fails. Use `update` for all later changes (changed properties go inside `updates`), like flipping a `building` placeholder to `live`.
-
-```json
-{
-  "$defs": {
-    "CanvasAlignActionInput": {
-      "properties": {
-        "type": { "const": "align", "description": "Align multiple shapes.", "type": "string" },
-        "shapeIds": { "description": "Target shape ids.", "items": { "type": "string" }, "type": "array" },
-        "alignment": { "description": "Alignment mode.", "enum": ["left", "center-horizontal", "right", "top", "center-vertical", "bottom"], "type": "string" }
-      },
-      "required": ["type", "shapeIds", "alignment"]
-    },
-    "CanvasCreateActionInput": {
-      "properties": {
-        "type": { "const": "create", "description": "Create a shape.", "type": "string" },
-        "shape": { "$ref": "#/$defs/CanvasShapeInput", "description": "Shape payload." },
-        "shapeId": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "Optional deterministic id." }
-      },
-      "required": ["type", "shape"]
-    },
-    "CanvasCreateAutoActionInput": {
-      "properties": {
-        "type": { "const": "create-auto", "description": "Create one or more iframe shapes with automatic placement.", "type": "string" },
-        "shapeIds": { "description": "Deterministic ids for created iframe shapes.", "items": { "type": "string" }, "minItems": 1, "type": "array" },
-        "shape": { "$ref": "#/$defs/CanvasCreateAutoShapeInput", "description": "Iframe payload shared by every item." },
-        "names": { "description": "Per-shape componentName values; must match shapeIds.", "items": { "type": "string" }, "type": "array" }
-      },
-      "required": ["type", "shapeIds", "shape", "names"]
-    },
-    "CanvasCreateAutoShapeInput": {
-      "properties": {
-        "type": { "const": "iframe", "description": "Create-auto creates iframes.", "type": "string" },
-        "w": { "description": "Shape width in canvas units.", "type": "number" },
-        "h": { "description": "Shape height in canvas units.", "type": "number" },
-        "url": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "For iframe shapes: the https URL to embed. Optional when creating with state 'building'; required when setting state to 'live'." },
-        "componentPath": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "For iframe shapes: file path shown in the shape title bar." },
-        "componentProps": { "anyOf": [{ "additionalProperties": true, "type": "object" }, { "type": "null" }], "default": null, "description": "For iframe shapes: extra props to pass." },
-        "state": { "anyOf": [{ "enum": ["building", "modifying", "live"], "type": "string" }, { "type": "null" }], "default": null, "description": "For iframe shapes: lifecycle state. Set 'building' on create, 'modifying' before edits, 'live' when the component is ready." },
-        "artifactKind": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "For iframe shapes: artifact kind metadata." }
-      },
-      "required": ["type", "w", "h"]
-    },
-    "CanvasDeleteActionInput": {
-      "properties": {
-        "type": { "const": "delete", "description": "Delete a shape.", "type": "string" },
-        "shapeId": { "description": "Target shape id.", "type": "string" }
-      },
-      "required": ["type", "shapeId"]
-    },
-    "CanvasDistributeActionInput": {
-      "properties": {
-        "type": { "const": "distribute", "description": "Distribute multiple shapes.", "type": "string" },
-        "shapeIds": { "description": "Target shape ids.", "items": { "type": "string" }, "type": "array" },
-        "direction": { "description": "Distribution axis.", "enum": ["horizontal", "vertical"], "type": "string" }
-      },
-      "required": ["type", "shapeIds", "direction"]
-    },
-    "CanvasMoveActionInput": {
-      "properties": {
-        "type": { "const": "move", "description": "Move a shape.", "type": "string" },
-        "shapeId": { "description": "Target shape id.", "type": "string" },
-        "x": { "description": "Destination x.", "type": "number" },
-        "y": { "description": "Destination y.", "type": "number" }
-      },
-      "required": ["type", "shapeId", "x", "y"]
-    },
-    "CanvasReorderActionInput": {
-      "properties": {
-        "type": { "const": "reorder", "description": "Reorder a shape.", "type": "string" },
-        "shapeId": { "description": "Target shape id.", "type": "string" },
-        "direction": { "description": "Stacking direction.", "enum": ["front", "back"], "type": "string" }
-      },
-      "required": ["type", "shapeId", "direction"]
-    },
-    "CanvasResizeActionInput": {
-      "properties": {
-        "type": { "const": "resize", "description": "Resize a shape.", "type": "string" },
-        "shapeId": { "description": "Target shape id.", "type": "string" },
-        "w": { "description": "Destination width.", "type": "number" },
-        "h": { "description": "Destination height.", "type": "number" }
-      },
-      "required": ["type", "shapeId", "w", "h"]
-    },
-    "CanvasShapeInput": {
-      "properties": {
-        "type": { "description": "Shape type: 'geo' (rectangle/ellipse), 'text' (label), 'note' (sticky note), 'iframe' (embedded web content), 'image' (embedded image), or 'video' (embedded video).", "enum": ["geo", "text", "note", "iframe", "image", "video"], "type": "string" },
-        "x": { "description": "X position on canvas (0 is left).", "type": "number" },
-        "y": { "description": "Y position on canvas (0 is top).", "type": "number" },
-        "w": { "description": "Shape width in canvas units.", "type": "number" },
-        "h": { "description": "Shape height in canvas units.", "type": "number" },
-        "geo": { "anyOf": [{ "enum": ["cloud", "rectangle", "ellipse", "triangle", "diamond", "pentagon", "hexagon", "octagon", "star", "rhombus", "rhombus-2", "oval", "trapezoid", "arrow-right", "arrow-left", "arrow-up", "arrow-down", "x-box", "check-box", "heart"], "type": "string" }, { "type": "null" }], "default": null, "description": "Geometry sub-type for 'geo' shapes." },
-        "color": { "anyOf": [{ "enum": ["black", "grey", "light-violet", "violet", "blue", "light-blue", "yellow", "orange", "green", "light-green", "light-red", "red", "white"], "type": "string" }, { "type": "null" }], "default": null, "description": "Shape color." },
-        "labelColor": { "anyOf": [{ "enum": ["black", "grey", "light-violet", "violet", "blue", "light-blue", "yellow", "orange", "green", "light-green", "light-red", "red", "white"], "type": "string" }, { "type": "null" }], "default": null, "description": "Text label color. Overrides the shape color for text content." },
-        "fill": { "anyOf": [{ "enum": ["none", "semi", "solid", "pattern", "fill", "lined-fill"], "type": "string" }, { "type": "null" }], "default": null, "description": "Fill style." },
-        "text": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "Text content displayed inside the shape." },
-        "url": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "For iframe shapes: the https URL to embed. Optional when creating with state 'building'; required when setting state to 'live'." },
-        "src": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "For image/video shapes: the source URL of the media." },
-        "altText": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "For image/video shapes: alt text describing the media." },
-        "componentPath": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "For iframe shapes: file path shown in the shape title bar." },
-        "componentName": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "For iframe shapes: component name shown in the shape title bar." },
-        "componentProps": { "anyOf": [{ "additionalProperties": true, "type": "object" }, { "type": "null" }], "default": null, "description": "For iframe shapes: extra props to pass." },
-        "state": { "anyOf": [{ "enum": ["building", "modifying", "live"], "type": "string" }, { "type": "null" }], "default": null, "description": "For iframe shapes: lifecycle state. Set 'building' on create, 'modifying' before edits, 'live' when the component is ready." }
-      },
-      "required": ["type", "x", "y", "w", "h"]
-    },
-    "CanvasUpdateActionInput": {
-      "properties": {
-        "type": { "const": "update", "description": "Update a shape.", "type": "string" },
-        "shapeId": { "description": "Target shape id.", "type": "string" },
-        "updates": { "$ref": "#/$defs/CanvasUpdateFieldsInput", "description": "Partial shape update." }
-      },
-      "required": ["type", "shapeId", "updates"]
-    },
-    "CanvasUpdateFieldsInput": {
-      "properties": {
-        "shapeType": { "description": "The type of shape being updated. Always required -- controls how the update is serialized.", "enum": ["geo", "text", "note", "iframe", "image", "video"], "type": "string" },
-        "x": { "anyOf": [{ "type": "number" }, { "type": "null" }], "default": null, "description": "New x position." },
-        "y": { "anyOf": [{ "type": "number" }, { "type": "null" }], "default": null, "description": "New y position." },
-        "w": { "anyOf": [{ "type": "number" }, { "type": "null" }], "default": null, "description": "New width." },
-        "h": { "anyOf": [{ "type": "number" }, { "type": "null" }], "default": null, "description": "New height." },
-        "geo": { "anyOf": [{ "enum": ["cloud", "rectangle", "ellipse", "triangle", "diamond", "pentagon", "hexagon", "octagon", "star", "rhombus", "rhombus-2", "oval", "trapezoid", "arrow-right", "arrow-left", "arrow-up", "arrow-down", "x-box", "check-box", "heart"], "type": "string" }, { "type": "null" }], "default": null, "description": "New geometry sub-type." },
-        "color": { "anyOf": [{ "enum": ["black", "grey", "light-violet", "violet", "blue", "light-blue", "yellow", "orange", "green", "light-green", "light-red", "red", "white"], "type": "string" }, { "type": "null" }], "default": null, "description": "New shape color." },
-        "labelColor": { "anyOf": [{ "enum": ["black", "grey", "light-violet", "violet", "blue", "light-blue", "yellow", "orange", "green", "light-green", "light-red", "red", "white"], "type": "string" }, { "type": "null" }], "default": null, "description": "New text label color." },
-        "fill": { "anyOf": [{ "enum": ["none", "semi", "solid", "pattern", "fill", "lined-fill"], "type": "string" }, { "type": "null" }], "default": null, "description": "New fill style." },
-        "text": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "New text content." },
-        "url": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "New URL for iframe shapes (must be https)." },
-        "src": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "New source URL for image/video shapes." },
-        "altText": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "New alt text for image/video shapes." },
-        "componentPath": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "New component path for iframe shapes." },
-        "componentName": { "anyOf": [{ "type": "string" }, { "type": "null" }], "default": null, "description": "New component name for iframe shapes." },
-        "componentProps": { "anyOf": [{ "additionalProperties": true, "type": "object" }, { "type": "null" }], "default": null, "description": "Props to merge into iframe shape props." },
-        "state": { "anyOf": [{ "enum": ["building", "modifying", "live"], "type": "string" }, { "type": "null" }], "default": null, "description": "New lifecycle state for iframe shapes. Set 'modifying' before edits, 'live' when ready." },
-        "suggestedActions": { "type": "array", "maxItems": 3, "items": { "type": "object", "additionalProperties": false, "properties": { "content": { "type": "object", "additionalProperties": false, "properties": { "kind": { "const": "prompt" }, "prompt": { "type": "string", "minLength": 1, "maxLength": 1000 } }, "required": ["kind", "prompt"] }, "label": { "type": "string", "minLength": 1, "maxLength": 60 }, "category": { "type": "string", "minLength": 1, "maxLength": 60 }, "id": { "type": "string", "minLength": 1, "maxLength": 128 } }, "required": ["content", "label"] }, "description": "For design/mockup iframe shapes: 3 follow-up suggestion cards. Omit the field entirely when unused -- do NOT send null. Required when taking a design frame to 'live'. Each entry has hidden execution content {kind:'prompt',prompt}, a required user-facing label that briefly describes the change in one sentence, an optional non-empty freeform category, and an authored id." }
-      },
-      "required": ["shapeType"]
-    }
-  },
-  "properties": {
-    "actions": {
-      "description": "Ordered list of canvas actions to apply.",
-      "items": {
-        "anyOf": [
-          { "$ref": "#/$defs/CanvasCreateActionInput" },
-          { "$ref": "#/$defs/CanvasCreateAutoActionInput" },
-          { "$ref": "#/$defs/CanvasUpdateActionInput" },
-          { "$ref": "#/$defs/CanvasDeleteActionInput" },
-          { "$ref": "#/$defs/CanvasMoveActionInput" },
-          { "$ref": "#/$defs/CanvasResizeActionInput" },
-          { "$ref": "#/$defs/CanvasReorderActionInput" },
-          { "$ref": "#/$defs/CanvasAlignActionInput" },
-          { "$ref": "#/$defs/CanvasDistributeActionInput" }
-        ]
-      },
-      "type": "array"
-    }
-  },
-  "required": ["actions"]
-}
-```
-
-### `getCanvasState`
-
-Read the current state of the canvas board. Returns shapes at three detail levels based on distance from the viewport or focus area.
-
-```json
-{
-  "$defs": {
-    "FocusAreaInput": {
-      "properties": {
-        "x": { "description": "Left edge x coordinate.", "type": "number" },
-        "y": { "description": "Top edge y coordinate.", "type": "number" },
-        "w": { "description": "Width of the region.", "type": "number" },
-        "h": { "description": "Height of the region.", "type": "number" }
-      },
-      "required": ["x", "y", "w", "h"]
-    }
-  },
-  "properties": {
-    "focusArea": {
-      "anyOf": [{ "$ref": "#/$defs/FocusAreaInput" }, { "type": "null" }],
-      "default": null,
-      "description": "Optional region to zoom into. Shapes inside get full detail. If omitted, uses the current user viewport."
-    }
-  }
-}
-```
-
-Response fields are documented in "Reading the Board" below.
-
-### `focusCanvasShapes`
-
-Pan and zoom the user's canvas viewport to center on specific shapes. Only call after the user asks to see your work -- except for the empty-canvas mockup exception (see "Focusing the Viewport" below).
-
-```json
-{
-  "properties": {
-    "shapeIds": { "description": "List of shape IDs to focus on.", "items": { "type": "string" }, "type": "array" },
-    "animateMs": { "anyOf": [{ "type": "number" }, { "type": "null" }], "default": null, "description": "Optional animation duration in milliseconds for the viewport transition. Use 500 for smooth transitions." },
-    "padding": { "anyOf": [{ "type": "number" }, { "type": "null" }], "default": null, "description": "Optional padding around the focused shapes in canvas units." }
-  },
-  "required": ["shapeIds"]
-}
-```
-
-## Reading the Board: `getCanvasState`
-
-Returns shapes at three detail levels:
-
-- **focusedShapes** -- Full detail for shapes near the viewport or focus area. Geo/text/note shapes include color, fill, text. Iframe shapes include `url`, `componentName`, `componentPath`, and `state`. Image shapes include `src`, `altText`, and `filepath` (local file path in `.canvas/assets/`, if applicable). Video shapes include `src` and `altText`.
-- **blurryShapes** -- Position and basic info for shapes farther away. Iframe shapes include `componentName` and `state`. Image shapes include `src` and `filepath`. Video shapes include `src`.
-- **peripheralClusters** -- Aggregated counts for distant shape groups.
-- **summary** -- Quick text description of everything on the canvas.
-- **viewport** -- The current visible region `{x, y, w, h}`.
-
-Pass an optional `focusArea` (`{x, y, w, h}`) to zoom into a specific region.
+- `focusedShapes`: full nearby shape detail. Geo/text/note shapes include color, fill, and text; iframes include `url`, `componentName`, `componentPath`, and `state`; images include `src`, `altText`, and local `.canvas/assets/` `filepath` where applicable; videos include `src` and `altText`.
+- `blurryShapes`: positions/basic information farther away. Iframes include `componentName`/`state`, images `src`/`filepath`, videos `src`.
+- `peripheralClusters`: aggregate counts of distant groups, not per-shape records.
+- `summary`: text overview.
+- `viewport`: visible `{x, y, w, h}`.
 
 ```javascript
-// Read with current viewport
 const state = await getCanvasState();
 console.log(state.summary);
 console.log(JSON.stringify(state.focusedShapes, null, 2));
-
-// Read a specific region
 const region = await getCanvasState({ focusArea: { x: 0, y: 0, w: 2000, h: 1500 } });
 ```
 
-Example response:
+Search both focused and blurry shapes for an anchor. Large-board overflow may exist only in clusters, so re-query with `focusArea` if missing. Do not assume a shape is absent because it was outside the initial viewport.
 
-```json
-{
-  "focusedShapes": [
-    { "shapeId": "preview-1", "shapeType": "iframe", "x": 400, "y": 100, "w": 1280, "h": 720,
-      "url": "https://example.replit.dev/preview/hello-world/Card",
-      "componentName": "Card", "state": "live" }
-  ],
-  "blurryShapes": [...],
-  "peripheralClusters": [],
-  "viewport": { "x": 0, "y": 0, "w": 1920, "h": 1080 },
-  "summary": "1 shape on canvas."
-}
-```
+## Create and update frames
 
-## Modifying the Board: `applyCanvasActions`
-
-Send an ordered list of actions. Each action has a `type` field. Results are returned per-action with generated `shapeId` values.
+Prefer `create-auto` for new iframes needing automatic placement. It avoids existing shapes and places the batch together. Use explicit coordinates only when required, after reading the board.
 
 ```javascript
-const result = await applyCanvasActions({ actions: [
-  // ... action objects
-] });
-console.log(JSON.stringify(result, null, 2));
+await applyCanvasActions({ actions: [{
+  type: "create-auto",
+  shapeIds: ["app-preview"],
+  names: ["App Preview"],
+  shape: { type: "iframe", w: 1280, h: 720, state: "building" }
+}] });
 ```
 
-### Create Iframe
+Create each `shapeId` only once; duplicate creation fails. Use `update` for all later changes:
 
-Embed live web content. Use the `state` field to manage the iframe lifecycle:
+- Create takes `shape: { type: "iframe", ... }`.
+- Update takes `updates: { shapeType: "iframe", ... }`. `shapeType`, **not** `type`, is required inside updates; do not copy create payload keys into an update.
+- `"building"`: component/server not ready; URL optional, native building indicator shown.
+- `"modifying"`: set **before** editing an existing component's backing file.
+- `"live"`: content ready; resolved HTTPS URL required.
+- `componentPath` and `componentName`: title-bar metadata labels (source path and display name), not URL routing.
+- `componentProps`: extra properties merged into shape props.
 
-- `"building"` -- Set on create when the component or server isn't ready yet. URL is **optional** in this state -- the UI shows a building indicator.
-- `"modifying"` -- Set before editing an existing component's backing file.
-- `"live"` -- Set when the component is ready to display. URL is **required** in this state.
+**Every design/mockup frame must attach three `suggestedActions` in the same update that makes it live.** This applies to the first frame, every fan-out variant, every later live transition, and frames spawned by suggestions. Never defer the suggestions until later. Running-app/artifact embeds that are not design frames are exempt.
 
-> **REQUIRED for every design/mockup iframe.** Any agent that takes a design/mockup iframe to `state: "live"` MUST attach 3 `suggestedActions` in the **same** `applyCanvasActions` update that sets `"live"` — never "I'll add them after". This applies to every live transition: the first frame, every fan-out variant, and any frame spawned from a clicked suggestion. They render as one-click ghost-frame cards beside the live frame; clicking one sends that prompt with the frame as context. A live design frame with no `suggestedActions` is a bug. The one exception is non-design iframes that embed a running app/artifact, which do not take `suggestedActions`. Author them with **design-exploration** thinking — see the boxed rules below.
+Before authoring suggestions, read [Suggestion authoring](references/suggestions.md). Each card has hidden `content: { kind: "prompt", prompt }`, a required one-sentence `label` ≤60 characters describing the concrete change (not a title/category or full execution prompt), an optional nonempty freeform `category`, and a short authored `id` for accept/dedup/telemetry. Omit `suggestedActions` entirely when unused; never send `null`. The API allows up to three; live design frames require all three.
 
-Create the iframe immediately with `state: "building"`, then update it to `"live"` once the URL is available. Use `create-auto` unless you need exact coordinates:
+Example live transition for a **non-design app embed** (for a design frame, add the three authored cards to `updates` in this same call):
 
 ```javascript
-// 1. Create iframe immediately -- no URL needed yet
-await applyCanvasActions({ actions: [
-  {
-    type: "create-auto",
-    shapeIds: ["app-preview"],
-    names: ["App Preview"],
-    shape: {
-      type: "iframe",
-      w: 1280, h: 720,
-      state: "building"
-    }
+await applyCanvasActions({ actions: [{
+  type: "update",
+  shapeId: "app-preview",
+  updates: {
+    shapeType: "iframe",
+    state: "live",
+    url: "https://<resolved-domain>.replit.dev",
+    componentName: "App Preview"
   }
-] });
-
-// 2. ... build the component / start the server ...
-
-// 3. Update to live once the URL is ready.
-//    For a design/mockup frame, attach 3 suggestedActions in THIS same
-//    update (omit them only for live app/artifact embeds).
-await applyCanvasActions({ actions: [
-  {
-    type: "update",
-    shapeId: "app-preview",
-    updates: {
-      shapeType: "iframe",
-      state: "live",
-      url: "https://<resolved-domain>.replit.dev",
-      suggestedActions: [
-        { id: "checkout-page", label: "Turn this pricing overview into a focused checkout flow", category: "new page / flow extension", content: { kind: "prompt", prompt: "Create a new frame that expands this pricing overview into a complete checkout flow with order details, payment fields, and a clear confirmation action" } },
-        { id: "dark-editorial", label: "Reimagine this page as a bold dark editorial spread", category: "extreme reimagining", content: { kind: "prompt", prompt: "Create a new variant of this design as a bold, editorial dark-mode magazine spread" } },
-        { id: "cinematic-hero", label: "Give the hero richer and more cinematic imagery", category: "imagery refresh", content: { kind: "prompt", prompt: "Generate a new variant with a moodier, cinematic hero using dramatic lighting and a more immersive composition" } }
-      ]
-    }
-  }
-] });
+}] });
 ```
 
-### Authoring `suggestedActions` (think like design-exploration)
+### Exploration must preserve its source
 
-Each `suggestedAction` is an object: `content` (`{ kind: "prompt", prompt }` — the hidden execution prompt sent verbatim when clicked), a required user-facing `label` (the card body, ≤60 chars), an optional freeform `category` style hint, and an authored short `id` slug (used for accept/dedup/telemetry). Apply the **design-exploration** skill's principles (`pkg/agent-skills/skills/design-exploration/SKILL.md`):
+A clicked suggestion or request to explore a variant/follow-up creates a **new frame and new component file** beside the source. Leave the source frame's URL, `componentName`, `componentPath`, and contents untouched. Copy the source file and edit the copy; in-place changes also race parallel agents reading it.
 
-- **Write each `label` as one brief sentence describing the concrete change to the selected frame.** The user sees the original frame beside this sentence, so summarize what the proposed variant will change. Do not use a short title or category-like phrase, and do not copy or expose the full execution prompt.
-- **Phrase each `content.prompt` as a self-contained "new frame/variant" request.** A clicked suggestion reaches the agent as an ordinary message with the source frame as selection context — nothing marks it as a branch — so the prompt must unambiguously ask for a NEW frame ("Create a new variant of this design that …", "Generate a new frame exploring …"), never wording that reads as an in-place edit of the selected frame ("make this …", "regenerate the hero …").
-- **Direct refinements to copy, never edit.** When a suggestion refines an existing component ("add a testimonial section"), the prompt must say to copy the source into a new component file and change the copy — e.g. "Create a new variant of this design, as a new component file (do not modify existing files), that adds …". Whoever executes the suggestion may be running beside other agents that are reading the same source file.
-- **Comprehend before generating** — read the frame's function, content, interaction, and visual structure first; never jump straight to three reskins.
-- **Each suggestion is a distinct design hypothesis** — a meaningfully different answer to "what could this be?", not the same idea three times.
-- **Pick meaningful variation axes** (structural / content / conceptual / behavioral / aesthetic). Default to **≥2 of 3 being net-new big swings** — a new page/screen the design implies, or an extreme reimagining — with at most one incremental refinement.
-- **Account for sibling frames** so suggestions across the canvas diverge instead of colliding.
+Suggestion prompts must explicitly request a NEW frame/variant, and refinements must say to copy into a new component file without modifying existing files. A suggestion arrives as an ordinary message with frame selection context, not a special branch marker.
 
-### Acting on a clicked suggestion is non-destructive
+Only an explicit request to modify *that* frame (such as "make this card blue") authorizes in-place content updates; "what else could this be?" is exploration.
 
-When a user clicks a ghost-frame suggestion (or otherwise asks to explore a variant/follow-up of an existing frame), the result is a **new** design frame — never an in-place overwrite of the frame the suggestion came from. The source frame is the user's reference point; leave its `url`, `componentName`, `componentPath`, and contents untouched.
+### Reserved building frames
 
-- Create a new iframe (its own `shapeId`, `state: "building"` → `"live"`) for the explored direction and place it beside the source. Do **not** issue an `update` that swaps the source frame's `url`/component to the new design.
-- The same rule applies at the file level: never modify the source frame's component file — copy it into a new file for the new variant. Editing it in place changes what the source frame renders and races any parallel run reading the same file.
-- Only update a frame's content in place when the user explicitly asks to modify *that* frame (e.g. "make this card blue"). A suggestion click or "what else could this be?" is exploration, not modification.
+A `"building"` iframe you did **not** create this turn is a reserved system slot, e.g. from a clicked suggestion. Update it if it is for your current work, otherwise leave it alone. Never delete it as stray/leftover cleanup. Only remove unfilled placeholders you created earlier this same turn.
 
-### Reserved building frames are off-limits
+## Images and layout
 
-A `state: "building"` iframe you did **not** create this turn is a reserved slot — the system placed it (e.g. from a clicked ghost-frame suggestion) so the next agent loop has somewhere to build. Never delete one as "stray"/leftover cleanup: fill it with an `update` if it's the slot for your current work, otherwise leave it alone. You may only delete building placeholders **you** created earlier in this same turn and chose not to fill.
+Read [Images and layout recipes](references/images-and-layout.md) before creating an image or manually aligning/distributing shapes. It includes external/local image payloads, row/column examples, and annotation without moving an anchor.
 
-**Note: `create` and `update` actions have different payload structures.**
+Local images must be copied to `.canvas/assets/`, then served from the resolved domain on port `5904`; external image URLs can be used directly. Include `altText`.
 
-- **Create** defines a new shape from scratch, so it takes a full `shape` object: `shape: { type: "iframe", ... }`
-- **Create-auto** creates one or more iframe placeholders with automatic placement.
-- **Update** patches an existing shape, so it takes a partial `updates` object: `updates: { shapeType: "iframe", ... }` -- the field is `shapeType` (not `type`) because `type` is already the action discriminator
-- Do not copy the payload key from a create into an update or vice versa -- the wrong key passes validation but the action will fail when applied.
+For layout:
 
-To get the URL for a non-mockup Replit dev server, run `echo $REPLIT_DOMAINS` in the shell to get the domain, then construct the full URL. For the main app on port 5000, no port suffix is needed. For other ports, append `:<port>`.
+- `create-auto` is the default for automatically placed iframe groups; do not chain hand-calculated gutters across 3+ placeholders.
+- `align` requires 2+ shapes and moves **every** supplied shape (there is no fixed anchor). `distribute` requires 3+.
+- For a row/column of non-iframe items, place approximately, align one axis and distribute the other in the same batch. For a pair, align only.
+- Only align existing user content when the user explicitly asks to line it up. To put something beside an existing shape without moving it, read the anchor and create at `x: anchor.x + anchor.w + gap, y: anchor.y` (or the analogous vertical formula). Keep the anchor's x/y term.
+- `left`/`top` snap to minimum x/y; `right`/`bottom` to maximum right/bottom edge; center-horizontal/vertical use mean centers.
+- Do not follow alignment/distribution with `move` on those shapes in the same batch: that undoes it. To translate a laid-out group rigidly, read positions and apply the same delta to each with `move`; re-aligning recomputes layout rather than translating it.
 
-- `url` -- Full `https://` URL to embed. Required when `state` is `"live"`.
-- `state` -- Lifecycle state. Always set this on create and when transitioning.
-- `componentPath` -- File path shown in the title bar (metadata label only).
-- `componentName` -- Display name shown in the title bar (metadata label only).
-- `componentProps` -- Extra props dict merged into shape props.
-- `suggestedActions` -- Up to 3 follow-up suggestion objects shown as one-click ghost-frame cards beside a live design frame. Required when taking a design/mockup frame to `"live"` (see the boxed rule above); set them in the same update that sets `"live"`.
+## URLs and viewport
 
-**To embed individual React components** (not just the full app), use the **mockup-sandbox** skill. Follow that skill for every mockup component path and preview URL. Do not derive mockup URLs from the generic dev-server rules above.
+- Iframe URLs must use `https`; `http` and `about:blank` are rejected.
+- Resolve the actual domain with `echo $REPLIT_DOMAINS` before constructing a URL. Never pass a literal unresolved template string.
+- **Non-mockup servers only:** no port suffix routes to the main app on 5000; other servers use `:<port>`.
+- Mockup component URLs and paths come from the mockup-sandbox skill, not those generic port rules. Do not embed the main app URL for component previews.
+- External sites may block embedding with `X-Frame-Options: DENY` or CSP; Replit dev URLs can be embedded.
 
-### Create Image
+**Do not auto-focus.** `focusCanvasShapes` moves the user's viewport; call it only when asked to see the work. Exception: mockup-sandbox allows focusing just-placed placeholders when the board was entirely empty; follow that skill's precise emptiness check. Do not separately focus after presenting.
 
-Embed an image on the canvas.
+## Present every result
 
-From an external URL:
+After the final canvas action, look up the mockup sandbox's artifact ID with `listArtifacts()` and call `presentArtifact` with **all created or modified shape IDs**. This is how the user navigates to the work; never skip it or ask whether they want to see it.
 
 ```javascript
-await applyCanvasActions({ actions: [
-  {
-    type: "create",
-    shapeId: "hero-image",
-    shape: {
-      type: "image",
-      x: 0, y: 0, w: 800, h: 600,
-      src: "https://example.com/hero.png",
-      altText: "Hero banner image"
-    }
-  }
-] });
+const { artifacts } = await listArtifacts();
+const mockupArtifact = artifacts.find(a => a.artifactDir === "artifacts/mockup-sandbox");
+await presentArtifact({ artifactId: mockupArtifact.artifactId, shapeIds: ["app-preview"] });
 ```
 
-From a local file (copy to `.canvas/assets/`, resolve domain, use port 5904):
+Batch related changes, label iframes with source path and display name, and use `focusArea` for detail on large boards.
 
-```javascript
-// First, in a shell: mkdir -p .canvas/assets && cp assets/hero.png .canvas/assets/hero.png
-// Then resolve domain: echo $REPLIT_DOMAINS  (e.g. abc123.replit.dev)
+## Error codes
 
-await applyCanvasActions({ actions: [
-  {
-    type: "create",
-    shapeId: "hero-image",
-    shape: {
-      type: "image",
-      x: 0, y: 0, w: 800, h: 600,
-      src: "https://<resolved-domain>:5904/hero.png",
-      altText: "Hero banner image"
-    }
-  }
-] });
-```
+- `SHAPE_NOT_FOUND`: nonexistent ID.
+- `UNSUPPORTED_SHAPE_TYPE`: invalid type.
+- `INVALID_PROPS`: invalid properties, such as a non-HTTPS iframe URL.
+- `VALIDATION_FAILED`: duplicate shape ID.
+- `INSUFFICIENT_SHAPES`: too few shapes for alignment/distribution.
 
-### Align and Distribute Shapes
+## Iframe sizing
 
-Prefer `create-auto` for new iframes that just need automatic placement. Use `align` (2+ shapes) and `distribute` (3+ shapes) for manual placement or cleanup.
+Fit the content: small cards/forms should not float in huge frames, and full pages need a proper viewport. Center small components with `flex items-center justify-center min-h-screen`.
 
-**When to use:**
+| Content | Width × height |
+| --- | --- |
+| Card/form, example snug frame | 400 × 500 |
+| Desktop full-page mockup, scrollable | 1280 × 900 |
+| Full page, screenshot-style review | 1280 × 2400 |
+| Multi-page desktop app | 1280 × 800 |
+| Mobile app/comparison | 390 × 844 |
+| Tablet comparison | 768 × 1024 |
+| Desktop comparison | 1280 × 720 |
 
-- New iframes that just need automatic placement -- use one `create-auto` action to place them together and avoid existing shapes.
-- Row or column of 3+ non-iframe items you are placing together (cards, thumbnails) -- `align` one axis, `distribute` the other.
-- Pair of shapes you are placing together and want to share an edge (e.g. before/after side-by-side) -- `align` only; do not `distribute` 2 shapes.
-- Cleaning up a group of shapes the user already placed and explicitly asked to be lined up -- all of them will move.
-
-**When NOT to use:** to place a new shape next to existing user content without moving that content, do not pass the existing shape into `align` -- `align` moves every shape in `shapeIds`. Read the anchor's position with `getCanvasState`, then compute the new shape's coordinates from the anchor: share the aligned axis (e.g. `y: anchor.y` for tops) and offset the other by `anchor.x + anchor.w + gap` (or `anchor.y + anchor.h + gap`) -- keep the `anchor.x`/`anchor.y` term so the new shape lands beside the anchor, not at the origin.
-
-**Rule of thumb (3+ iframe placeholders):** if you're chaining `x3 = x2 + w + gutter`, `x4 = x3 + w + gutter`, stop -- use `create-auto`. For manual non-iframe placement, place shapes at approximate positions and line them up with `align`/`distribute` in the same batch. `align` modes: `left` snaps all shapes to the leftmost x; `right` to the max right edge; `top` to the minimum y; `bottom` to the max bottom edge; `center-horizontal`/`center-vertical` snap to the mean center.
-
-Recipe: three mockup iframes:
-
-```javascript
-await applyCanvasActions({ actions: [
-  {
-    type: "create-auto",
-    shapeIds: ["minimal", "bold", "playful"],
-    names: ["Minimal", "Bold", "Playful"],
-    shape: { type: "iframe", w: 1280, h: 900, state: "building" }
-  }
-] });
-```
-
-Recipe: column of cards -- align left, distribute vertically:
-
-```javascript
-await applyCanvasActions({ actions: [
-  { type: "align",      shapeIds: ["card-1", "card-2", "card-3", "card-4"], alignment: "left" },
-  { type: "distribute", shapeIds: ["card-1", "card-2", "card-3", "card-4"], direction: "vertical" }
-] });
-```
-
-Recipe: annotate an existing shape without moving it. Search both `focusedShapes` and `blurryShapes`; on a large board the anchor can be omitted from both (overflow lands in `peripheralClusters`, which has no per-shape data), so re-query with `focusArea`. Do NOT pass the anchor into `align`, that would move it:
-
-```javascript
-const find = (s) => s.shapeId === "pricing-card";
-const locate = (st) => st.focusedShapes.find(find) ?? st.blurryShapes.find(find);
-let card = locate(await getCanvasState());
-if (!card) card = locate(await getCanvasState({ focusArea: { x: 1800, y: 100, w: 600, h: 400 } }));
-if (!card) throw new Error("pricing-card not on canvas");
-await applyCanvasActions({ actions: [
-  { type: "create", shapeId: "pricing-label", shape: { type: "text", x: card.x + card.w + 40, y: card.y, w: 240, h: 40, text: "Pricing card v2" } }
-] });
-```
-
-Do not follow `align`/`distribute` with a manual `move` on any of the same shapes in the same batch -- it undoes the alignment. To rigidly translate a laid-out row or column (preserving gutters), read current positions via `getCanvasState` and issue one `move` per shape with the same delta applied. Re-running `align`/`distribute` recomputes the layout from scratch, not a translation.
-
-## Focusing the Viewport: `focusCanvasShapes`
-
-Pan and zoom the user's canvas viewport to center on specific shapes. **Only call after the user asks to see your work** -- don't auto-focus after creating or updating shapes. Finish your work and ask the user if they'd like to see it. Moving the viewport while the user is working is disorienting.
-
-**Exception:** the `mockup-sandbox` skill overrides this when `getCanvasState` returns zero shapes -- focus on the just-placed placeholders so the user sees them appear. Once any shape exists, the default rule above applies.
-
-## Iframe Rules & Gotchas
-
-- **Use `state` for lifecycle** -- Set `"building"` on create (URL optional), `"modifying"` before edits, `"live"` when ready (URL required).
-- **Design frames need `suggestedActions` to go `"live"`** -- whoever flips a design/mockup frame to `"live"` attaches 3 in that same update; a live design frame without them is a bug. Live app/artifact embeds are exempt.
-- **Exploring a suggestion creates a new frame** -- acting on a clicked suggested action (or any "iterate on this frame" / "what else could this be?" request) creates a NEW frame beside the source; never overwrite the source frame's `url`/contents in place. In-place `update` is only for explicit "modify this frame" requests.
-- **Never delete a building frame you didn't create** -- a prior-turn `state: "building"` iframe is a reserved slot for pending work; fill it or leave it. Only delete building placeholders you created this turn.
-- **URL must be `https`** -- `http` and `about:blank` are rejected.
-- **Resolve the domain first** -- run `echo $REPLIT_DOMAINS` in the shell, then build the URL from the result. Never pass a literal template string as the URL.
-- **Non-mockup port rules:** no port suffix = port 5000 (main app). For other servers, append `:<port>`.
-- **External sites may block embedding** -- sites with `X-Frame-Options: DENY` or restrictive CSP headers will show a blank iframe. Replit dev URLs work fine.
-- **Never embed the main app URL for component previews** -- the main app URL shows the entire app with navigation, layout, and routing -- not an isolated component. Use the **mockup-sandbox** skill to set up a preview server. Follow that skill for every mockup component path and preview URL rather than constructing one from these generic iframe rules.
-
-## Typical Workflow
-
-1. Use `create-auto` for new iframes that just need automatic placement, or call `getCanvasState()` before manual coordinate changes.
-2. For manual changes, use the `summary` and `focusedShapes` to understand positions and IDs.
-3. Call `applyCanvasActions` with a batch of changes.
-4. **CRITICAL -- Present the result.** After your final canvas action, bind the mockup sandbox artifact ID from `listArtifacts()`, then call `presentArtifact({ artifactId: mockupArtifact.artifactId, shapeIds: [...] })` with the IDs of all shapes you created or modified. This is how the user finds your work -- without it, they cannot navigate to the shapes. Do NOT skip this step. Do NOT ask the user if they want to focus -- just present.
-
-## Error Codes
-
-- `SHAPE_NOT_FOUND` -- Shape ID doesn't exist.
-- `UNSUPPORTED_SHAPE_TYPE` -- Invalid shape type.
-- `INVALID_PROPS` -- Bad property values (e.g., non-https iframe URL).
-- `VALIDATION_FAILED` -- Shape with that ID already exists.
-- `INSUFFICIENT_SHAPES` -- Not enough shapes for align/distribute.
-
-## Best Practices
-
-1. **Read before manual placement** -- Call `getCanvasState` before layout-sensitive x/y changes. For new iframes that just need automatic placement, use `create-auto`.
-2. **Set shapeId on create** -- So you can reference, update, or delete the shape later.
-3. **Always call `presentArtifact` after canvas work.** After creating or modifying shapes, pass all affected shape IDs to `presentArtifact`. Never skip this. Never ask the user if they want to see the shapes. Do NOT call `focusCanvasShapes` as a separate step (except for the narrow first-build mockup exception above).
-4. **Batch actions** -- Group related changes in one `applyCanvasActions` call.
-5. **Use https URLs** -- Iframe shapes reject http URLs.
-6. **Label iframes** -- Set `componentPath` and `componentName` so users can identify embedded content.
-7. **Use `focusArea`** -- For large boards, pass a region to `getCanvasState` to get detail where you need it.
-8. **Prefer `create-auto` or `align`/`distribute` over manual coordinates** -- For new iframes that just need automatic placement, use one `create-auto` action. For manual rows or columns of 3+ shapes, add `distribute` so you don't hand-compute gutters. `align` repositions every shape in `shapeIds` (no anchor), so only pass shapes you actually want moved. To place a new shape next to existing user content, read the anchor's position with `getCanvasState` and create beside it. Do not pass the anchor into `align`.
-
-### Iframe Sizing
-
-Size the iframe to fit the content -- don't put small components in huge iframes (they look lost in whitespace) and don't put full pages in tiny ones.
-
-**Content-aware defaults:**
-
-- **Cards, forms, small components:** Use a snug frame that fits the content (e.g. 400 x 500 for a card). Center the component in the page with `flex items-center justify-center min-h-screen`.
-- **Full-page mockups (desktop):** 1280 x 900 -- shows hero + start of next section, user scrolls within the iframe.
-- **Full-page mockups (full view):** 1280 x 2400 -- shows entire page without scrolling (screenshot-style review).
-- **Multi-page app (desktop):** 1280 x 800 -- standard app viewport.
-- **Multi-page app (mobile):** 390 x 844 -- iPhone viewport.
-
-**Responsive comparison presets** -- when showing the same component at multiple screen widths, place the iframes at approximate positions then `align` their tops and `distribute` horizontally (see "Align and Distribute Shapes"):
-
-- Mobile: 390 x 844
-- Tablet: 768 x 1024
-- Desktop: 1280 x 720
+For responsive comparisons of the same component, place frames approximately, align tops, and distribute horizontally as in the layout reference.

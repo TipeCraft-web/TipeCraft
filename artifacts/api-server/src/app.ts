@@ -39,6 +39,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public"))); 
+app.get("/api/multiplayer", (_req, res) => {
+  res.status(200).json({ status: "signaling-ready" });
+});
 app.use("/api", router);
 // Sende die Sitemap direkt als Text, unabhängig von der Ordnerstruktur
 app.get("/sitemap.xml", (req, res) => {

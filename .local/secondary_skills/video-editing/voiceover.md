@@ -25,13 +25,13 @@ ElevenLabs is available as a Replit connector. Set it up through the integration
 
 // In the code execution sandbox:
 
-const results = await searchIntegrations({ mode: "search", queries: ["elevenlabs"] });
+const results = await searchIntegrations({ query: ["elevenlabs"] });
 
 console.log(results);
 
 ```
 
-Follow the returned status and exact ID: use `added` directly, call `addIntegration` for `not_added`, or call `ProposeIntegration` for `not_setup` or `requires_setup`. An accepted proposal is already attached, so do not call `addIntegration` afterward.
+Use the exact `handle` it returns and follow its `status`: `ready` is usable now; `connect` with a note means do what the note says; `connect` with no note means call `ProposeIntegration` with the handle. An accepted proposal is already attached, so do not call `addIntegration` afterward.
 
 ### 2. Access Credentials
 

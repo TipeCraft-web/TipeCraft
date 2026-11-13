@@ -10,7 +10,9 @@ interface HUDProps {
   counts: Record<number, number>;
   selectedSlot: number;
   pos: { x: number; y: number; z: number };
+  thirdPerson: boolean;
   onSlotSelect: (i: number) => void;
+  onToggleThirdPerson: () => void;
 }
 
 function colorStyle(type: BlockType): string {
@@ -78,7 +80,10 @@ function StatusIcons({ val, max, kind }: { val: number; max: number; kind: 'heal
   );
 }
 
-export default function HUD({ mode, health, hunger, hotbar, counts, selectedSlot, pos, onSlotSelect }: HUDProps) {
+export default function HUD({
+  mode, health, hunger, hotbar, counts, selectedSlot, pos,
+  thirdPerson, onSlotSelect, onToggleThirdPerson,
+}: HUDProps) {
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 10,
@@ -107,6 +112,24 @@ export default function HUD({ mode, health, hunger, hotbar, counts, selectedSlot
           X:{Math.floor(pos.x)} Y:{Math.floor(pos.y)} Z:{Math.floor(pos.z)}
         </div>
       </div>
+
+      <button
+        type="button"
+        data-touch-btn="1"
+        aria-label={thirdPerson ? 'Zur Ego-Perspektive wechseln' : 'Zur Third-Person-Perspektive wechseln'}
+        aria-pressed={thirdPerson}
+        onTouchStart={event => { event.stopPropagation(); event.preventDefault(); onToggleThirdPerson(); }}
+        onClick={onToggleThirdPerson}
+        style={{
+          position:'absolute', top:40, left:10, pointerEvents:'auto',
+          padding:'5px 8px', borderRadius:5,
+          border:'1px solid rgba(210,240,210,0.8)',
+          background:thirdPerson ? 'rgba(54,132,62,0.92)' : 'rgba(20,25,24,0.78)',
+          color:'#fff', font:'bold 10px "Courier New", monospace',
+          letterSpacing:0.5, cursor:'pointer', touchAction:'manipulation',
+          boxShadow:'0 2px 5px rgba(0,0,0,0.5)',
+        }}
+      >{thirdPerson ? '3RD PERSON' : '1ST PERSON'}</button>
 
       {/* Minecraft-style status row above the experience bar */}
       {mode === 'SURVIVAL' && (

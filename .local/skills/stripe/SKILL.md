@@ -5,6 +5,8 @@ description: Guidelines for using Stripe to integrate payments in mobile apps an
 
 ## Read the monetization skill first
 
+For Stripe Atlas, company formation, or legal business registration, use the `business-formation` skill instead. That workflow uses Stripe MCP and does not require this payment integration.
+
 Before using anything in this skill, read the `monetization` skill and follow its routing instructions. It is the single source of truth for choosing a payment provider on Replit. Only continue with this Stripe skill once the monetization skill has confirmed that Stripe is the right provider (either because the user explicitly named Stripe, the project already has Stripe wired up, or the routing question resolved to Stripe).
 
 ## Introduction

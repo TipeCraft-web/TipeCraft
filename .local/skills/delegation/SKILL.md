@@ -157,6 +157,8 @@ console.log(auth.text);
 // Note: Use `Promise.all` / `Promise.race` only when this turn needs the subagent results before continuing.
 ```
 
+A per-agent limit caps how many subagents run at once; calls past it fail until one finishes, and the error states the limit. For more independent tasks than that, run them in batches and await each batch, or give each subagent several related tasks.
+
 ### Asynchronous Usage (Background Subagent)
 
 ```js
@@ -172,7 +174,7 @@ Background subagents are for parallelism while the main agent has other independ
 ## Best Practices
 
 1. Delegate only work that can proceed independently.
-2. Include the exact files, constraints, and relevant skill names in the `task`.
+2. Include the exact files, constraints, and relevant skill names in the `task`. When tasks share code, build the shared piece first or name its owner in each brief.
 3. Use `Promise.all` / `Promise.race` only when this turn needs the subagent results before continuing.
 4. Use background subagents only when you have independent work to do before joining them.
 5. Wait for or cancel every relevant background subagent before finalizing user-facing work.

@@ -3,15 +3,18 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useKeyboardControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Controls } from './Game';
-import { worldManager, CHUNK_SIZE, WORLD_MIN_Y } from './worldGen';
+import { worldManager, CHUNK_SIZE, WORLD_MIN_Y, WORLD_BORDER_LIMIT } from './worldGen';
 import {
   BlockType, isSolid, canHarvestBlockWithTool, getBlockDrop,
+  getBlockHardness, getMiningSpeedMultiplier,
   getSwordDamage, isPlaceableBlock,
 } from './blocks';
 import { raycastMobs, damageMob } from './mobSystem';
 import { damageAnimal, raycastAnimals } from './Animals';
 import type { TouchState } from './TouchControls';
 import type { BreakingState } from './World';
+import { playBlockBreakSound, primeBlockAudio } from './blockSounds';
+import PlayerAvatar from './PlayerAvatar';
 
 const SPEED          = 5;
 const CREATIVE_SPEED = 8;
@@ -23,7 +26,6 @@ const PLAYER_W       = 0.58;
 const EYE_H          = 1.6;
 const MAX_REACH_CREATIVE = 6;
 const MAX_REACH_SURVIVAL = 4;
-const BREAK_TIME_MS  = 900;
 
 interface PlayerProps {
   mode:           'CREATIVE' | 'SURVIVAL';
@@ -33,6 +35,7 @@ interface PlayerProps {
     health: number; hunger: number;
     hotbar: BlockType[]; selectedSlot: number;
     pos: THREE.Vector3;
+    yaw: number;
   }) => void;
   touchRef:       React.MutableRefObject<TouchState>;
   breakingRef:    React.MutableRefObject<BreakingState>;
@@ -41,10 +44,12 @@ interface PlayerProps {
   canPlace:       (type: BlockType) => boolean;
   onBlockBreak:   (type: BlockType, position: THREE.Vector3) => void;
   onBlockPlace:   (type: BlockType) => void;
+  onWorldBlockChange?: (x: number, y: number, z: number, blockType: BlockType) => void;
   onChestOpen?:    (x: number, y: number, z: number) => void;
   onCraftingTableOpen?: (x: number, y: number, z: number) => void;
   onFurnaceOpen?: (x: number, y: number, z: number) => void;
   worldBorderEnabled?: boolean;
+  thirdPerson?: boolean;
   isDead?:         boolean;
   respawnTrigger?: number;
   tpRef:           React.MutableRefObject<{ x: number; y: number; z: number } | null>;
@@ -90,8 +95,9 @@ export default function Player({
   mode, setMode, playerChunkRef, onStateChange,
   touchRef, externalSlot, externalHotbar,
   breakingRef,
-  canPlace, onBlockBreak, onBlockPlace, onChestOpen, onCraftingTableOpen, onFurnaceOpen,
+  canPlace, onBlockBreak, onBlockPlace, onWorldBlockChange, onChestOpen, onCraftingTableOpen, onFurnaceOpen,
   worldBorderEnabled = true,
+  thirdPerson = false,
   isDead = false, respawnTrigger = 0, tpRef, pendingMobDamageRef,
 }: PlayerProps) {
   const { camera, gl } = useThree();
@@ -121,7 +127,11 @@ export default function Player({
   const tmpPos       = useRef(new THREE.Vector3());
   const lastHit      = useRef(0);
   const prevToggle   = useRef(false);
+  const prevTouchFlight = useRef(false);
   const isDeadRef    = useRef(isDead);
+  const avatarRef    = useRef<THREE.Group | null>(null);
+  const cameraForward = useRef(new THREE.Vector3());
+  const cameraBackward = useRef(new THREE.Vector3());
 
   useEffect(() => { isDeadRef.current = isDead; }, [isDead]);
 
@@ -158,8 +168,13 @@ export default function Player({
   useEffect(() => {
     const el = gl.domElement;
     const lock = () => { if (document.pointerLockElement !== el && !isDeadRef.current) el.requestPointerLock?.(); };
+    const primeAudio = () => primeBlockAudio();
     el.addEventListener('click', lock);
-    return () => el.removeEventListener('click', lock);
+    window.addEventListener('pointerdown', primeAudio);
+    return () => {
+      el.removeEventListener('click', lock);
+      window.removeEventListener('pointerdown', primeAudio);
+    };
   }, [gl.domElement]);
 
   useEffect(() => {
@@ -229,6 +244,10 @@ export default function Player({
     const t  = touchRef.current;
     const locked  = document.pointerLockElement === gl.domElement;
     const curMode = modeRef.current;
+    if (t.toggleFlight && !prevTouchFlight.current && curMode === 'CREATIVE') {
+      flying.current = !flying.current;
+    }
+    prevTouchFlight.current = t.toggleFlight;
 
     const pendingDamage = pendingMobDamageRef.current;
     if (pendingDamage > 0) {
@@ -313,7 +332,7 @@ export default function Player({
     if (!collidesAt(tmpPos.current)) p.z = tmpPos.current.z; else v.z = 0;
 
     if (worldBorderEnabled) {
-      const border = 1_048_576 - PLAYER_W / 2;
+      const border = WORLD_BORDER_LIMIT - PLAYER_W / 2;
       if (p.x > border) { p.x = border; if (v.x > 0) v.x = 0; }
       if (p.x < -border) { p.x = -border; if (v.x < 0) v.x = 0; }
       if (p.z > border) { p.z = border; if (v.z > 0) v.z = 0; }
@@ -330,6 +349,23 @@ export default function Player({
     camera.rotation.x = pitch.current;
     eyePos.current.set(p.x, p.y + EYE_H, p.z);
     camera.position.copy(eyePos.current);
+    cameraForward.current.set(
+      -Math.sin(yaw.current) * Math.cos(pitch.current),
+      Math.sin(pitch.current),
+      -Math.cos(yaw.current) * Math.cos(pitch.current),
+    ).normalize();
+    if (thirdPerson) {
+      cameraBackward.current.copy(cameraForward.current).negate();
+      const obstruction = castRay(eyePos.current, cameraBackward.current, 4);
+      const cameraDistance = obstruction.hit ? Math.max(0.45, obstruction.dist - 0.25) : 4;
+      camera.position.addScaledVector(cameraBackward.current, cameraDistance);
+      camera.position.y += 0.35;
+    }
+    if (avatarRef.current) {
+      avatarRef.current.visible = thirdPerson;
+      avatarRef.current.position.set(p.x, p.y, p.z);
+      avatarRef.current.rotation.y = yaw.current;
+    }
     playerChunkRef.current = { x: Math.floor(p.x / CHUNK_SIZE), z: Math.floor(p.z / CHUNK_SIZE) };
 
     const doBreak = lmbDown.current || t.doBreak;
@@ -375,7 +411,12 @@ export default function Player({
           if (curMode === 'CREATIVE') {
             breakingRef.current.active = false;
             if (now - breakStart.current > 200) {
-              worldManager.setBlock(hp.x, hp.y, hp.z, BlockType.AIR);
+              const blockType = worldManager.getBlock(hp.x, hp.y, hp.z);
+              if (blockType !== BlockType.AIR) {
+                playBlockBreakSound(blockType);
+                worldManager.setBlock(hp.x, hp.y, hp.z, BlockType.AIR);
+                onWorldBlockChange?.(hp.x, hp.y, hp.z, BlockType.AIR);
+              }
               breakStart.current = now;
             }
           } else {
@@ -392,22 +433,28 @@ export default function Player({
               }
 
               const target = breakPos.current;
+              const blockType = target
+                ? worldManager.getBlock(target.x, target.y, target.z)
+                : BlockType.AIR;
+              const heldItem = hotbar.current[slot.current] ?? BlockType.AIR;
+              const breakDuration = getBlockHardness(blockType) * 1_000 /
+                getMiningSpeedMultiplier(blockType, heldItem);
+              const elapsed = now - breakStart.current;
               if (target && ray.normal) {
                 breakingRef.current.active = true;
                 breakingRef.current.x = target.x;
                 breakingRef.current.y = target.y;
                 breakingRef.current.z = target.z;
-                breakingRef.current.nx = ray.normal.x;
-                breakingRef.current.ny = ray.normal.y;
-                breakingRef.current.nz = ray.normal.z;
-                breakingRef.current.progress = Math.min(1, Math.max(0, (now - breakStart.current) / BREAK_TIME_MS));
+                breakingRef.current.progress = Number.isFinite(breakDuration)
+                  ? Math.min(1, Math.max(0, elapsed / Math.max(1, breakDuration)))
+                  : 0;
               }
 
-              if (now - breakStart.current >= BREAK_TIME_MS && target) {
-                const blockType = worldManager.getBlock(target.x, target.y, target.z);
+              if (elapsed >= breakDuration && target && blockType !== BlockType.AIR) {
+                playBlockBreakSound(blockType);
                 worldManager.setBlock(target.x, target.y, target.z, BlockType.AIR);
-                const heldItem = hotbar.current[slot.current] ?? BlockType.AIR;
-                if (blockType !== BlockType.AIR && canHarvestBlockWithTool(blockType, heldItem)) {
+                onWorldBlockChange?.(target.x, target.y, target.z, BlockType.AIR);
+                if (canHarvestBlockWithTool(blockType, heldItem)) {
                   onBlockBreak(getBlockDrop(blockType), new THREE.Vector3(target.x + 0.5, target.y + 0.5, target.z + 0.5));
                 }
                 breakPos.current = null; breakStart.current = 0;
@@ -450,6 +497,7 @@ export default function Player({
                             && pp.z >= Math.floor(p.z-hw)   && pp.z <= Math.floor(p.z+hw-0.001);
                 if (!inside) {
                   worldManager.setBlock(pp.x, pp.y, pp.z, blk);
+                  onWorldBlockChange?.(pp.x, pp.y, pp.z, blk);
                   lastPlace.current = now;
                   if (curMode === 'SURVIVAL') onBlockPlace(blk);
                 }
@@ -467,9 +515,16 @@ export default function Player({
     if (stateT.current > 0.1) {
       stateT.current = 0;
       if (curMode === 'SURVIVAL') hunger.current = Math.max(0, hunger.current - 0.002);
-      onStateChange({ health: health.current, hunger: hunger.current, hotbar: hotbar.current, selectedSlot: slot.current, pos: p.clone() });
+      onStateChange({
+        health: health.current,
+        hunger: hunger.current,
+        hotbar: hotbar.current,
+        selectedSlot: slot.current,
+        pos: p.clone(),
+        yaw: yaw.current,
+      });
     }
   });
 
-  return null;
+  return <PlayerAvatar groupRef={avatarRef} />;
 }

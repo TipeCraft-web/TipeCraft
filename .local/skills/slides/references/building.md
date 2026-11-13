@@ -1,1 +1,1 @@
-The build reference for this deck is `./sdm-building.md`; read it together with `./sdm-principles.md`.
+The build reference for this deck is `./legacy-building.md`; read it together with `./design-principles.md`.

@@ -15,11 +15,11 @@ Goal: get a campaign live for the user's project with as few questions as possib
 - Designing static ad images or banners: use `.local/secondary_skills/ad-creative/SKILL.md`.
 - Organic TikTok posts or captions with no ad spend: use `.local/secondary_skills/content-machine/SKILL.md`.
 - Planning a video the user will film themselves: use `.local/secondary_skills/storyboard/SKILL.md`.
-- Ads on other channels: not supported yet. Say so and offer TikTok.
+- Google Ads: use `.local/secondary_skills/google-ads/SKILL.md`; it checks actual capabilities and may provide preparation only. For other channels, use `.local/secondary_skills/ads/SKILL.md` rather than promising support.
 
 ## Before you start
-- **The connection's skill file:** the TikTok Ads row in the integrations list has a `ref` with the path to its generated skill file. Read that exact path. Never build the path yourself (for example `.local/mcp_skills/tiktok_ads/SKILL.md`); the folder is named after the connection handle, so a guessed path will not exist. If the row has no `ref` yet, call the tools directly using `toolList` / `toolGet`.
-- **Connection:** if `mcpTikTokAds_*` tools are callable, use them directly. Otherwise follow the curated MCP flow in `.local/skills/integrations/SKILL.md`: call `searchIntegrations({ mode: "list" })` once and keep only results whose `mcpProviderId` matches TikTok Ads. One matching `connection:<id>`: follow its status (`not_added` → `addIntegration`). Several: ask the user which account to use. None: call `ProposeIntegration` with the TikTok Ads `mcp:<provider>` id as the only candidate.
+- **The connection's skill file:** `.local/integration_skills/<handle>/SKILL.md`, with the handle from `searchIntegrations`.
+- **Connection:** if `mcpTikTokAds_*` tools are callable, use them directly. Otherwise call `searchIntegrations({ connected: true })` once and keep every TikTok Ads row. One: a `ready` row is usable now, and a `connect` row's note says what to do. Several: ask the user which account to use. None: call `searchIntegrations({ query: "TikTok Ads" })` and call `ProposeIntegration` with the TikTok Ads MCP row's handle as the only candidate.
 - **Ad brief:** if you were handed an approved ad brief (from `.local/secondary_skills/ads/SKILL.md`), use it and don't re-ask anything in it. Otherwise, build one from the project's code, content, and deployment (that skill's Step 1 has the full checklist):
   - **Product:** what's sold, main products, and price range
   - **Customer:** who it's for, plus main country and language

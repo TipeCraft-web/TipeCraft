@@ -31,7 +31,7 @@ Adapt for the repl's package manager if needed (`uv add pymupdf`, etc.).
 
 ## What You Must Do
 
-After reading this skill, you must immediately write and run Python scripts using PyMuPDF (`import fitz`) to visually process the PDF. Do not skip this — the extracted text shown earlier cannot capture images, charts, layout, or design.
+For text-only questions, use the extracted text when it is usable. If extraction failed or returned incomplete text, use PyMuPDF to extract the needed pages or render scans. For visual questions, render and inspect the pages: extracted text cannot show images, charts, or layout.
 
 1. `pip install pymupdf` and `mkdir -p .agents/scripts .agents/outputs`
 2. Write a script to `.agents/scripts/` that renders PDF pages to PNG images, then run it

@@ -222,6 +222,10 @@ awk 'NR>1 && $2-prev>=6 {print $1} {prev=$2}' /tmp/rms.txt   # onset times in se
 
 `/tmp/rms.txt` is time (s) and RMS level (dB) per 50 ms window; a jump of 6 dB or more between neighbours is an onset. For each accent in the spec, take the nearest onset and move the scripted cut onto it by shifting time between the two adjacent shots (the total must not change). If the track has no usable onset near an important cut, delete the rejected file (`rm public/audio/bg_music.mp3`) and regenerate once with a sharper prompt before you rescript around it. The callback never replaces a file that exists: with the old `bg_music.mp3` still on disk it saves `bg_music_2.mp3`, and this recipe and the `<audio>` element keep measuring and playing the rejected track. Update `SCRIPT.md` with the final cut times so the scenes are built to them.
 
+## Runtime lock
+
+The script fixes the runtime and the bed is generated to match it, so once the bed exists the total is locked. Re-pace by moving seconds between shots (shorten the opener, lengthen the product shot) and keep the sum constant. Regenerate music only when the total genuinely must change; delete the old file first (the callback never overwrites; it saves `bg_music_2.mp3` beside it), then re-verify the per-scene seek table. Recompute `SCENE_START_SEC` from `SCENE_DURATIONS`; never hand-maintain both.
+
 ## Multi-layer export parity
 
 If the mix includes voiceover or SFX, pre-mix all layers into one `public/audio/composite_audio.mp3` with `ffmpeg` before wiring playback. Per-scene `<audio src>` swaps can drift in recorded exports.

@@ -1,22 +1,5 @@
 # PPTX Import -- Full Workflow
 
-## Select the import workflow
-
-Inspect the callback result before you use a workflow:
-
-- If the result contains `importCapabilityVersion: 1`, use the direct SDM instructions below. Do not use the legacy staging instructions.
-- If the result contains `stagingDir`, direct SDM import is unavailable or the existing artifact is JSX-only. Use the legacy JSX staging instructions below.
-- If `success` is `false`, report the failure. Do not retry through JSX.
-
-## Direct SDM import
-
-The successful import already wrote validated document-version-1 files under `src/data/slides/`. It also wrote assets under a unique `public/assets/imported-<id>/` directory and appended the SDM manifest entries.
-
-Do not copy or normalize the files. Do not replace the manifest or create JSX wrappers. Run `validate-slides`, inspect the deck, and stop.
-
-## Legacy JSX staging
-
-
 ## How it works
 
 `importPptx` converts the PPTX into React slide components and writes them to a **staging directory** under the workspace root (NOT into the artifact):

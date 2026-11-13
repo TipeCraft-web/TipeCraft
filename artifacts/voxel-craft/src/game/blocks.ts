@@ -544,6 +544,83 @@ const PICKAXE_BLOCKS = new Set<BlockType>([
   BlockType.OBSIDIAN, BlockType.FURNACE, BlockType.ANVIL, BlockType.REINFORCED_DEEPSLATE,
 ]);
 
+const HARDNESS_OVERRIDES: Partial<Record<BlockType, number>> = {
+  [BlockType.BEDROCK]: Infinity,
+  [BlockType.GRASS]: 2,
+  [BlockType.DIRT]: 2,
+  [BlockType.SAND]: 2,
+  [BlockType.GRAVEL]: 2,
+  [BlockType.COARSE_DIRT]: 2,
+  [BlockType.ROOTED_DIRT]: 2,
+  [BlockType.MUD]: 2,
+  [BlockType.PODZOL]: 2,
+  [BlockType.MYCELIUM]: 2,
+  [BlockType.SOUL_SOIL]: 2,
+  [BlockType.SNOW_BLOCK]: 2,
+  [BlockType.CLAY]: 3,
+  [BlockType.WOOD]: 4,
+  [BlockType.OAK_LOG]: 4,
+  [BlockType.BIRCH_LOG]: 4,
+  [BlockType.SPRUCE_LOG]: 4,
+  [BlockType.DARK_OAK_LOG]: 4,
+  [BlockType.JUNGLE_LOG]: 4,
+  [BlockType.ACACIA_LOG]: 4,
+  [BlockType.STRIPPED_OAK_LOG]: 4,
+  [BlockType.BAMBOO_BLOCK]: 4,
+  [BlockType.WARPED_STEM]: 4,
+  [BlockType.CRIMSON_STEM]: 4,
+  [BlockType.PLANKS]: 3,
+  [BlockType.BIRCH_PLANKS]: 3,
+  [BlockType.SPRUCE_PLANKS]: 3,
+  [BlockType.DARK_OAK_PLANKS]: 3,
+  [BlockType.JUNGLE_PLANKS]: 3,
+  [BlockType.ACACIA_PLANKS]: 3,
+  [BlockType.BAMBOO_PLANKS]: 3,
+  [BlockType.WARPED_PLANKS]: 3,
+  [BlockType.CRIMSON_PLANKS]: 3,
+  [BlockType.CRAFTING_TABLE]: 4,
+  [BlockType.CHEST]: 3,
+  [BlockType.STONE]: 10,
+  [BlockType.COBBLESTONE]: 10,
+  [BlockType.COAL_ORE]: 10,
+  [BlockType.IRON_ORE]: 12,
+  [BlockType.GOLD_ORE]: 12,
+  [BlockType.DIAMOND_ORE]: 14,
+  [BlockType.DIAMOND_DEEPSLATE]: 14,
+  [BlockType.EMERALD_ORE]: 14,
+  [BlockType.OBSIDIAN]: 50,
+  [BlockType.REINFORCED_DEEPSLATE]: 100,
+  [BlockType.GLASS]: 1,
+  [BlockType.WHITE_GLASS]: 1,
+  [BlockType.RED_GLASS]: 1,
+  [BlockType.ORANGE_GLASS]: 1,
+  [BlockType.YELLOW_GLASS]: 1,
+  [BlockType.GREEN_GLASS]: 1,
+  [BlockType.BLUE_GLASS]: 1,
+  [BlockType.PURPLE_GLASS]: 1,
+  [BlockType.BLACK_GLASS]: 1,
+};
+
+const PICKAXE_EFFECTIVE_BLOCKS = new Set<BlockType>([
+  ...PICKAXE_BLOCKS,
+  BlockType.COAL_ORE, BlockType.IRON_ORE, BlockType.GOLD_ORE,
+  BlockType.DIAMOND_ORE, BlockType.DIAMOND_DEEPSLATE, BlockType.EMERALD_ORE,
+  BlockType.LAPIS_ORE, BlockType.REDSTONE_ORE, BlockType.COPPER_ORE,
+  BlockType.ANCIENT_DEBRIS, BlockType.GOLD_DEEPSLATE,
+]);
+
+export function getBlockHardness(block: BlockType): number {
+  if (block === BlockType.AIR || block === BlockType.WATER || block === BlockType.LAVA) return 0;
+  return HARDNESS_OVERRIDES[block]
+    ?? (LEAF_BLOCKS.has(block) ? 1 : PICKAXE_BLOCKS.has(block) ? 10 : 4);
+}
+
+export function getMiningSpeedMultiplier(block: BlockType, heldItem: BlockType): number {
+  const tier = pickaxeTier(heldItem);
+  if (tier === 0) return 1;
+  return PICKAXE_EFFECTIVE_BLOCKS.has(block) ? 1 + tier : 1 + tier * 0.1;
+}
+
 export function canHarvestBlockWithTool(block: BlockType, heldItem: BlockType): boolean {
   if (LEAF_BLOCKS.has(block) || block === BlockType.SNOW_BLOCK) return false;
   const requiredTier = HAND_MINED_BLOCKS.has(block)

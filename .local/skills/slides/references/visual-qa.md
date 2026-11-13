@@ -1,1 +1,1 @@
-The visual QA reference for this deck is `./sdm-visual-qa.md`.
+The visual QA reference for this deck is `./legacy-visual-qa.md`.

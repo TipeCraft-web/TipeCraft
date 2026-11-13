@@ -71,45 +71,7 @@ Decompose the topic into distinct, non-overlapping focus areas: 3 for Quick, 5 f
 
 Before launching any subagents, write the research plan to research/notes.md with your file tools. This file is the run's visible spine: the user reads it while subagents work, and Phase 7 drafts the report from it. Only you write to it -- subagents return structured text and you transcribe. Keep entries terse (bullets and [@key] markers, never prose): the notes are the skeleton, the report is the polish, and writing the report twice is the failure mode to avoid. Terse is not cryptic -- the user reads this file, so use plain language over methodology jargon, and labeled lines over run-on paragraphs.
 
-```markdown
-# Research Notes: [Topic]
-
-**Status:** researching | cross-checking | drafting | complete
-**Depth:** [Quick / Standard / Deep]
-
-## Plan
-
-- **Question:** [the research question, one sentence]
-- **Scope:** [what is in and out of scope]
-- **Audience:** [who the report is for]
-- **Deliverable:** [report format and what it must contain]
-
-## Focus Areas
-
-| # | Area | Status | Sources |
-|---|---|---|---|
-| 1 | [Area] | pending | -- |
-
-## Coverage Checklist
-
-- [ ] [Concrete question the report must answer]
-
-## Findings Log
-
-_[@key] markers reference sources in research/sources.json; they become numbered citations in the final report._
-
-### [Area 1]
-
-[filled in as subagent results arrive]
-
-## Conflicts & Open Questions
-
-[conflicting figures, single-source claims still to be cross-checked]
-
-## Gaps
-
-[each gap -> filled by follow-up, or moved to Limitations]
-```
+Write it from the skeleton in `.local/secondary_skills/deep-research/references/notes-template.md`: read that file right before the first write. Its sections are Status and Depth lines, Plan (question, scope, audience, deliverable), a Focus Areas table (area, status, sources), the Coverage Checklist, a Findings Log keyed by [@key] markers, Conflicts & Open Questions, and Gaps.
 
 Immediately after the first write, present the file so the user gets a clickable card in the chat instead of a buried file-edit line:
 
@@ -129,70 +91,9 @@ Update the file at each phase boundary -- after Phase 3 collection, during Phase
 
 ### Phase 3: Parallel Source Discovery via Subagents
 
-Launch all research subagents simultaneously with `subagent(...)` futures inside CodeExecution (see delegation skill). Each subagent gets a specific focus area, tailored search terms, and the structured output template below. The task template is the single source of truth for the webSearch/webFetch call contract -- subagents never see this skill, so every rule they need ships inside the task text. Fill in the brackets and ship it verbatim: paraphrasing away the call-contract lines is how a subagent ends up concluding it has no web tools.
+Launch all research subagents simultaneously with `subagent(...)` futures inside CodeExecution (see delegation skill). Each subagent gets a specific focus area, tailored search terms, and the structured output template. Before writing the tasks, read `.local/secondary_skills/deep-research/references/subagent-task.md` and build every task from it. The task template is the single source of truth for the webSearch/webFetch call contract -- subagents never see this skill, so every rule they need ships inside the task text. Fill in the brackets and ship it verbatim: paraphrasing away the call-contract lines is how a subagent ends up concluding it has no web tools.
 
-#### Subagent task template
-
-```javascript
-const researchTask = `Research FOCUS AREA: [Area Name]
-
-Topic context: [1-2 sentence description of the overall research question]
-
-Your job: Search for information specifically about [focus area]. webSearch and webFetch are pre-registered callbacks in your CodeExecution environment -- call them directly; there is nothing to import, no skill doc to read first, and no Node runtime in the shell. Run at least 4 webSearch queries with different angles:
-
-- [specific search term 1]
-- [specific search term 2]
-- [specific search term 3]
-- [specific search term 4]
-
-Each search is ONE call with this exact shape -- query is a REQUIRED string, and there is no queries parameter:
-
-webSearch({ query: "<one full question>", searchQueries: ["<keyword variant>", "<keyword variant>"] })
-
-Results come back in .resultPages (not .results), each with url, title, and snippet.
-
-Pass every webSearch call a searchQueries list of 2-3 concise keyword variants (3-6 words each) alongside the query — results are noticeably better than with the query alone; query stays required, and searchQueries never replaces it. For time-sensitive topics, check today's date and use the current year in the variants; a year recalled from memory is often stale.
-
-Local language searches: If this topic is specific to a non-English-speaking country or region, run at least 1-2 searches in the local language (e.g., Spanish for Latin America, Portuguese for Brazil, French for Francophone Africa). Primary government data, local media, and industry reports are often only available in the local language.
-
-Source freshness: Note the publication date of every source. Flag any source older than 18 months on a fast-moving topic. For figures that move -- funding, valuations, pricing, versions, market share, leadership -- the first number a search surfaces is often last quarter's: spend one search on recent news for the entity (current month and year in the terms) before reporting such a figure as current, and attach an as-of date to every figure you report.
-
-Run ALL searches before fetching anything, then pick the 2-3 pages worth reading: URLs that surfaced across multiple queries, authoritative domains, specific pages over homepages. Fetches are the scarce resource -- spend them on the best candidates, not the first result. SEO listicles and forum threads (Reddit, Quora) rank well because they are written to rank, not to be right: use them only as leads to the primary sources they cite.
-
-Fetch each chosen page with ONE call carrying this exact shape (the function is webFetch -- there is no fetchPage, fetchWebPage, browse, or fetchUrl):
-
-webFetch({ url, query: "<your focus-area question>", path: "research/sources/[focus-slug]-[NN]-[page-slug].md" })
-
-Pass BOTH query and path on every research fetch. query has a fast model read the FULL fetched page and the result returns its answer in place of raw markdown -- never print or slice page markdown yourself; a slice silently drops everything below the fold. path saves the complete markdown to disk with a provenance header (URL, title, fetch date), and savedTo in the result confirms the save -- saved pages outlive your context and are what makes the report's citations verifiable later. Need something else from a page you already saved? Call webFetch again with a different query, same path.
-
-webFetch THROWS on unfetchable pages (403s, dead links, crawl failures). Wrap calls in try/catch -- use Promise.allSettled for batches so one bad URL does not lose the rest -- and move to a DIFFERENT url from the search results on failure; never re-fetch the same failing URL.
-
-Sources you cite from search snippets alone (without fetching): append each snippet with its URL, title, and date to research/sources/[focus-slug]-snippets.md. Every source you cite needs saved evidence -- the snippet is what the citation gets checked against later, so a claim more specific than its snippet needs the page fetched, or the claim dropped.
-
-Return your findings using this EXACT structure:
-
-## Key Facts
-
-[Bullet list of key data points, each with source URL in parentheses]
-
-## Notable Claims Requiring Cross-Reference
-
-[Claims that seem important but only appear in one source, or that conflict with other findings]
-
-## Source Quality Assessment
-
-[For each source, rate: Tier 1 (government/multilateral/academic), Tier 2 (major publication/industry report), Tier 3 (blog/opinion/promotional). Note publication date.]
-
-## Gaps & Unanswered Questions
-
-[What you could not find or what needs deeper investigation]
-
-## Sources
-
-[Numbered list with title, URL, publication date (if available), tier rating, and the research/sources/ path for fetched pages]
-
-Minimum: 5 distinct sources with URLs`;
-```
+The template makes each subagent run 4+ searches (with local-language searches for non-English regions) before fetching, fetch only the 2-3 best pages with webFetch `query` and a research/sources/ `path`, save snippets for snippet-only citations, and return Key Facts, Notable Claims Requiring Cross-Reference, Source Quality Assessment, Gaps & Unanswered Questions, and Sources (minimum 5 distinct sources).
 
 #### Launch pattern
 
@@ -262,28 +163,7 @@ Review the collected findings for completeness:
 
 **For Deep tier only:** Launch 1-2 targeted follow-up subagents to fill the most critical gaps:
 
-```javascript
-const gapFillTask = `GAP-FILL RESEARCH: [Specific gap identified]
-
-Context: During initial research on [topic], we found insufficient data on [gap].
-
-Your job: Run 3-4 targeted searches to fill this specific gap:
-
-- [targeted search term 1]
-- [targeted search term 2]
-- [targeted search term 3]
-
-Each search is one webSearch({ query: "<one full question>", searchQueries: ["<keyword variant>", "<keyword variant>"] }) call -- query is a REQUIRED string (there is no queries parameter) and results come back in .resultPages. webSearch and webFetch are pre-registered callbacks in your CodeExecution environment; call them directly, nothing to import.
-
-Fetch the 1-2 best pages (picked after all searches complete) with webFetch({ url, query: "<the gap question>", path: "research/sources/gapfill-[NN]-[page-slug].md" }) -- the result returns the answer in place of raw markdown and savedTo confirms the full page is on disk; never print or slice markdown. webFetch throws on unfetchable pages, so try/catch and move to a different URL. Append snippets for sources you cite without fetching to research/sources/gapfill-snippets.md.
-
-Return findings using the same structured template as the initial research, listing the research/sources/ path for each fetched page.`;
-const gapFillResult = await subagent({
-  name: "gap-fill",
-  task: gapFillTask,
-  config: { $kind: "general" },
-});
-```
+**For Deep tier only:** Launch 1-2 targeted follow-up subagents to fill the most critical gaps. Before launching them, read `.local/secondary_skills/deep-research/references/gap-fill.md` for the gap-fill task template and launch call; ship its task text verbatim with the brackets filled in.
 
 ### Phase 6: Critique & Self-Review (Deep tier only)
 
@@ -340,56 +220,7 @@ The draft never contains hand-written citation numbers -- only [@key] markers. A
 
 Save the report to research/[topic].md and present it with its own card: `presentAsset({ filePath: "research/[topic].md", title: "[Research Topic]", description: "..." })`. Then set Status in research/notes.md to complete and leave the file in place -- with research/sources/ it is the run's provenance trail.
 
-```text
-# [Research Topic]
-
-**Research Date:** [Date]
-**Depth:** [Quick / Standard / Deep]
-**Sources Consulted:** [Number]
-
-## Executive Summary
-
-[2-3 paragraph overview of key findings and conclusions. 200-400 words.]
-
-## Background
-
-[Context needed to understand the topic. 200-500 words.]
-
-## Key Findings
-
-### Finding 1: [Theme]
-
-[Detailed prose analysis with inline source citations [N]. 400-1,500 words.
-When a finding compares enumerable things -- eras, phases, options, scenarios, tiers -- carry the comparison in a table with cited rows; prose makes the argument, the table holds the facts:]
-
-| [Dimension] | [Case A] | [Case B] |
-|---|---|---|
-| [Row] | [fact [N]] | [fact [N]] |
-
-### Finding 2: [Theme]
-
-[Same structure. Additional findings as needed -- typically 4-8 for Standard/Deep.]
-
-## Analysis
-
-[Cross-cutting analysis, patterns, implications. Draw connections between
-findings that reveal insights not visible in any single section. 500-1,000 words.]
-
-## Limitations
-
-[What couldn't be determined, data gaps, source constraints, caveats. 100-300 words.]
-
-## Recommendations
-
-[Actionable next steps based on findings. 200-500 words.]
-
-## Sources
-
-[Rendered from the registry, numbered by first appearance in the report]
-
-1. [Title](URL) -- Published [date], Tier [1/2/3]
-2. ...
-```
+Structure the report as in `.local/secondary_skills/deep-research/references/report-format.md`: read it before drafting in Phase 7. It sets the header (Research Date, Depth, Sources Consulted), then Executive Summary, Background, Key Findings (prose with cited comparison tables), Analysis, Limitations, Recommendations, and the rendered Sources list, with a target length for each section.
 
 ## Limitations
 

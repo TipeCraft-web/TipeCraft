@@ -16,9 +16,6 @@ export interface BreakingState {
   x: number;
   y: number;
   z: number;
-  nx: number;
-  ny: number;
-  nz: number;
   progress: number;
 }
 
@@ -183,10 +180,7 @@ export default function World({
     () => Array.from({ length: 10 }, (_, stage) => createCrackTexture(stage)),
     [],
   );
-  const crackGeometry = useMemo(() => new THREE.PlaneGeometry(1.002, 1.002), []);
-  const crackNormal = useMemo(() => new THREE.Vector3(), []);
-  const crackPosition = useMemo(() => new THREE.Vector3(), []);
-  const crackQuaternion = useMemo(() => new THREE.Quaternion(), []);
+  const crackGeometry = useMemo(() => new THREE.BoxGeometry(1.006, 1.006, 1.006), []);
 
   const atlas = getAtlas();
 
@@ -321,12 +315,7 @@ export default function World({
       if (!breaking.active) {
         crackMesh.visible = false;
       } else {
-        crackNormal.set(breaking.nx, breaking.ny, breaking.nz);
-        crackPosition.set(breaking.x + 0.5, breaking.y + 0.5, breaking.z + 0.5)
-          .addScaledVector(crackNormal, 0.507);
-        crackMesh.position.copy(crackPosition);
-        crackQuaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), crackNormal);
-        crackMesh.quaternion.copy(crackQuaternion);
+        crackMesh.position.set(breaking.x + 0.5, breaking.y + 0.5, breaking.z + 0.5);
         crackMesh.visible = true;
 
         const stage = Math.min(9, Math.floor(breaking.progress * 10));
@@ -500,7 +489,7 @@ export default function World({
         <meshBasicMaterial
           ref={crackMaterialRef}
           transparent
-          depthTest={false}
+          depthTest
           depthWrite={false}
           side={THREE.DoubleSide}
           opacity={0.95}

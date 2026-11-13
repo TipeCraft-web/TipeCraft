@@ -1,6 +1,6 @@
 ---
 name: testing
-description: Run automated UI tests against your application using a Playwright-based testing subagent. Most tasks should not use it; skip this skill unless you just made a large change to a critical user journey (sign-in, payments, checkout, a new multi-page flow) that a screenshot, `curl`, or the logs cannot confirm. Each run drives a real browser for several minutes.
+description: Run automated UI tests against your application using a Playwright-based testing subagent. Do not use it unless the user explicitly asked for browser testing, or this work materially changed sign-in, payments or checkout, or data the user could lose in a way a screenshot, `curl`, or the logs cannot confirm. Finishing a feature or a task is not a reason to test. Each run drives a real browser for several minutes.
 ---
 
 # Testing Skill
@@ -18,22 +18,18 @@ See the delegation skill for the subagent callback in general.
 
 ## Cost and Cadence
 
-Only a large change can earn a run; small edits, copy or styling tweaks, and fixes you can confirm yourself never do. A run drives a real browser for several minutes while the user waits. Most changes never need one. Default to not launching; make the change earn it:
+**Default to no tester.** Launch one only when the user explicitly asked for browser testing or end-to-end verification, or when this work materially changed sign-in, payments or checkout, or data the user could lose, and a screenshot, `curl`, or the logs cannot confirm it. Finishing a feature, a task, or a plan step never earns a run by itself. A change to a page behind sign-in outside those flows does not earn one either; if your screenshot cannot reach it, say plainly in your final message that the signed-in UI was not verified.
 
-- **Don't launch a tester for work a tester already covered**: a passing run stays valid until you change the code it exercised. When a run surfaces issues, fix them and trust a confident, straightforward fix — confirm it with one of the cheap checks below. Only if the fix was risky or the failure subtle, `sendFollowup` to the existing tester to re-test just the fixed flow; never repeat the full pass, and never start a second tester for the same unit of work.
-- **Don't launch a tester for anything you can check yourself**: a visual or copy tweak on a page that doesn't require sign-in with your screenshot tool, a backend change with `curl`, a crash fix with the workflow logs.
-- **Do launch one only when the change is significant**: a user journey where a silent failure would be costly -- sign-in, payments, checkout, data the user could lose, a flow the user called out as critical -- materially changed by this work and beyond what a screenshot, a `curl`, or the logs can confirm. Finishing a feature does not clear that bar, and most completed work does not. When a change does, run a single pass over its changed flows; individual edits and plan steps never earn their own run.
-- **Do launch one for a materially changed page behind sign-in**: the screenshot tool's browser is signed out, so on a protected route it only ever shows the login page and cannot confirm your change. The tester can sign in (see the auth sections below, or give it seeded test credentials or an app-side dev sign-in). Keep the run to the protected pages this work changed. If there is no way in, say plainly in your final message that the signed-in UI was not verified.
+- **One pass at most**: when a change qualifies, run a single tester over its changed flows and cover related flows with `sendFollowup` to that tester. Never start a second tester for the same unit of work.
+- **Trust cheap checks after a fix**: when a run surfaces issues, fix them and confirm with a screenshot, `curl`, or the workflow logs. Only if the fix was risky or the failure subtle, `sendFollowup` to the existing tester for just the fixed flow.
+- **A passing run stays valid** until you change the code it exercised.
 
 
 ## When to Use
 
-Changes that clear that bar usually look like one of these:
 
-- A multi-step flow spanning several pages or components, where a failure would be silent rather than obvious in the logs
-- Behavior that only appears once JavaScript runs in a real browser, and that a screenshot cannot settle
-- The user asked for browser verification, or the task's acceptance criteria call for it
-- API testing that involves many steps or interacts with the UI -- include extra context about the API in the message. For simple API checks, use `curl` or standard HTTP clients instead.
+- The user explicitly asked for browser testing or end-to-end verification
+- This work materially changed sign-in, payments or checkout, or data the user could lose, and cheaper checks cannot confirm it
 
 
 Not for:
@@ -67,36 +63,7 @@ A follow-up to a tester that no longer exists (never created, or recycled at cap
 
 Unlike a regular subagent, which returns only `text`, this one also provides `screenshots` and `verdict`.
 
-**Example:**
-
-```javascript
-const loginTestTask = `
-Test the user login flow:
-1. [New Context] Create a new browser context
-2. [Browser] Navigate to the login page (path: /login)
-3. [Browser] Enter "test@example.com" in the email field
-4. [Browser] Enter "password123" in the password field
-5. [Browser] Click the "Sign In" button
-6. [Verify]
-- Assert redirect to the dashboard (path: /dashboard)
-- Assert user name appears in the header
-
-Technical context:
-- Login endpoint: POST /api/auth/login
-- Dashboard route: /dashboard
-- User name displayed in #user-header element
-- Relevant files: client/src/pages/Login.tsx, server/routes/auth.ts
-`;
-const testRun = await subagent({
-    name: "auth-happy-path-test",
-    config: { $kind: "testing" },
-    task: loginTestTask
-});
-
-console.log(testRun.verdict);
-console.log(testRun.text);
-console.log(testRun.screenshots);
-```
+For worked invocation and plan examples, read [Test plan examples](references/test-plan-examples.md) when drafting a login, shopping, API-seeded, or TODO flow, or a session-dependent follow-up.
 
 ## Writing Test Plans
 
@@ -126,28 +93,7 @@ A plan can be plain prose and does not have to be complete. The tester fills sma
 
 Follow up when the tester's earlier context helps -- it is already logged in, has the data it seeded, or has seen the pages in question -- even if the next message covers a different flow of the same work. Start a new tester, under a new name, for unrelated work where that context would only get in the way.
 
-Because the tester keeps its conversation history, follow-ups can reference earlier work directly instead of restating the whole plan:
-
-- "Re-run just the payment step from the checkout test, but with an expired card this time."
-- "What did the cart page look like after step 4? Describe the layout."
-- "Log out of the session you created earlier and verify the cart badge resets to zero."
-- "Was there anything in the browser console or backend logs during the login flow?"
-
-A follow-up that depends on an open page or a logged-in session should account for the browser-state caveat above. Continuing the login-flow example:
-
-```javascript
-const followUp = await sendFollowup({
-    name: "auth-happy-path-test",
-    message: `
-About the login flow you just tested: reload the dashboard and verify the
-session survives the reload (user name still in the header, no redirect to
-/login). If you are no longer logged in, log in again as test@example.com
-first.
-`
-});
-
-console.log(followUp);
-```
+Follow-ups can reference earlier work without restating the plan. If they depend on an open page or logged-in session, account for the browser-state caveat above; see [Test plan examples](references/test-plan-examples.md) for a session-recovery example.
 
 ## Named Testers and Parallel Testing
 
@@ -171,48 +117,6 @@ Other limitations:
 - The testing subagent has a maximum number of steps before it needs to report results
 - Some complex interactions (drag-and-drop, canvas operations) may be challenging
 - If the application is not accessible or crashes, tests will report as "unable"
-
-## Example Test Plans
-
-Test plans can vary in their prescriptiveness and complexity.
-
-```text
-1. [New Context] Create a new browser context
-2. [Browser] Navigate to the product page (path: /products)
-3. [Browser] Click on the first product link (note its id as <product1_id>)
-4. [Verify] Assert redirect to the product page (path: /product/<product1_id>)
-5. [Verify]
-   - Ensure the product title is not too big
-   - Ensure the overall color scheme is consistent with the rest of the page
-   - Assert there are more than one products
-   - Make sure the add to cart button is not hidden behind another element
-   - Assert the product name is "Product 1"
-6. [Browser] For the next dialog, accept the dialog.
-7. [Browser] Click add to cart
-8. [Browser] Click on cart
-9. [Verify] Assert redirect to the cart page (path: /cart)
-10. [Verify] Assert cart has the product displayed
-```
-
-```text
-1. [New Context] Create a new browser context
-2. [API] Create a new product by POST to the /api/products endpoint with a randomly generated product name (remember it as <product_name>), and price 100. Note the name and the id of the created product.
-3. [Browser] Navigate to the product page (path: /products)
-4. [Verify]
-   - Ensure there is at least one product displayed
-   - Assert the product name is "<product_name>"
-   - Assert the product price is 100
-```
-
-```text
-1. [New Context] Create a new browser context
-2. [Browser] Navigate to the homepage (path: /)
-3. [Browser] Enter a TODO list item with a title from nanoid(6) (remember it as <todo_title>) for future use.
-4. [Browser] Click the add todo button
-5. [Verify] Assert that the TODO list item is displayed with the title <todo_title>
-```
-
-
 
 
 ## Database Testing

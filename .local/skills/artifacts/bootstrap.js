@@ -193,11 +193,19 @@ async function main() {
 
   let templateDir;
   if (template !== undefined) {
-    if (artifactType !== 'expo' || template !== 'expo-sdk57') {
+    if (
+      artifactType !== 'expo' ||
+      !['expo-sdk57', 'expo-sdk58'].includes(template)
+    ) {
       writeStderr(`Unsupported template '${template}' for ${artifactType}`);
       process.exit(1);
     }
-    templateDir = path.join(scriptDir, 'artifacts', 'expo/templates/sdk57');
+    templateDir = path.join(
+      scriptDir,
+      'artifacts',
+      'expo/templates',
+      template.replace('expo-', ''),
+    );
   }
 
   const filesDir = path.join(scriptDir, 'artifacts', artifactFilesDir, 'files');

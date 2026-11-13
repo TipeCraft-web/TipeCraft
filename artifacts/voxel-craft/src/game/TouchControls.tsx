@@ -2,25 +2,26 @@ import { useRef, useEffect } from 'react';
 
 export interface TouchState {
   dx: number; dz: number;
-  jump: boolean; doBreak: boolean; doPlace: boolean;
+  jump: boolean; toggleFlight: boolean; doBreak: boolean; doPlace: boolean;
   flyDown: boolean; toggleMode: boolean;
   lookDx: number; lookDy: number;
 }
 
 export function createTouchState(): TouchState {
-  return { dx:0, dz:0, jump:false, doBreak:false, doPlace:false, flyDown:false, toggleMode:false, lookDx:0, lookDy:0 };
+  return { dx:0, dz:0, jump:false, toggleFlight:false, doBreak:false, doPlace:false, flyDown:false, toggleMode:false, lookDx:0, lookDy:0 };
 }
 
 interface Props {
   stateRef: React.MutableRefObject<TouchState>;
   allowModeToggle?: boolean;
+  creativeMode?: boolean;
 }
 
 const RADIUS = 52;
 const LONG_PRESS_MS = 450;
 const ACTION_MOVE_TOLERANCE = 10;
 
-export default function TouchControls({ stateRef, allowModeToggle = true }: Props) {
+export default function TouchControls({ stateRef, allowModeToggle = true, creativeMode = false }: Props) {
   const baseRef    = useRef<HTMLDivElement>(null);
   const thumbRef   = useRef<HTMLDivElement>(null);
   const joyTouchId = useRef<number | null>(null);
@@ -33,6 +34,29 @@ export default function TouchControls({ stateRef, allowModeToggle = true }: Prop
   const actionLong    = useRef(false);
   const actionTimer   = useRef<number | null>(null);
   const placeTimer    = useRef<number | null>(null);
+  const lastJumpTap   = useRef(0);
+  const flightToggleTimer = useRef<number | null>(null);
+
+  const jumpStart = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    stateRef.current.jump = true;
+    const now = performance.now();
+    if (creativeMode && now - lastJumpTap.current <= 350) {
+      stateRef.current.toggleFlight = true;
+      if (flightToggleTimer.current !== null) window.clearTimeout(flightToggleTimer.current);
+      flightToggleTimer.current = window.setTimeout(() => {
+        stateRef.current.toggleFlight = false;
+        flightToggleTimer.current = null;
+      }, 120);
+    }
+    lastJumpTap.current = now;
+  };
+
+  const jumpEnd = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    stateRef.current.jump = false;
+  };
 
   useEffect(() => {
     const base = baseRef.current;
@@ -174,8 +198,9 @@ export default function TouchControls({ stateRef, allowModeToggle = true }: Prop
       document.removeEventListener('touchcancel',docEnd);
       if (actionTimer.current !== null) window.clearTimeout(actionTimer.current);
       if (placeTimer.current !== null) window.clearTimeout(placeTimer.current);
+      if (flightToggleTimer.current !== null) window.clearTimeout(flightToggleTimer.current);
     };
-  }, [stateRef]);
+  }, [stateRef, creativeMode]);
 
   const makeBtn = (label: string, key: keyof TouchState, bg: string, momentary = true) => ({
     onTouchStart: (e: React.TouchEvent) => { e.stopPropagation(); (stateRef.current as any)[key] = true; },
@@ -220,7 +245,18 @@ export default function TouchControls({ stateRef, allowModeToggle = true }: Prop
           pointerEvents:'auto',
         }}
       >
-        <div {...makeBtn('↑ Jump',   'jump',    '#3399ff')} />
+        <div
+          data-touch-btn="1"
+          onTouchStart={jumpStart}
+          onTouchEnd={jumpEnd}
+          onTouchCancel={jumpEnd}
+          style={{
+            width:64, height:50, borderRadius:10, border:'2px solid #3399ff',
+            background:'rgba(51,153,255,0.4)', color:'#fff', fontSize:11, fontWeight:700,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            userSelect:'none', touchAction:'none',
+          }}
+        >↑ Jump</div>
         <div {...makeBtn('↓ Fly Dn', 'flyDown', '#9966ff')} />
       </div>
 

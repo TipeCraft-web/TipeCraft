@@ -1,5 +1,11 @@
 # Deployment Logs Reference
 
+**Prefer the `site-reliability-engineer` skill for runtime investigation.**
+It can scope logs to a specific deployment revision. `fetchDeploymentLogs`,
+documented here, is pinned to the currently serving build — so when a publish
+fails at the promote step it returns the previous build's output, not the
+crashed revision's.
+
 Fetch and analyze deployment logs to debug runtime issues and monitor your deployed application.
 
 ## When to Read This Reference

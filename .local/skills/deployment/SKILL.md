@@ -30,6 +30,21 @@ Use this skill when:
 - You haven't validated that the project works
 - The user is just testing or prototyping
 
+## Runtime Investigation Belongs to the SRE Skill
+
+Anything that needs the app's own runtime output -- it published and is erroring,
+it is slow, it crashed on startup, it never answered the startup probe -- belongs
+to the `site-reliability-engineer` skill. Hand off rather than reading runtime
+logs here.
+
+That skill can scope logs to a specific deployment revision. `fetchDeploymentLogs`
+cannot: it is pinned to the currently serving build, so during a failed promote it
+returns the *previous* build's output and not the crashed revision's.
+
+Build failures stay here -- compilation, dependency install, a non-zero build
+command, run command and `publicDir` configuration. The split is by data source:
+build logs and config here, runtime output there.
+
 ## Reference Documents
 
 This skill has additional reference documents for specific deployment scenarios. Read them as needed:
@@ -113,19 +128,22 @@ When the user wants an external service to call their app -- a webhook sender (S
 
 Always call `getDeploymentInfo()` first and reason from `visibility` and `primaryUrl`:
 
-1. **Use the production URL, never the dev URL.** External services must hit `primaryUrl` (the `*.replit.app` deployment or custom domain), not the workspace `*.replit.dev` development URL. The dev URL is for you while building; it is not a stable public endpoint for third parties. Do NOT read `REPLIT_DOMAINS` to construct a webhook URL -- inside the dev container that variable holds the development domain. If `isDeployed` is `false`, there is no production URL yet: tell the user they need to publish first, and do not fabricate a `*.replit.app` URL.
+1. **Give external services the production URL.** Point them at `primaryUrl` (the `*.replit.app` deployment or custom domain), not the workspace `*.replit.dev` development URL. Development URLs are private by default: they require a signed-in collaborator, so an unauthenticated webhook or CI request is rejected, and the URL can change each time the workspace reopens. Do not read `REPLIT_DOMAINS` to construct a webhook URL -- inside the dev container that variable holds the development domain. If `isDeployed` is `false`, there is no production URL yet: tell the user they need to publish first, and do not fabricate a `*.replit.app` URL.
+
+   If the user wants to test an external connection against the dev URL, recommend a **Development** external access token as the supported way to keep the dev URL private (see step 3). This applies to webhooks, CI jobs, and other automated API callers. A Production token does not work against the dev URL. The Publishing tool exposes token controls only after the first publish with deployment privacy set to **Private**; if the controls are unavailable before publishing, explain that prerequisite and guide the user to publish privately rather than defaulting to disabling **Private preview**. Enterprise policy may prevent making dev URLs public; do not suggest bypassing it. Making a dev URL public is a separate, explicit user decision, not a required step for token-based testing: warn that anyone with the URL can reach the running app and remind the user to restore privacy afterward.
 
 2. **Check privacy before promising it will work.** Read `visibility` from `getDeploymentInfo()`:
    - `"public"` -- anyone on the internet can reach the app. The webhook works with no extra setup.
-   - `"private"` -- only invited collaborators can reach the app. An unauthenticated external caller (a webhook POST, a CI request) will be **rejected** unless they're using and external-access-token. Never tell the user the webhook is configured and working while the deployment is private without addressing access; that is the exact gap that leaves a webhook silently broken.
+   - `"private"` -- only invited collaborators can reach the app without a token. An external caller (a webhook POST, a CI request) will be **rejected** unless it presents a valid external access token. Never tell the user the webhook is configured and working while the deployment is private without addressing access; that is the exact gap that leaves a webhook silently broken.
    - `"password"` -- the URL is gated by a shared password, which most automated callers cannot supply.
 
 3. **For a private app, proactively guide the user to an external access token.** Do not wait for the user to name-drop "external access token," and do not merely call it a "good idea" -- when the deployment is private and an outside service needs in, an external access token is the required mechanism, so say so directly. Explain:
-   - External access tokens are bearer tokens that let an outside service reach a private app. They are available on Core and Pro plans; Enterprise workspaces need Replit to opt them in. Tokens only appear in the ui under adjust settings once the deployment is live and set to private.
+   - External access tokens are bearer tokens that let an outside service reach a private app. The **External access tokens** section appears only after the first publish, once the deployment's privacy is set to **Private**. In Enterprise workspaces, only workspace admins can manage tokens.
    - **Where to create one:** open the **Publishing** tool, select **Adjust settings**, and in the **Security** section find **External access tokens** -- create one there. Choose the **Production** environment for a token that an external service will use against the published app (a **Development** token only works against the `*.replit.dev` dev URL).
    - The service presents the token either as an `Authorization: Bearer <token>` header (preferred -- keeps it out of URL logs) or as a `?project-protection-bypass=<token>` query parameter when it can only take a URL.
-   - The token is shown **once** at creation; if lost, it must be revoked and re-minted. A Production token is bound to the currently published deployment -- re-publishing onto a fresh deployment invalidates it.
-   - Full reference: https://docs.replit.com/replit-workspace/external-access-tokens
+   - The token is shown **once** at creation; if lost, it must be revoked and re-minted. Treat it like a password: keep it in the calling service's secret settings, not source code or chat, choose the shortest expiration that fits the test, and revoke it afterward. Consult the reference for token revocation rules.
+   - Development tokens do not keep the app running or make its URL permanent. Verify that the server is running and use its current dev URL. Tokens support API requests, not interactive browser previews whose asset requests may omit the token; use normal collaborator sign-in for browsing.
+   - Full reference: https://docs.replit.com/features/deployment-customization/external-access-tokens
 
 Include this marker on its own line so the user can jump to where tokens are created: `<open-in-pane tool="publishingSettings"></open-in-pane>`. Keep the accompanying prose self-contained and do not mention the marker or button.
 
@@ -133,40 +151,14 @@ If the user complains that their production database is not deployed (e.g. the l
 
 ## Deployment Targets
 
-Choose the appropriate deployment target based on your project type:
+Preserve the current target unless the user's request changes where the app runs. For a new deployment, choose:
 
-### autoscale (Recommended Default)
+- `autoscale` (default): stateless websites/APIs; persist state in a database, not server memory.
+- `vm`: always-running bots, WebSocket servers, workers, or processes needing persistent server memory.
+- `scheduled`: periodic jobs, never websites or APIs.
+- `static`: client-only sites; `run` is ignored and `publicDir` is required.
 
-Use for stateless websites and APIs that don't need persistent server memory.
-
-- **Best for:** Web applications, REST APIs, stateless services
-- **Behavior:** Scales up/down based on traffic, only runs when requests arrive
-- **State:** Use databases for persistent state (not server memory)
-- **Cost:** Most cost-effective for variable traffic
-
-### vm (Always Running)
-
-Use for applications that need persistent server-side state or long-running processes.
-
-- **Best for:** Discord/Telegram bots, WebSocket servers, web scrapers, background workers
-- **Behavior:** Always running, maintains state in server memory
-- **State:** Can use in-memory databases, local files, or external databases
-
-### scheduled
-
-Use for cron-like jobs that run on a schedule.
-
-- **Best for:** Data processing, cleanup tasks, periodic reports, batch jobs
-- **Behavior:** Runs on configured schedule, not continuously
-- **Note:** Do NOT use for websites or APIs
-
-### static
-
-Use for client-side websites with no backend server.
-
-- **Best for:** Static HTML sites, SPAs (React, Vue, etc.), documentation sites
-- **Behavior:** Serves static files directly, no server-side processing
-- **Note:** The `run` command is ignored; must specify `publicDir`
+Read [Target and command examples](references/target-examples.md) when selecting a target or writing production run/build commands.
 
 ## Deployment Configuration in Pnpm workspace
 

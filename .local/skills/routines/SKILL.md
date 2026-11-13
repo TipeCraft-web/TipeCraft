@@ -144,6 +144,34 @@ until it returns `authorized`.
   outcome tells you one was raised. Leave the choice to them; the
   workspace limit may cap which modes are offered.
 
+## Routines That May Buy Shipped Goods
+
+For a routine that buys something, read the `commerce` skill first.
+
+Use a `{kind: "message", message}` action for shipped purchases: commerce
+callbacks are available only to the conversation agent, not subagent or script
+runs. When editing another action kind, explain this limitation and get the
+user's agreement before switching it to a message action; never silently
+convert an existing routine.
+
+Before `proposeRoutine` or an `updateRoutine` that may buy shipped goods, read
+the `commerce` skill and follow its **Routine shipping** setup while the user
+is present. For creation, wait until access is `authorized` first; edits do
+not require the creation preflight. Ask them to choose
+a saved Link address or `"link_profile_default"`; no custom-address option.
+Store only that choice in the action's `message`, never address text. Do not
+infer it from private profile memory or the conversation's earlier purchases.
+
+Make the message self-contained: every run must pass the stored choice to
+`getCommerceCheckoutDetails` and use it without a question only when
+`savedChoiceStatus` is `"valid"`. Missing or stale choices stop the purchase
+before approval and report `shipping_address_unavailable` in this conversation,
+with instructions to update the routine's address choice. For rejections or an
+address typed into "Other", explain that routines can only ship to addresses
+saved in Link: add the address to Link, then set the routine's address.
+Dismissals are not seen until the user's next message; put this guidance in the
+setup card's description as the `commerce` skill directs.
+
 ## Available Functions
 
 All functions live on the standard callback interface. Routine objects returned

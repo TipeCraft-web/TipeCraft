@@ -155,7 +155,10 @@ console.log(`Speech saved to: ${result.filePath}`);
 
 ## Prohibited uses
 
-These functions run on ElevenLabs, and every call is subject to the ElevenLabs Prohibited Use Policy. Read `media-generation/elevenlabs-prohibited-uses.md` and refuse requests it prohibits.
+These functions run on ElevenLabs, and every call is subject to the ElevenLabs Prohibited Use Policy.
+
+Read `media-generation/elevenlabs-prohibited-uses.md` and refuse requests it prohibits.
+
 
 ## Copyright
 

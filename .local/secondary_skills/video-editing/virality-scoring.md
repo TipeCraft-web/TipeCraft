@@ -5,15 +5,16 @@ Complete implementation guide for AI-powered video analysis and auto-trimming ba
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Step 1: Scene Detection](#step-1-scene-detection)
+2. [Scoring Criteria and Frame Counts](#scoring-criteria-and-frame-counts)
+3. [Step 1: Scene Detection](#step-1-scene-detection)
 
-3. [Step 2: Frame Extraction](#step-2-frame-extraction)
-4. [Step 3: AI Analysis](#step-3-ai-analysis)
+4. [Step 2: Frame Extraction](#step-2-frame-extraction)
+5. [Step 3: AI Analysis](#step-3-ai-analysis)
 
-5. [Step 4: Scoring and Ranking](#step-4-scoring-and-ranking)
-6. [Step 5: Output Assembly](#step-5-output-assembly)
+6. [Step 4: Scoring and Ranking](#step-4-scoring-and-ranking)
+7. [Step 5: Output Assembly](#step-5-output-assembly)
 
-7. [Complete Pipeline Example](#complete-pipeline-example)
+8. [Complete Pipeline Example](#complete-pipeline-example)
 
 ---
 
@@ -54,6 +55,25 @@ Trim & Assemble (FFmpeg)
 Output File(s)
 
 ```
+
+---
+
+## Scoring Criteria and Frame Counts
+
+**Segment scoring** evaluates: visual dynamism, emotional impact, hook potential, pacing/energy, uniqueness, and shareability. Each factor gets a 1-10 score, weighted to produce a final virality score.
+
+**Clip scoring** adds three additional criteria for complete clips:
+
+- **Narrative completeness** (weight: 15%) -- Does the clip tell a complete micro-story? Does it have a clear beginning, middle, and end? Would a viewer feel satisfied or intrigued, not confused?
+- **Hook-to-payoff flow** (weight: 10%) -- Does the clip open with something that grabs attention and deliver on that promise? Or does it start slow and meander?
+- **Standalone quality** (weight: 10%) -- Would this clip make sense to someone who hasn't seen the full video? Can it be posted without context?
+
+These three criteria reduce the weights of the original six factors proportionally so the total still sums to 100%.
+
+Frame extraction:
+
+- **Segments (2-10s):** Extract 3 frames evenly spread across the segment.
+- **Clips (10-60s):** Extract 5-8 frames to capture the full arc. Always include the first frame (hook evaluation) and last frame (payoff evaluation).
 
 ---
 

@@ -188,11 +188,12 @@ Apply requested tweaks and present the updated direction for final approval. Thi
 
 ## Step 5: Deliver the Brand Kit
 
-Once a direction is approved, **delegate to the design subagent**
+Once a direction is approved, first generate 2-3 icon mark candidates as real vector SVGs with the `externalApi__quiver_ai` callback (read `.local/skills/external-apis/references/quiver-ai.md`) and save them under `attached_assets/brand_marks/`, then **delegate to the design subagent** — pass those SVG file paths in `config.relevantFiles` and reference them in the task so Board 2 refines real vectors instead of hand-built markup
     
 ```javascript
-const brandDesignTask = `Build polished visual boards for the approved direction.`;
-subagent({ name: "brand-design", task: brandDesignTask, config: { $kind: "design" } })
+const brandMarks = ['attached_assets/brand_marks/mark-1.svg', 'attached_assets/brand_marks/mark-2.svg'];
+const brandDesignTask = `Build polished visual boards for the approved direction. For Board 2, use the supplied brand-mark SVGs (${brandMarks.join(', ')}) as the logo concepts — refine and present those, do not hand-build new marks.`;
+subagent({ name: "brand-design", task: brandDesignTask, config: { $kind: "design", relevantFiles: brandMarks } })
 // see delegation and design skills
 ```
 This builds polished visual boards. Embed them as iframes on the canvas.

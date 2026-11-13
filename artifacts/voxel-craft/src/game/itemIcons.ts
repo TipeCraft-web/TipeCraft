@@ -31,18 +31,13 @@ const PICKAXE_PALETTES: Partial<Record<BlockType, PickaxePalette>> = {
 
 function pickaxeSvg(palette: PickaxePalette): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
-    <g>
-      <path fill="${palette.outline}" d="M1 1h8v2h3v2h3v3h-5V6H8v2H6v2H4V8H2V6H0V3h1z"/>
-      <rect x="2" y="2" width="6" height="1" fill="${palette.highlight}"/>
-      <rect x="1" y="4" width="9" height="1" fill="${palette.head}"/>
-      <rect x="2" y="6" width="5" height="1" fill="${palette.shade}"/>
-      <rect x="9" y="3" width="2" height="1" fill="${palette.head}"/>
-      <path fill="${palette.outline}" d="M7 7h2v2H7v2H5v2H3v2H1v-2h2v-2h2v-2h2z"/>
-      <rect x="7" y="7" width="1" height="1" fill="${palette.handleLight}"/>
-      <rect x="5" y="9" width="1" height="1" fill="${palette.handle}"/>
-      <rect x="3" y="11" width="1" height="1" fill="${palette.handleLight}"/>
-      <rect x="1" y="13" width="1" height="1" fill="${palette.handle}"/>
-    </g>
+    <path fill="${palette.outline}" d="M1 2h6v1h4v2h3v2h2v3h-3V9h-4V8H6v2H4V8H2V6H1z"/>
+    <path fill="${palette.highlight}" d="M2 3h5v1h4v2h2v1H9V6H6V5H3v1H2z"/>
+    <path fill="${palette.head}" d="M1 5h2v2h3V6h4v2h4v1h-5V8H6v2H4V8H2V6H1z"/>
+    <path fill="${palette.shade}" d="M8 8h4v1h3v1h-5V9H8z"/>
+    <path stroke="${palette.outline}" stroke-width="4" stroke-linecap="square" d="M4 13 10 7"/>
+    <path stroke="${palette.handle}" stroke-width="2.2" stroke-linecap="square" d="M4 13 10 7"/>
+    <path stroke="${palette.handleLight}" stroke-width="1" stroke-linecap="square" d="M4 13 10 7"/>
   </svg>`;
 }
 

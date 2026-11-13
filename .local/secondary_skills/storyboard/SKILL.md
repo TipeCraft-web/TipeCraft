@@ -196,290 +196,25 @@ The proven DR structure: **Hook → Problem → Agitate → Solution → Proof �
 
 **Shot types:** CU (close-up), MS (medium), WS (wide), POV, OTS (over-the-shoulder), Screen recording, Green-screen, B-roll.
 
-## Platform-Specific Adaptations
+## Trending Research
 
-When the user targets multiple platforms, **always generate platform-tailored cut versions** in addition to the master storyboard. Each platform has different pacing, duration sweet spots, and UI overlays that affect how the same content should be edited.
+Before writing any storyboard script, **always perform trending content research** for the user's niche and target platform: trending hooks, sounds and formats, competitor ads, and real-user pain points. Summarize findings in a **Research Notes** section on the canvas (light-blue note). When benchmarks are available, add a **Performance Benchmarks** note (light-green), flagged as reference points, not guarantees. Before researching, read [references/research-and-benchmarks.md](references/research-and-benchmarks.md) for the search queries and what each note must contain.
 
-### Adaptation Strategy
+## Platform Adaptations
 
-After building the master storyboard, create a **Platform Adaptation Table** on the canvas showing how to re-cut for each target platform:
+When the user targets multiple platforms, **always generate platform-tailored cut versions** in addition to the master storyboard, and render a Platform Adaptation Table as a separate section on the canvas below the master storyboard. When the user names more than one platform, read [references/platform-adaptations.md](references/platform-adaptations.md) for per-platform durations, pacing, and the re-cut steps.
 
-| Platform | Target Duration | Pacing | Key Adjustments |
+## Localization
 
-|---|---|---|---|
+When the target audience speaks a language other than English or is in a specific cultural region, adapt the storyboard beyond simple translation. **Always ask the user** what language/region the video targets if not obvious from context. When the video targets a non-English language or a specific region, read [references/localization.md](references/localization.md) for the localization checklist and the non-English script format.
 
-| **TikTok** | 21-34 sec | Fastest — cut every 1.5-2 sec | Tightest edit. Remove any shot >3s. Combine AGITATE into PROBLEM if needed. Text overlays must be larger (thumb-stopping). End with loop or abrupt cut, not fade. |
+## Content Series
 
-| **Instagram Reels** | 30-60 sec | Medium — cut every 2-4 sec | Can breathe slightly more. Add a 2nd proof beat if available. Reels rewards saves — add a "save this" text cue. Caption overlay style should match IG aesthetic (cleaner fonts). |
-
-| **YouTube Shorts** | 30-60 sec | Medium — cut every 3-5 sec | Allows the longest version. Can include extra context or a longer demo. Subscribe CTA works better than "link in bio." End screen overlay is supported. |
-
-| **YouTube long-form** | Re-cut to 16:9 | Slowest — cut every 4-8 sec | Horizontal reframe. Can expand into a full explainer. Add intro context (5-10s) before the hook. Mid-roll friendly at 8+ min. B-roll and screen recordings can run longer. |
-
-### How to Generate Adaptations
-
-For each platform the user targets:
-
-1. Start from the master storyboard (all shots)
-2. Note which shots to **trim**, **merge**, or **cut entirely** for that platform's sweet spot
-
-3. Adjust text overlay sizing for the platform's safe zone
-4. Modify the CTA to match platform conventions (TikTok: "link in bio" / YouTube: "subscribe" / Reels: "save this")
-
-5. Add platform-specific retention devices (TikTok: loop endings / Reels: save prompts / Shorts: subscribe nudge)
-
-Render the adaptation table as a separate section on the canvas below the master storyboard.
-
-## Localization & Cultural Context
-
-When the target audience speaks a language other than English or is in a specific cultural region, the storyboard must adapt beyond simple translation. **Always ask the user** what language/region the video targets if not obvious from context.
-
-### Localization Checklist
-
-1. **Language & Slang** — Write the script in the audience's natural language, including local slang, colloquialisms, and informal speech patterns. UGC scripts must sound like how people actually talk in that region, not formal/textbook language.
-
-- Research local expressions: use `webSearch` for "[region] slang [year]" or "[region] TikTok popular phrases" to find current vernacular
-- Example: Dominican Republic → "mano," "vaina," "ta to," "dimelo" — not formal Castilian Spanish
-
-1. **Cultural Pain Points** — The problem/agitate phases must reference culturally specific pain points. What frustrates a young professional in Santo Domingo is different from what frustrates one in Austin.
-
-- Use `webSearch` for "[region] [industry] frustrations" or "[region] Reddit/forum complaints about [topic]" to find authentic pain points
-- Reference local platforms, banks, services, stores by name when relevant
-
-1. **Visual & Setting Cues** — Image prompts for shot generation should reflect the local environment:
-
-- Architecture, street scenes, typical home interiors for the region
-- Clothing, food, vehicles, and brands the local audience recognizes
-
-- Weather and lighting conditions typical of the region
-
-1. **Currency & Numbers** — Always use local currency (RD$, MXN$, R$, etc.) in text overlays and voiceover. Specific local amounts feel more authentic than converted USD figures.
-2. **Music & Audio** — Search for trending sounds specific to that region's TikTok/Reels ecosystem. Regional music trends vary significantly.
-
-- Use `webSearch` for "[country] TikTok trending sounds [month] [year]"
-
-1. **Humor & Tone** — Comedy styles vary by culture. What's funny in the US may not land in Latin America and vice versa:
-
-- Latin America: Self-deprecating humor, exaggeration, family/friend dynamics, "que vaina" moments
-- US: Sarcasm, absurdist, "relatable millennial/gen-z" humor
-
-- Europe: Dry wit, understatement
-- Always research: `webSearch` for "[region] comedy style TikTok" or "[region] viral funny videos [year]"
-
-### Language-Specific Script Format
-
-When writing non-English scripts, format as:
-
-```text
-
-ON-SCREEN TEXT: [text in target language]
-
-VO: [voiceover in target language]
-
-(Translation: [English translation for creator briefs sent to non-local teams])
-
-```
-
-Only include the English translation line if the user indicates the storyboard will be shared with people who don't speak the target language.
-
-## Content Series Planning
-
-When the product or topic supports it, **offer to plan a multi-video content series** instead of a single video. A series builds audience familiarity, improves algorithmic favor (watch-through from video to video), and lets you test angles systematically.
-
-### Series Structure
-
-A content series is 3-6 videos with a shared theme but different angles. Each video is a standalone storyboard but they share:
-
-- **Consistent creator/character** — same person, same setting, recognizable style
-- **Series hook** — a recurring opening pattern viewers learn to recognize ("Part X of things your bank doesn't want you to know")
-
-- **Progressive reveals** — each video teases the next ("but wait until you see what happened when I tried THIS...")
-- **Shared visual identity** — same text overlay style, color accents, caption format
-
-### Series Templates by Goal
-
-#### Product launch (3 videos)
-
-| \# | Video | Angle | Hook Style |
-
-|---|---|---|---|
-
-| 1 | The Problem | Pain-focused, no product mention | Contrarian or Negative Listicle |
-
-| 2 | The Discovery | "I found this thing..." — soft product intro | Unfinished Story |
-
-| 3 | The Result | Transformation proof, hard CTA | Number Hook or Before/After |
-
-##### Ongoing content (weekly, 4-6 videos)
-
-| \# | Video | Angle | Hook Style |
-
-|---|---|---|---|
-
-| 1 | Myth-buster | "Everyone thinks X but actually..." | Contrarian |
-
-| 2 | Quick tip | One actionable tip in <30s | Number Hook |
-
-| 3 | Story time | Personal experience with the pain point | Unfinished Story |
-
-| 4 | Behind the scenes | Show the product/process in action | Visual Interrupt |
-
-| 5 | User proof | Testimonial or user-submitted content | Social Proof |
-
-| 6 | Trend-jack | Adapt a trending format to your niche | Platform-specific |
-
-### Series Canvas Layout
-
-When planning a series, add a **Series Overview** section on the canvas above the individual storyboards:
-
-1. **Series title bar** — series name, total video count, posting cadence, target platform
-2. **Video cards** — one card per video in the series showing: video number, angle, hook type, estimated duration, and how it connects to the next video
-
-3. **Then the full storyboard** for whichever video the user wants to develop first
-
-Always ask: "Would you like me to plan this as a standalone video or as part of a content series?"
+When the product or topic supports it, **offer to plan a multi-video content series** instead of a single video. Always ask: "Would you like me to plan this as a standalone video or as part of a content series?" When the user wants a series, read [references/content-series.md](references/content-series.md) for series structure, templates by goal, and the Series Overview canvas layout.
 
 ## Creator Brief Export
 
-After building the storyboard on the canvas, **always generate a downloadable creator brief** as a clean markdown file. This is what gets sent to the person who will actually film the video.
-
-### Creator Brief Format
-
-Save to `attached_assets/creator_brief_[project_name].md` and present to the user using the file presentation tool.
-
-```markdown
-
-# Creator Brief: [Video Title]
-
-## Overview
-
-- **Product/Brand:** [name]
-- **Platform:** [target platforms]
-
-- **Duration:** [target length]
-- **Tone:** [funny / dramatic / authentic / etc.]
-
-- **Target Audience:** [who]
-
-## Shot List
-
-### Shot 1: HOOK (0:00-0:02)
-
-- **Camera:** [CU / MS / WS / POV]
-- **What to film:** [specific visual direction]
-
-- **On-screen text:** "[exact text]"
-- **Say this:** "[exact voiceover line]"
-
-- **Wardrobe/Setting:** [any specific requirements]
-- **Mood:** [the feeling this shot should convey]
-
-### Shot 2: ...
-
-[continue for all shots]
-
-## Filming Notes
-
-- [ ] Film on phone (no ring light, no DSLR)
-- [ ] Natural light, casual/real setting
-
-- [ ] Film each section (hook, problem, demo, CTA) as separate clips
-- [ ] Total filming time: ~[estimate] minutes
-
-- [ ] Wardrobe: [specific notes or "casual, everyday clothes"]
-- [ ] Props needed: [list any products, phones, items]
-
-## Caption & Hashtags
-
-- **Caption:** [suggested caption text]
-- **Hashtags:** [platform-appropriate hashtags]
-
-- **CTA in caption:** [e.g., "Link in bio for..." ]
-
-## A/B Variants
-
-Film these 3 alternative openings (same body, different hooks):
-
-1. **Hook A ([type]):** "[line]"
-2. **Hook B ([type]):** "[line]"
-
-3. **Hook C ([type]):** "[line]"
-
-## Platform-Specific Notes
-
-[Any re-cut or adaptation notes per platform]
-
-```
-
-## Trending Content Research
-
-Before writing any storyboard script, **always perform trending content research** for the user's niche and target platform. This grounds the script in what's actually working right now, not generic best practices.
-
-### Research Steps
-
-1. **Trending hooks in the niche:**
-
-- `webSearch("[industry] TikTok ad hooks [year]")`
-- `webSearch("[industry] viral video examples [year]")`
-
-- `webSearch("best [industry] UGC ads [quarter] [year]")`
-
-1. **Trending sounds and formats:**
-
-- `webSearch("[platform] trending sounds [month] [year]")`
-- `webSearch("[platform] trending formats [year]")`
-
-- For regional content: `webSearch("[country] [platform] trending sounds [month] [year]")`
-
-1. **Competitor analysis:**
-
-- `webSearch("[competitor brand] TikTok ads")`
-- `webSearch("[industry] top performing social ads [year]")`
-
-- Note what hooks, formats, and CTAs competitors are using
-
-1. **Pain point mining:**
-
-- `webSearch("[product category] complaints Reddit")`
-- `webSearch("[product category] reviews frustrations")`
-
-- `webSearch("[industry] [region] pain points")`
-
-### Research Output
-
-Summarize findings in a **Research Notes** section on the canvas (light-blue note) including:
-
-- 2-3 trending hooks spotted in the niche
-- Current trending sound/format recommendation
-
-- Top competitor ad observations
-- 3-5 authentic pain point phrases sourced from real users
-
-This research informs the script but is also visible to the user so they understand the strategic thinking behind each creative decision.
-
-## Industry Performance Benchmarks
-
-Include relevant benchmarks on the canvas when available. Use `webSearch` to find current data for the user's specific industry and region.
-
-### Common Benchmark Searches
-
-- `webSearch("[industry] UGC ad benchmarks [year]")` — CPM, CTR, conversion rates
-- `webSearch("[industry] TikTok ad performance [year]")` — platform-specific metrics
-
-- `webSearch("[region] social media ad costs [year]")` — regional CPM/CPC data
-- `webSearch("[industry] average video engagement rate [platform] [year]")`
-
-### Benchmark Display
-
-Add a **Performance Benchmarks** note (light-green) on the canvas with:
-
-- Industry average CPM for the target platform and region
-- Average CTR for UGC ads in this vertical
-
-- Expected view-through rate by video length
-- Conversion benchmarks if available (e.g., app installs, sign-ups)
-
-Flag these as reference points, not guarantees. Performance varies based on creative quality, targeting, and budget.
+After building the storyboard on the canvas, **always generate a downloadable creator brief** as a clean markdown file for the person who will film the video. Save it to `attached_assets/creator_brief_[project_name].md` and present it to the user using the file presentation tool. Before writing the brief, read [references/creator-brief.md](references/creator-brief.md) for the required brief format.
 
 ## Visual Output — Always Use the Design Canvas
 
@@ -489,7 +224,7 @@ Flag these as reference points, not guarantees. Performance varies based on crea
 
 Use the `media-generation` skill to **generate an image for every shot** in the storyboard. Each image should visualize exactly what the camera sees for that shot — match the shot type (CU, MS, WS, POV, etc.), framing, subject, and mood described in the storyboard. These are the storyboard frames, not placeholders.
 
-When the video targets a specific region or culture, image prompts **must** reflect the local environment, people, and visual context (see Localization section).
+When the video targets a specific region or culture, image prompts **must** reflect the local environment, people, and visual context (see [references/localization.md](references/localization.md)).
 
 ### Canvas Layout
 

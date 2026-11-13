@@ -18,14 +18,14 @@ The workflow is:
 ### Data Source Discovery
 
 1. **User mentioned specific sources** (external databases, APIs, services):
-   - `searchIntegrations({ mode: "search", queries: ["Linear"] })`
-   - Check status: `"added"`, `"not_added"`, `"not_setup"`, or `"requires_setup"`
-   - Use the exact `id` returned by `searchIntegrations`:
-     - `not_added`: `addIntegration({ integrationId: result.id })`
-     - `not_setup` or `requires_setup`: `ProposeIntegration({ proposal: [{ integrationId: result.id }] })` (`requires_setup` IDs use `connector_catalog:<name>`)
+   - `searchIntegrations({ query: ["Linear"] })`
+   - Check status: `"ready"`, `"connect"`, or `"loading"`
+   - Use the exact `handle` returned by `searchIntegrations`:
+     - `connect` with a note: do what the note says
+     - `connect` with no note: `ProposeIntegration({ proposal: [{ integrationId: result.handle }] })`
    - **Warehouse with large schema?** Read `references/common-data-sources.md` "Warehouse Schema Exploration (Parallel Pattern)" before Step 1.
 
-2. **No data source specified**: If the data visualization artifact setup question already asked for sources, use its answer. Otherwise, use `searchIntegrations({ mode: "list" })` to list available connectors and suggest them to the user.
+2. **No data source specified**: If the data visualization artifact setup question already asked for sources, use its answer. Otherwise, use `searchIntegrations()` to list available connectors and suggest them to the user.
 
 3. **Data already in chat context** (CSV files, analysis output):
    - Copy files to `artifacts/api-server/data/` (for user-uploaded files) or `.agents/outputs/` (for output like detailed analysis)

@@ -20,8 +20,9 @@ Prefer the latest supported model within each fleet.
 
 - Best for: Demanding reasoning and long-horizon agentic work.
 - Latest model:
-  - `claude-fable-5-1`
+  - `claude-fable-5-2`
 - Older models:
+  - `claude-fable-5-1`
   - `claude-fable-5`
 
 ### Opus
@@ -58,6 +59,7 @@ Prefer the latest supported model within each fleet.
 
 The following shared constraints apply to:
 
+- `claude-fable-5-2`
 - `claude-fable-5-1`
 - `claude-fable-5`
 - `claude-opus-5-5`
@@ -76,9 +78,11 @@ Shared constraints:
 
 Thinking-mode differences for the newly added models:
 
-- `claude-fable-5`, `claude-fable-5-1`, and `claude-opus-5-5`: Adaptive thinking is always on. Omit `thinking` or use `{"type": "adaptive"}`; `{"type": "disabled"}` returns a 400 error.
+- `claude-fable-5`, `claude-fable-5-1`, `claude-fable-5-2`, and `claude-opus-5-5`: Adaptive thinking is always on. Omit `thinking` or use `{"type": "adaptive"}`; `{"type": "disabled"}` returns a 400 error.
 - `claude-sonnet-5-5`: Adaptive thinking is on by default. To turn off up-front thinking, use `thinking: {"type": "between_tools"}` at `high` effort or below. `{"type": "disabled"}` returns a 400 error. Do not add `display`, `budget_tokens`, or `block_binding` to `between_tools`.
 - `claude-haiku-5-5`: Adaptive thinking is on by default. `thinking: {"type": "disabled"}` is accepted at `high` effort or below, but returns a 400 error at `xhigh` or `max`.
+
+For `claude-fable-5-2`, forced tool use (`tool_choice` types `any` and `tool`) returns a 400 error; use automatic tool selection instead.
 
 IMPORTANT: Models not listed above are NOT available through AI integrations. Never use unlisted models with this integration.
 

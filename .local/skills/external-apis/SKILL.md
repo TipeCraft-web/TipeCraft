@@ -34,6 +34,7 @@ Responses are capped (~1 MB); larger media cannot be returned in-band yet. Prefe
 - [fal.ai](references/falai.md) - Bria RMBG background removal through fal.ai passthrough billing.
 - [Firecrawl](references/firecrawl.md) - Scrape, crawl, and search the web through Firecrawl passthrough billing.
 - [Parallel](references/parallel.md)
+- [QuiverAI](references/quiver-ai.md) - Generate SVG icons and illustrations from a text prompt through QuiverAI passthrough billing.
 - [Shotstack](references/shotstack.md) - Render videos, images, and audio from a JSON timeline through Shotstack passthrough billing.
 - [Tripo3D](references/tripo3d.md) - Generate 3D models through Tripo3D passthrough billing.
 - [X (Twitter)](references/x.md) - Read-only X API v2 access through passthrough billing.

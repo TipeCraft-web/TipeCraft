@@ -50,6 +50,8 @@ Only propose follow-ups that represent genuine, actionable work.
 - Do not propose follow-ups for trivial items or things already in your current task's scope
 - Do not propose follow-ups for agent housekeeping (e.g. updating replit.md, adding comments, improving documentation -- handle those inline)
 
+If you saw the project itself slow your work down (Git or checkpoint timeouts, a multi-GB `.git`, very slow validation), read the `filesystem-and-git-cleanup` skill before proposing anything; it says whether a cleanup follow-up fits. Files a checkpoint skipped are resolved in the current turn, not proposed as a follow-up.
+
 If your current task already has downstream tasks depending on it (listed in your task assignment), skip calling `proposeFollowUpTasks` entirely -- those tasks already cover the planned next steps.
 
 `proposeFollowUpTasks` is **one-shot per assigned project task** -- not per turn, not per subfeature, not per `markTaskComplete` cycle. The system rejects duplicate calls. If you're marking complete again after more work on the same assigned task, review your previously proposed follow-ups; if any are now stale, call `markFollowUpTaskObsolete` to retract them.

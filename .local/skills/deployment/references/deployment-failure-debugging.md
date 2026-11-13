@@ -2,6 +2,12 @@
 
 Diagnose and fix deployment build failures by inspecting build history, logs, configuration, and environment.
 
+The `site-reliability-engineer` skill owns the app's runtime output; this
+reference owns build logs and configuration. Where a step below reaches for
+`fetchDeploymentLogs` — serve-phase failures, startup crashes, health-check
+failures — hand off instead: only that skill can scope logs to the revision
+that failed to promote.
+
 ## When to Read This Reference
 
 Read this when:
@@ -279,7 +285,7 @@ Publish detection reads the **committed** git tree. If `.gitignore` matches `art
 
 ## Important Notes
 
-1. **Don't diagnose infrastructure problems.** If the error appears to be on Replit's side (e.g., transient cloud provider issues, `UnknownError` from the deployer), suggest the user retry the deployment or contact Replit support.
+1. **Triage before escalating.** An ambiguous error such as `UnknownError` is not proof of an infrastructure failure. Inspect the available publishing failure details and logs, check the build/run configuration and required environment-variable names without exposing values, and consult `searchReplitDocs` for the relevant publishing troubleshooting guidance. Start with read-only checks and fix a supported app/configuration cause when the evidence identifies one. For a likely transient failure, suggest one retry using the publishing rules below; do not loop retries or make speculative changes. If the problem remains blocked after these checks, or the evidence identifies an action only Replit can perform, explain what was checked, the observed error, and the remaining blocker before recommending Replit support. Do not claim access to internal infrastructure, promise recovery, or delete/reset production data to test a hypothesis. Honor an explicit request for Support without requiring more troubleshooting.
 2. **Changing deployment type.** The deployment type (autoscale, vm, scheduled, static) is set in the Deployments pane, not in code. If it needs to change, tell the user to update it themselves.
 3. **Use production terminology.** In user-facing messages, say "publish" not "deploy" — that's the Replit product terminology.
 4. **You cannot trigger a deployment.** Call `SuggestUserAction({ action: "deploy", message: "The app is ready to publish." })` to prompt the user to click the Publish button.

@@ -1,0 +1,1 @@
+- [Web-Multiplayer-Architektur](web-multiplayer-architecture.md) — Sechsstellige Codes vermitteln den Verbindungsaufbau; Welt und Gameplay bleiben Peer-to-Peer.

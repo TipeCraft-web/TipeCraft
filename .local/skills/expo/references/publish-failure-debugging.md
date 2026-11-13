@@ -34,14 +34,13 @@ if (!launch) {
 }
 
 if (launch.status === "ACTION_REQUIRED") {
-  console.log(launch.status, launch.dashboardUrl);
+  console.log(launch.status);
   return;
 }
 
 const logs = launch.logs.join("\n");
 console.log({
   workflowRunId: launch.workflowRunId,
-  dashboardUrl: launch.dashboardUrl,
   logCharacters: logs.length,
 });
 console.log(logs.slice(-7000));
@@ -60,7 +59,6 @@ Each launch contains:
 - `workflowRunId`: Expo workflow UUID
 - `platform`: `ios` for App Store or `web` for EAS Hosting
 - `status`: `NEW`, `IN_PROGRESS`, `ACTION_REQUIRED`, `SUCCESS`, `FAILURE`, or `CANCELED`
-- `dashboardUrl`: Expo's workflow page
 - `logs`: bounded failure-relevant product log lines retained for 30 days after a failed iOS workflow
 
 ## Workflow
@@ -72,9 +70,9 @@ Each launch contains:
 
 Do not print the complete log stream at once because long output is truncated. If the actionable error is not in the final 7,000 characters, rerun the call with earlier windows such as `logs.slice(-14000, -7000)`.
 
-If a failed workflow has no retained logs, give the user its `dashboardUrl`. Do not invent a diagnosis or run EAS locally.
+If a failed workflow has no retained logs, do not invent a diagnosis or run EAS locally.
 
-`ACTION_REQUIRED` is not a project build failure. Direct the user to the Publish pane or `dashboardUrl` to complete the requested Expo account or credential action.
+`ACTION_REQUIRED` is not a project build failure.
 
 When the retrieved logs identify one of these project-side failures:
 

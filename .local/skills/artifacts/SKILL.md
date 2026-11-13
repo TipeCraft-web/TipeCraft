@@ -13,12 +13,6 @@ An **artifact** is a runnable project the agent creates -- the primary unit of o
 
 When the user asks to "build a website" or "create an app", call `createArtifact()` once, then continue implementation. The workspace includes a shared backend service; new web artifacts are primarily frontend packages and must treat `previewPath` as a required URL prefix for all app routes and API calls.
 
-
-Choose `expo` for an app creation request without a specified platform, including "design me an app", unless the user specifies a web app or browser experience (`react-vite`), or a visual-only mockup (`mockup-sandbox`). A responsive webpage is not a native mobile app. Respect the platform established in the conversation or handoff.
-
-When a user says the result does not match their request, reassess their intended outcome before changing the implementation. Correct the mismatch without inventing new requirements. Ask a focused question only if the intended outcome remains unclear.
-
-
 ## When to Use
 
 Use this skill when:
@@ -124,7 +118,6 @@ Bootstrap and register a new artifact in one call. Default for all new artifacts
 - `previewPath` (str, required): The URL prefix where the artifact is served. **Use `"/<slug>/"` (e.g., `"/my-website/"`, `"/budget-tracker/"`) for consistency.** However, **one artifact should always be at `"/"`** -- if nothing is at the root, the dev URL (e.g. `my-app.replit.app`) shows a blank page. Prefer placing web apps (`react-vite`, `data-visualization`) at the root over mobile, video, or slides artifacts. Every artifact in the workspace must use unique service paths.
 - `title` (str, required): A short, human-readable title (e.g., `"Recipe Finder"`, `"Q1 Pitch Deck"`). Displayed to the user.
 - `description` (str, required): A short paragraph describing what the artifact is, what it does, and who or what it is for.
-- `slideFormat` (required for slides): Pass `"sdm"` -- Slides 2.0 is the only version for new decks; follow the `slides` skill before creating a deck. Omit this parameter for other artifact types.
 
 **Returns:** Dict with:
 
@@ -173,33 +166,7 @@ const { artifacts } = await listArtifacts();
 
 Replace an existing `artifact.toml` through a validated temp file. Do not edit `artifact.toml` directly.
 
-**Parameters:**
-
-- `tempFilePath` (str, required): Absolute path to the temporary TOML file you wrote and edited.
-- `artifactTomlPath` (str, required): Absolute path to the real `artifact.toml` file to replace. Must point to a real `.replit-artifact/artifact.toml` inside the repl.
-
-**Flow:**
-
-1. Read the current `artifact.toml`, then write a sibling temp file such as `/absolute/path/to/artifacts/my-app/.replit-artifact/artifact.edit.toml`.
-2. Make all edits against the temp file. The temp file must contain the full final TOML, not a partial patch.
-3. Call `verifyAndReplaceArtifactToml()` with absolute paths. If validation fails, the temp file is left in place so you can inspect and fix it.
-
-**When to use:** changing artifact metadata such as `title` or `previewPath`; changing service definitions, paths, commands, ports, rewrites, or env blocks; or making multiple coordinated TOML edits at once.
-
-**Do not:** edit `artifact.toml` in place, call this with paths outside `.replit-artifact/artifact.toml`, or use it to change immutable fields such as `id`, `kind`, `version`, `integratedSkills`, or `pageMetadata`.
-
-**Returns:** Dict with:
-
-- `success` (bool): Whether the replacement succeeded
-
-**Example:**
-
-```javascript
-await verifyAndReplaceArtifactToml({
-    tempFilePath: "/absolute/path/to/artifacts/my-website/.replit-artifact/artifact.edit.toml",
-    artifactTomlPath: "/absolute/path/to/artifacts/my-website/.replit-artifact/artifact.toml"
-});
-```
+Before changing artifact metadata, routing, services, commands, ports, rewrites, or environment blocks, read [Editing artifact TOML](references/editing-artifact-toml.md) for the full temp-file procedure and parameters. Never change immutable `id`, `kind`, `version`, `integratedSkills`, or `pageMetadata`.
 
 ### presentArtifact({ artifactId, shapeIds? })
 
@@ -245,33 +212,22 @@ await presentArtifact({ artifactId: result.artifactId });
 
 ## Services and Workflows
 
-`createArtifact()` registers managed workflows from each artifact's `.replit-artifact/artifact.toml`. **Do not call the `configureWorkflow` callback for an artifact service.** Creating a second workflow for the same app bypasses artifact-provided routing and environment configuration and can register a conflicting legacy artifact.
+Each `[[services]]` entry owns startup and routing, not a route-only alias. Required: `name`, `localPort` (listening port), and `development.run` (string, argument array, or `{ args, env? }`). Optional `paths` sets route prefixes. Ports/paths cannot replace `development.run`. Edit existing routing instead of starting duplicate processes.
 
-To start or restart an artifact service, call the direct `WorkflowsRestart` tool with its existing managed workflow's exact name:
+`createArtifact()` registers managed workflows from `artifact.toml`. **Do not call `configureWorkflow` for artifact services**: duplicates bypass artifact routing/environment and can register conflicting legacy artifacts.
+
+Start/restart with the direct `WorkflowsRestart` tool:
 
 ```json
 { "name": "artifacts/<slug>: <service-name>" }
 ```
 
-Examples:
-
 - API server: `{ "name": "artifacts/api-server: API Server" }`
 - Notes frontend: `{ "name": "artifacts/notes-app: web" }`
 
-For an artifact you just created, read the exact names from the `workflows` map that `createArtifact()` returned (e.g. `result.workflows.web`) instead of guessing the service name. For an artifact you did not create this turn, form the exact name from the service name in its `artifact.toml` or from workflow log output (`listArtifacts()` returns the `artifactId` but not service or workflow names). Managed artifact workflows inject their configured `PORT`, `BASE_PATH`, and routing metadata; do not copy those values into a manually configured workflow or start artifact dev commands directly.
+Created this turn: use `createArtifact()`'s returned `workflows` names (`result.workflows.web`). Otherwise, use `artifact.toml`'s service name or workflow logs. `listArtifacts()` returns artifact IDs, not service/workflow names; do not guess. Managed workflows inject `PORT`, `BASE_PATH`, and routing metadata; never copy them into manual workflows or run dev commands directly.
 
-<!-- BEGIN_SERVICES_TABLE -->
-| Artifact | Preview Kind | Service name(s) | Dev command(s) | Path | Production serve | Production build | Production run |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `expo` | `mobile` | `expo` | `pnpm --filter @workspace/__SLUG__ run dev` | `previewPath` |  | `pnpm --filter @workspace/__SLUG__ run build` | `pnpm --filter @workspace/__SLUG__ run serve` |
-| `data-visualization` | `web` | `web` | `pnpm --filter @workspace/__SLUG__ run dev` | `previewPath` | `static` | `pnpm --filter @workspace/__SLUG__ run build` |  |
-| `design-system` | `design-system` | `web` | `pnpm --filter @workspace/__SLUG__ run dev` | `previewPath` | -- | -- | -- |
-| `mockup-sandbox` | `design` | `web` | `pnpm --filter @workspace/__SLUG__ run dev` | `previewPath` | -- | -- | -- |
-| `openscad` | `web` | `web` | `pnpm --filter @workspace/__SLUG__ run dev` | `previewPath` | `static` | `pnpm --filter @workspace/__SLUG__ run build` |  |
-| `react-vite` | `web` | `web` | `pnpm --filter @workspace/__SLUG__ run dev` | `previewPath` | `static` | `pnpm --filter @workspace/__SLUG__ run build` |  |
-| `slides` | `slides` | `web` | `pnpm --filter @workspace/__SLUG__ run dev` | `previewPath` | `static` | `pnpm --filter @workspace/__SLUG__ run build` |  |
-| `video-js` | `video` | `web` | `pnpm --filter @workspace/__SLUG__ run dev` | `previewPath` | `static` | `pnpm --filter @workspace/__SLUG__ run build` |  |
-<!-- END_SERVICES_TABLE -->
+Read [Service defaults](references/services.md) when inspecting or changing an artifact's preview kind, service name, or dev/production commands. The table is a reference, not permission to bypass the managed workflows above.
 
 The web service's URL prefix is set to whatever you pass as `previewPath`. Route handling is prefix-aware: frontend routes and API requests must include this prefix.
 
@@ -288,58 +244,7 @@ If `createArtifact` fails, inspect the error and retry with corrected inputs. Th
 
 ## Examples
 
-<!-- BEGIN_EXAMPLES -->
-### Mobile app (`expo`)
-
-```javascript
-const result = await createArtifact({
-    artifactType: "expo",
-    slug: "my-app",
-    previewPath: "/",
-    title: "My App",
-    description: "A mobile companion app for tracking daily tasks on the go. Lets the user add and check off tasks, organize them by project, and see what is due today at a glance."
-});
-const expoPort = result.ports.expo;
-const expoWorkflow = result.workflows.expo; // "artifacts/my-app: expo"
-
-// Expo is scaffolded under artifacts/my-app
-// and API work should be added to the shared api-server.
-//
-// Immediately before building Expo UI, inspect the current Artifacts state.
-// Use an explicitly passed design system when present. Otherwise, default to an
-// available design system. With several, prefer one consumed by the sibling,
-// then one implied by the request, and ask only if still ambiguous. Follow its
-// docs/AGENTS.md, docs/consuming-expo.md, and docs/migrating-expo.md; import it
-// directly and delete the Expo scaffold's local theme files. Only when no design
-// system exists,
-// wait for the sibling web build and sync its tokens into the local theme. See
-// multi-artifact-creation.md "Visual Consistency" for the full sequence.
-await presentArtifact({ artifactId: result.artifactId });
-```
-
-Then call `SuggestUserAction({ action: "deploy", message: "The app is ready to publish." })` to recommend publishing the app.
-
-### Dashboard scaffold with chart/table defaults (`data-visualization`)
-
-```javascript
-const result = await createArtifact({
-    artifactType: "data-visualization",
-    slug: "sales-dashboard",
-    previewPath: "/sales-dashboard/",
-    title: "Sales Dashboard",
-    description: "An interactive dashboard visualizing monthly sales by region from the uploaded sales data. Includes trend charts, per-region breakdowns, and a sortable table of top-performing products."
-});
-
-// Recharts, PapaParse, and TanStack React Table are pre-configured
-// Build the dashboard in artifacts/sales-dashboard following the
-// data-visualization skill.
-await presentArtifact({ artifactId: result.artifactId });
-```
-
-Then call `SuggestUserAction({ action: "deploy", message: "The dashboard is ready to publish." })` to recommend publishing the app.
-
-Creates a data visualization dashboard with Recharts (charts), PapaParse (CSV parsing), and TanStack React Table (data tables) pre-configured.
-<!-- END_EXAMPLES -->
+Before building Expo UI, read the [mobile example](references/creation-examples.md#mobile-app-expo), including its design-system selection and sibling-web token sequencing rules. When creating a data-visualization dashboard, read the [dashboard example](references/creation-examples.md#dashboard-scaffold-with-charttable-defaults-data-visualization) for its preconfigured chart/table libraries and creation payload.
 
 ### Multiple artifacts in one workspace
 
