@@ -47,7 +47,7 @@ function spawnAnimals(): Animal[] {
       id: i,
       type: types[i % 3],
       pos: new THREE.Vector3(sx, 30, sz),
-      health: 10,
+      health: 9,
       dead: false,
       vy: 0,
       dir: prand(i * 999) * Math.PI * 2,
@@ -115,7 +115,7 @@ function rayBoxDistance(
   }
   return far >= 0 ? near : null;
 }
-
+//Boden finden
 function findGround(x: number, z: number, startY: number): number {
   const top = Math.min(WORLD_MAX_Y, Math.floor(startY) + 4);
   for (let y = top; y >= WORLD_MIN_Y; y--) {
@@ -152,10 +152,10 @@ export default function Animals() {
       if (head) head.visible = !a.dead;
       if (a.dead) return;
 
-      // Change direction
+      // Ai richtung ändern
       a.changeT -= dt;
       if (a.changeT <= 0) {
-        a.changeT = 2 + prand(time * 0.1 + a.id * 97) * 5;
+        a.changeT = 2 + prand(time * 0.1 + a.id * 90) * 5;
         a.dir = (time * 0.3 + a.id * 2.618 + prand(a.id + time * 0.01) * Math.PI * 2) % (Math.PI * 2);
       }
 

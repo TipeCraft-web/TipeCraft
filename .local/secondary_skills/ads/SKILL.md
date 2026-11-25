@@ -1,6 +1,6 @@
 ---
 name: ads
-description: Router for advertising a user's project or business. Resolves the promoted project or URL, helps the customer choose an available channel with Google Ads recommended first when available, builds an ad brief, and hands off to the chosen channel skill. Use when the user asks to advertise, promote, or market a named project, app, site, or business, run ads, or get more traffic or customers. Not for showing ads inside an app, or for payments and checkout (see monetization).
+description: Use when the user wants to advertise a project or business, run paid campaigns, or attract customers through advertising. For Google Ads account, campaign, reporting or conversion-tracking requests, read google-ads immediately. Otherwise help choose an available advertising channel. Not for publisher ad placements, organic-only marketing, or payments and checkout.
 ---
 
 # Ads: Understand the Product, Recommend the Campaign

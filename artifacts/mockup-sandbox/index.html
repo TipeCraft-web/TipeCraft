@@ -57,7 +57,16 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       </style>
     </div>
-
+    <script>
+      window.addEventListener('keydown', function(e) {
+        if (e.code === 'Space' || e.keyCode === 32) {
+          const targetTag = e.target.tagName.toLowerCase();
+          if (targetTag !== 'input' && targetTag !== 'textarea' && !e.target.isContentEditable) {
+            e.preventDefault();
+          }
+        }
+      });
+    </script>
     <!-- Hier klinkt sich Ihr Spiel ein und ersetzt den obigen Lade-Text -->
     <script type="module" src="/src/main.tsx"></script>
   </body>

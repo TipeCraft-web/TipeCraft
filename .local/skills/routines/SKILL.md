@@ -83,6 +83,7 @@ flows that raise an approval card, and `proposeRoutine`, `updateRoutine`,
 and `runRoutineNow` (a script never creates, edits, or triggers routines).
 `listRoutines`, `getRoutine`, and `deleteRoutine` stay available. Nothing
 runs a model during the run: what the script does not do, nobody does.
+Scripts cannot start subagents.
 
 - Callbacks and background jobs work as in your own executed code, including
   starting several jobs and awaiting them together. Anything still pending

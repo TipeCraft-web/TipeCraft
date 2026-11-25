@@ -92,7 +92,7 @@ export default function CraftingTable({ mode, counts, onCraft, onClose }: Props)
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: 1 }}>CRAFTING TABLE · 3×3</div>
+          <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: 1 }}>Crafting</div>
           <div
             data-touch-btn="1"
             onClick={onClose}

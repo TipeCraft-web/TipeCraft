@@ -6,8 +6,8 @@ import { isSolid } from './blocks';
 import { getMobs, spawnMob, cleanDeadMobs, MOB_SPECS, MobType } from './mobSystem';
 import { getMobTexture } from './textures';
 
-const SPAWN_DIST     = 24;
-const DESPAWN_DIST   = 48;
+const SPAWN_DIST     = 15;
+const DESPAWN_DIST   = 5;
 const GRAVITY        = 18;
 const MAX_SPAWN      = 20;
 const SPAWN_INTERVAL = 8;
@@ -17,7 +17,7 @@ function pseudoRand(n: number) {
   return s - Math.floor(s);
 }
 
-// ─── Humanoid (Zombie / Skeleton) ────────────────────────────────────────────
+// ─── Humanoid (Zombie / Skelett) ────────────────────────────────────────────
 function HumanoidMesh({
   bodyColor, headColor, eyeColor, legColor, armColor,
   mobId, mobTexture,
@@ -242,7 +242,7 @@ function SlimeMesh({ mobId }: { mobId: number }) {
     g.visible = true;
     g.position.set(mob.pos[0], mob.pos[1], mob.pos[2]);
     if (mob.state === 'dead') { const s = Math.max(0.01, mob.deathTimer/1.2); g.scale.set(s,s,s); return; }
-    const bounce = 1 + Math.abs(Math.sin(Date.now() * 0.006 + mob.id)) * 0.15;
+    const bounce = 1 + Math.abs(Math.sin(Date.now() * 0.007 + mob.id)) * 0.15;
     const squish = 1 / bounce;
     g.scale.set(squish, bounce, squish);
     if (bodyMat.current) bodyMat.current.color.setHex(mob.hitFlash > 0 ? 0xff2020 : 0x4cbe4c);

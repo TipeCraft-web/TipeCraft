@@ -15,10 +15,12 @@
       "description": "TipeCraft ist ein 3D-Voxel-Sandboxspiel im Browser. Erkunde Biome, baue Blöcke ab, craft Werkzeuge und spiele allein oder online mit Freunden.",
       "sameAs": ["https://github.com/TipeCraft-web/TipeCraft"]
     }
+      
+//verifikaton nicht berabeiten!
     </script>
-
     <meta name="google-site-verification" content="pC8CSt-nW2NpYJyvtaZ7AtWCBOe6geD520kUOjNUIsI" />
     <meta name="msvalidate.01" content="29E17BC5DD45DD34B91731D061940309" />
+
     <title>TipeCraft: 3D-Voxel-Sandbox direkt im Browser spielen</title>
     <meta name="description" content="TipeCraft ist ein 3D-Voxel-Sandboxspiel im Browser: Erkunde Biome, baue Blöcke ab, craft Werkzeuge und spiele allein oder online mit Freunden in eigenen Welten." />
     <meta name="robots" content="index, follow" />
@@ -38,6 +40,92 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
+    <script>
+      (function () {
+        // Prüft, ob gerade ein Menü offen ist (Hauptmenü, Welterstellung, Optionen, Multiplayer)
+        function isMenuOpen() {
+          const root = document.getElementById('root');
+          if (!root) return true;
+          const text = root.textContent || '';
+
+          // Typische Begriffe aus deinen Menüs & der Welterstellung
+          const menuKeywords = [
+            'SINGLEPLAYER',
+            'MULTIPLAYER',
+            'OPTIONS',
+            'VERLINKUNGEN',
+            'WELT ERSTELLEN',
+            'NEUE WELT',
+            'CREATE WORLD',
+            'SPIELMODUS',
+            'KREATIV',
+            'SURVIVAL',
+            'SICHTWEITE',
+            'ZURÜCK',
+            'BACK'
+          ];
+
+          return menuKeywords.some(function (word) {
+            return text.toUpperCase().includes(word);
+          });
+        }
+
+        function isPlaying() {
+          if (document.pointerLockElement) return true;
+          const root = document.getElementById('root');
+          if (!root) return false;
+          return !isMenuOpen() && root.querySelector('canvas') !== null;
+        }
+
+        // 1. Leertaste & Pfeiltasten nur im aktiven Spiel abfangen
+        window.addEventListener('keydown', function (e) {
+          const tag = e.target.tagName ? e.target.tagName.toLowerCase() : '';
+          if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+
+          if (isPlaying() && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+            e.preventDefault();
+          }
+        });
+
+        // 2. Mausrad nur im aktiven Spiel blockieren (in den Welteinstellungen bleibt es frei)
+        window.addEventListener('wheel', function (e) {
+          if (isPlaying()) {
+            e.preventDefault();
+          }
+        }, { passive: false });
+      })();
+    </script>
+
+
+
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #0b0f17;
+        color: #e2e8f0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+
+      /* Sperrt das Scrollen nur, wenn aktiv gespielt wird */
+      body.is-playing {
+        overflow: hidden;
+        height: 100%;
+      }
+
+      /* Macht den Infotext unter dem Spiel sauber lesbar */
+      .game-info {
+        max-width: 820px;
+        margin: 0 auto;
+        padding: 56px 24px 80px;
+        line-height: 1.7;
+      }
+      .game-info h1 { color: #ffffff; margin: 0 0 16px; }
+      .game-info h2 { color: #f8fafc; margin: 32px 0 12px; }
+      .game-info p { color: #94a3b8; margin: 0 0 14px; }
+      .game-info a { color: #38bdf8; }
+    </style>
+
     <div id="root"></div>
     <main class="game-info" aria-labelledby="game-info-title">
       <header class="game-info-header">

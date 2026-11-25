@@ -30,15 +30,25 @@ For projects that use Replit's managed PostgreSQL, the production database schem
 
 For the full set of rules on what the agent must and must not do here -- including specific patterns to avoid (custom migration scripts, deploy-build hooks, startup-time DDL) and the correct dev-side flow -- read `.local/skills/database/references/database-migrations-on-publish.md`.
 
+### Ownership stays with neondb_owner
+
+Replit-managed production databases and every object in them stay owned by `neondb_owner`. Publish runs as that role and cannot alter objects it does not own, and row-level security is enforced relative to the table owner, so a transferred owner either blocks publishing or changes which policies apply in production. Never run, recommend, or draft `ALTER ... OWNER TO`, `ALTER DATABASE ... OWNER TO`, or `REASSIGN OWNED` targeting a role other than `neondb_owner`: not through `executeSql`, not as SQL for the user to paste into the SQL console (development or production), not in migration files or startup scripts. Restoring ownership to `neondb_owner`, including with `REASSIGN OWNED BY ... TO neondb_owner`, is allowed; production `executeSql` remains read-only. Production being read-only is not a reason to hand the user a transfer away from `neondb_owner` to run themselves.
+
+When the user asks for a transfer, say why it would break publishing, then offer what they actually need: keep the default owner and use `GRANT`/`REVOKE` (and `ALTER DEFAULT PRIVILEGES`) to give a role access. If ownership was already moved, point them to the [database troubleshooting docs](https://docs.replit.com/help/troubleshooting/databases) to restore it before publishing. External production databases (below) are exempt.
+
 ### External production databases
 
-Some projects run production against a database that Replit does not manage (Supabase, Neon, Railway, RDS, or any other PostgreSQL reached through the app's own connection string, often a secret such as `DATABASE_URL` or `EXTERNAL_DATABASE_URL`). Check for this before you give migration advice: look at what the deployed app connects to, and at `replit.md` and agent memory for a documented migration workflow.
+Some projects run production against a database that Replit does not manage (Supabase, Neon, Railway, RDS, or any other PostgreSQL reached through the app's own connection string, often a secret such as `EXTERNAL_DATABASE_URL`).
+
+Check for this before you give migration advice: look at what the deployed app connects to, and at `replit.md` and agent memory for a documented migration workflow.
+
 
 For these projects the Publish flow does not touch the production schema, and `executeSql({ environment: "production" })` does not read from it; both only see Replit's managed databases. The rules above do not apply. Apply schema changes and data fixes the way the project documents them, with the user's authorization, and confirm the target database before you write to it. Do not tell the user that Publish will migrate their schema, and do not refuse work the user has authorized because of the managed-database rules.
 
 ## Reference Documents
 
 - `.local/skills/database/references/database-migrations-on-publish.md` -- Full detail on the publish-time schema migration flow, including the two automatic application points (post-merge -- dev, publish -- prod), the SQL diff and rename-confirmation behavior, and the canonical failure mode this guidance prevents. Read this when the user reports production is missing a column or table, asks to "push dev to prod" / "migrate the production database" / "sync the schema", or reports the deployed app failing with "column does not exist" / "relation does not exist" errors.
+- `.local/skills/database/references/publish-unsupported-objects.md` -- The database objects Publish does not carry to production (domains, functions, triggers, grants, roles, FORCE RLS, dropped policy conditions) and what to tell the user before creating one. Read this before creating any of them. When a publish already stopped with `… does not exist` or the published app behaves differently from Preview, read "Database objects missing in production" in `.local/skills/deployment/references/deployment-failure-debugging.md` instead.
 ## Opening the database pane
 
 You can render a one-click "Open in database" button that takes the user to the database workspace pane. Read `.local/skills/database/references/open-in-pane.md` for the tag, deep-link format, and when to emit it before rendering one.
@@ -54,6 +64,8 @@ Replit already keeps history for both databases, so a backup request means findi
 Name which one was asked for, say what it breaks, then redirect in this order and stop at the first that fits: checkpoint rollback for development data → point-in-time recovery for production → a scheduled daily backup for production → the data-recovery docs → Replit Support when the data predates the recovery window. You cannot see whether PITR is on: state the default, give the settings path, and ask what the pane shows before promising a recovery. For an external production database (above), the provider owns backups. Treat backup, dump, snapshot, copy of the database, restore, and lost data as this request; do not call executeSql or write files to build any of the three patterns above. A one-time `SELECT` export the user downloads is not a backup and is fine. Restore semantics and docs links: `.local/skills/database/references/backups-and-recovery.md`.
 
 ## Available Functions
+
+
 
 ### executeSql()
 

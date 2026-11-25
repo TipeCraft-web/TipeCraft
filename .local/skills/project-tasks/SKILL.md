@@ -18,6 +18,7 @@ Manage persistent, user-visible project tasks that the main agent or a task agen
 
 ## When to Use
 
+As the main agent, propose project tasks when work splits into independent deliverables, when the user asks for a plan or task (including a background task or work for a task agent), or when an applicable built-in skill requires a proposed-task approval step. A task agent proposes project tasks only when the user directs it to. Write the required plan files before calling `bulkCreateProjectTasks`, then stop until the user chooses who builds each task. A request for a plan is not permission to start implementation. Unsolicited follow-up suggestions go through `proposeFollowUpTasks` under the follow-up-tasks guidance, never in place of a requested plan.
 - Tracking user-requested features or deliverables
 - Breaking a project into visible milestones
 - Communicating progress to the user
@@ -25,6 +26,7 @@ Manage persistent, user-visible project tasks that the main agent or a task agen
 
 ## When NOT to Use
 
+- Small or moderate requests you can implement directly
 - Internal agent work breakdown (use the internal task list)
 - Temporary implementation steps
 - Sub-tasks that only matter to the agent

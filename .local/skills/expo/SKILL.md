@@ -3,23 +3,24 @@ name: expo
 description: Build, maintain and troubleshoot Expo apps, including current-SDK standardization, Expo Go previews, native configuration and failed Expo Launch publishes
 ---
 
+Replit builds native Expo (React Native) apps for iOS and Android with real device
+capabilities and previews on the user's phone, not mobile-friendly webpages.
+
 Always follow these guidelines when building or maintaining an Expo app:
 
 ## App standard
 
-For SDK 58+, check affected package/lockfile, config, native/dev-client files and
-scripts against `references/app-standard.md`. Read `references/standardize-app.md`
-only for nonconforming apps. Maintenance keeps the installed SDK and unrelated packages.
-After edits, recheck those inputs and repeat affected dependency,
-typecheck, iOS/Android JavaScript export and Go checks. Record versions, platforms,
-results and missing device checks in existing context, not a permanent validation flag.
-Dependency/runtime changes need a clean frozen install, tests and iOS export
-in isolation matching Launch's Node/pnpm.
+Use pnpm for every Expo app; preserve valid exact pins. Follow
+`references/app-standard.md` for assessment and repairs within its SDK scope,
+including focused checks after relevant edits. Full doctor runs are limited to
+approved upgrades, compatibility troubleshooting and log-established app-side
+publish failures, as that reference specifies. Maintenance keeps the installed
+SDK and unrelated packages.
 
-On failure, restore the verified baseline, including manager declaration, lockfile and
-scripts, undoing only Agent-owned changes and preserving concurrent user work.
-Reinstall with its manager, restart the affected workflow and repeat baseline
-checks. Recovery is not standardization or permission for native development.
+To change pnpm versions, set `packageManager` in the workspace install root's
+`package.json` to the desired exact `pnpm@<version>`. This differs from the
+doctor filling a missing pin with the installed version. Do not install pnpm
+globally or select a pin from a remote image default.
 
 ## Architecture
 
@@ -134,24 +135,14 @@ not require a new artifact; follow the reference's legacy guidance.
 
 ## Startup and Dependency Failures
 
-For SDK 58+, run `CI=1 pnpm exec expo install --check` and
-`pnpm dlx expo-doctor@latest` from the app package before changing application
-code. Fix demonstrated incompatibilities with `pnpm exec expo install --fix`,
-then rerun both checks.
-Otherwise, when an Expo app crashes on startup, fails to load in Expo Go, or
-reports a Metro or native-module version error, run the following checks from
-the Expo app's package directory before changing application code:
+When an Expo app crashes on startup, fails to load in Expo Go, or reports a Metro
+or native-module version error, use `references/app-standard.md` for assessment
+and applicable repair routing before changing application code. Its diagnostic
+entrypoint supports older SDKs without applying SDK 58 conversion criteria.
 
-```bash
-CI=1 pnpm exec expo install --check
-pnpm dlx expo-doctor@latest
-```
-
-If Expo reports incompatible package versions, run `pnpm exec expo install --fix`.
-Re-run both checks and resolve every remaining issue.
-
-After the checks pass, restart the frontend or mobile workflow and inspect its
-logs. Continue debugging only if the app still fails with aligned dependencies.
+Fix demonstrated dependency incompatibilities. Restart the frontend or mobile
+workflow and inspect its logs. If a diagnostic cannot complete, record the gap
+and continue startup investigation that does not depend on its result.
 
 ## React Native Pitfalls
 
@@ -232,12 +223,29 @@ For payments, billing, subscriptions, or in-app purchases, read the `monetizatio
 
 ## Publishing
 
-Replit has a built-in publishing flow for Expo apps called **Expo Launch**. Expo Launch handles the production build and **App Store (iOS) submission only** — the user triggers it by clicking the Publish button. More information can be found in the Replit docs which you can search. Only call `SuggestUserAction({ action: "deploy", message: "The app is ready to publish." })` after the app is fully built and verified (see `## Workflow` for when to call it), and only when iOS publishing is relevant. Do not call it mid-build or in response to a planning question.
+For SDK 58+, use focused checks against `references/app-standard.md` before
+recommending publishing, not a full doctor run. Reuse still-valid evidence and
+disclose material gaps; this does not authorize a build, submission or conversion.
 
-- If the user asks what **Expo Launch** is: explain it is Replit's built-in flow for building and submitting the app to the App Store (iOS). More info is in the Replit docs.
+Users start Replit’s **Expo Launch** from Publish to build and submit to **App Store (iOS) only**. Only call `SuggestUserAction({ action: "deploy", message: "The app is ready to publish." })` after presenting a fully built, verified app for relevant supported store publishing; never mid-build or for planning.
+
+Expo Launch archives the publishing fork’s project files with Replit’s fixed
+exclusions. The selected app directory is the build root, not the archive
+boundary. It does not use the project’s `eas.json` or `.easignore`; these may
+exist for the EAS connector.
+
+Expo Launch uses the current published Replit build’s source checkpoint.
+Republish changed app code, dependencies, configuration or upload contents
+under the deployment skill’s publishing-authorization rules; after success,
+have the user start Expo Launch from Publish. Existing sessions may reuse old
+source; unchanged-source refresh needs no republish.
+
+- For Expo Launch questions, explain this flow; search Replit docs for details.
+
 - If the user asks about **Google Play (Android)** publishing: let them know it is **not currently supported** on Replit. Do not call `SuggestUserAction({ action: "deploy", message: "..." })` for Android-only requests.
-- Do not attempt to help with EAS CLI commands or manual App Store submission — Replit's Expo Launch handles App Store publishing.
-- If an App Store publish fails, read `.local/skills/expo/references/publish-failure-debugging.md` and use `getExpoLaunchLogs()` instead of asking the user to copy build errors from Expo.
+
+- Do not attempt to help with EAS CLI commands or manual store submission — Replit's Expo Launch handles store publishing.
+- If an Expo Launch publish fails, read `.local/skills/expo/references/publish-failure-debugging.md` and use `getExpoLaunchLogs()` instead of asking the user to copy build errors from Expo.
 
 ## Forbidden Changes
 - NEVER change bundle identifiers after initial setup unless user explicitly requests it.
@@ -245,7 +253,7 @@ Replit has a built-in publishing flow for Expo apps called **Expo Launch**. Expo
 - NEVER remove, make fatal, or gate Metro on the `create-launch login` step in the mobile `dev` script, and NEVER use `REPLIT_EXPO_SESSION_SECRET` as `EXPO_TOKEN`.
 - NEVER run the Expo development server with `npx expo start` or a bare `npx expo` command. Use `restart_workflow` to retain injected environment variables like `PORT`. Diagnostics and dependency alignment are allowed, not prebuild or native builds.
 - NEVER create dynamic app.config.ts/js; Expo Launch requires static app.json. Migrate existing dynamic config case by case, removing it only after verifying equivalent inputs and behavior. JavaScript config plugins are not dynamic app config.
-- NEVER run or suggest running EAS CLI commands (`npx eas build`, `npx eas submit`, `npx eas update`, `npx eas init`, `eas build`, etc.). iOS publishing is handled via Replit's Expo Launch.
+- NEVER run or suggest running EAS CLI commands (`npx eas build`, `npx eas submit`, `npx eas update`, `npx eas init`, `eas build`, etc.). Store publishing is handled via Replit's Expo Launch.
 
 ## References
 
@@ -258,7 +266,7 @@ Before writing code, identify whether any reference below applies to the task. I
 - `.local/skills/expo/references/react-native-pitfalls.md` - Use this reference when writing or changing screens, components, IDs, headers, safe-area padding, error boundaries, RevenueCat code, or adding `uuid`, `expo-crypto`, or other native packages.
 - `.local/skills/expo/references/keyboard-and-chat.md` - Use this reference when implementing text inputs, forms, keyboard handling, chat or messaging screens, or streaming API responses.
 - `.local/skills/expo/references/expo-go-sign-in.md` - Use this reference when Expo Go reports a sign-in or different-account problem, or when diagnosing or repairing the mobile `dev` script's `create-launch login` step.
-- `.local/skills/expo/references/publish-failure-debugging.md` - Use this reference when an App Store publish fails or the user asks why Expo Launch failed.
+- `.local/skills/expo/references/publish-failure-debugging.md` - Use this reference when an Expo Launch publish fails or the user asks why Expo Launch failed.
 - mobile-ui skill's `.local/skills/mobile-ui/references/keyboard.md` - Use this reference when implementing any keyboard handling — forms with multiple inputs, chat/messaging UIs, FlatList with inputs, or keyboard utilities (dismiss, detect visibility).
 - mobile-ui skill's `.local/skills/mobile-ui/references/sheets.md` - Use this reference when implementing modals, sheets, formSheet presentations, auth flows (login/register), wizards, or overlay UI.
 - mobile-ui skill's `.local/skills/mobile-ui/references/tabs.md` - Use this reference when implementing tab bars — covers NativeTabs with liquid glass support (SDK 54+) and classic Tabs fallback with detailed code examples.

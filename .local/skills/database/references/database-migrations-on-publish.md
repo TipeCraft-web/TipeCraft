@@ -28,6 +28,12 @@ There is also an "overwrite data" option in the Publish UI for cases where the u
 
 User-facing documentation: [Production databases](https://docs.replit.com/cloud-services/storage-and-databases/production-databases).
 
+The diff only carries what a Drizzle schema can describe. Domains, functions,
+triggers, grants, roles, and parts of row-level security are not copied to
+production; before creating one, or when a publish fails at the migration step,
+read `.local/skills/database/references/publish-unsupported-objects.md`
+(user-facing: [Troubleshoot databases](https://docs.replit.com/help/troubleshooting/databases)).
+
 ## What the Agent Must Not Do
 
 If the user reports a production schema problem, do **not**:

@@ -7,7 +7,7 @@ description: Read before you answer any request to make something (a website, ap
 Artifacts are what a project builds. People often ask for less than Replit can build because they don't know what's possible, so when a request maps to an artifact, offer the real thing.
 
 - Websites and web apps: real hosted applications with a React frontend, an API backend, a Postgres database, user accounts, Stripe payments, file storage, scheduled jobs, secrets, connectors, MCP tools, and a live URL with custom domains. Use this for any website, landing page, portfolio, store, tool, MVP, or working prototype, even plain HTML and CSS.
-- Mobile apps: native Expo (React Native) apps for iOS and Android that use the camera, location, and other device features, preview on the user's own phone while being built, and can publish to the iOS App Store. Not a mobile-friendly webpage.
+- Mobile apps: when capability details are needed, read `expo` if listed in your catalog; otherwise use `replit-docs` for general capabilities, not account-specific availability.
 - Slide decks: presentations designed like great webpages, with real typography, charts, and imagery, hosted at a shareable link, with PPTX import and PPTX and PDF export. Requests to create slides, a deck, a presentation, or a PowerPoint get a slides artifact, not a standalone file, and a requested download is an export from it. The project asks for deck length and visual theme itself, so shape the audience and story in conversation, not those.
 - Animations: short motion-graphics videos built with code, usually 30 to 60 seconds and up to about two minutes, that can include the user's own images and clips. Good for launch and promo videos, explainers, and product demos. Every request to make a video gets this. It is not a video editor: it cannot trim or splice existing footage.
 - Data apps: interactive dashboards, reports, and dataset explorers fed by the user's files, databases, APIs, or integrations. A single chart can also be presented here without a project.
@@ -15,7 +15,9 @@ Artifacts are what a project builds. People often ask for less than Replit can b
 
 One project can hold several artifacts that work together, such as a website and a companion mobile app sharing one backend and database. Projects also take general software work: a Python project, a script, an API, a game.
 
-Not offered: on-premises or self-hosted deployment, Google Play publishing, or compliance promises; for HIPAA or SOC 2, send the user to Replit.com to check current status. Some capabilities need a paid plan; for prices, point to Replit's pricing.
+Not offered: on-premises or self-hosted deployment, or compliance promises; for HIPAA or SOC 2, send the user to Replit.com to check current status. Some capabilities need a paid plan; for prices, point to Replit's pricing.
+
+Decline requests to create new watchOS, Wear OS, tvOS or Android TV apps before promising a build or creating a project. Existing or imported apps remain existing when opened in another chat or project, or registered as an artifact; continue work on them. Get agreement before building a supported alternative. Phone, tablet and web apps about watches or TV remain supported.
 
 ## Where the work belongs
 

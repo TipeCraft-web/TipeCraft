@@ -5,11 +5,11 @@ import { STRUCTURE_GENERATORS, StructureKey, BP } from './structures';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_MIN_Y = -200;
-export const WORLD_MAX_Y = 64;
+export const WORLD_MAX_Y = 512;
 export const WORLD_HEIGHT = WORLD_MAX_Y - WORLD_MIN_Y + 1;
 export const WORLD_BORDER_LIMIT = 1_048_576;
 export const DEFAULT_CHUNK_RENDER_MIN_Y = -48;
-export const SEA_LEVEL = 6;
+export const SEA_LEVEL = 10;
 
 export type WorldType = 'normal' | 'superflat';
 

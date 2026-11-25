@@ -5,7 +5,7 @@ import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 const rawPort = process.env.PORT;
-
+//unbedingt so lassen //
 if (!rawPort) {
   throw new Error(
     "PORT environment variable is required but was not provided.",

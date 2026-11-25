@@ -15,7 +15,10 @@ Set up Gemini AI integration via Replit AI Integrations proxy. Keys are automati
 
 ## Supported Gemini Models
 
-- gemini-4-argon: most capable Gemini model, built for the hardest coding, math, science, and long-horizon agentic tasks. Highest cost and latency of the listed text models.
+- gemini-4-hydrogen: lowest-cost Gemini 4 option for everyday coding, multimodal analysis, and tool use.
+- gemini-4-neon: fast multi-step reasoning for complex coding and knowledge work.
+- gemini-4-carbon: strongest reasoning option for sustained coding, math, and science tasks.
+- gemini-4-argon: efficient frontier reasoning for complex coding and long-horizon tasks.
 - gemini-3.8-flash: latest Flash model for coding, agentic workflows, and general-purpose multimodal tasks. Prefer this one over other Flash series models.
 - gemini-3.1-pro-preview: earlier Pro series model for complex reasoning and agentic workflows. Prefer gemini-4-argon.
 - gemini-3-flash-preview: hybrid reasoning model good for daily use and high-volume tasks.

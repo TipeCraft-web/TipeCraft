@@ -30,7 +30,6 @@ Responses are capped (~1 MB); larger media cannot be returned in-band yet. Prefe
 
 - [Brave](references/brave.md) - Search real web image results through Brave passthrough billing.
 - [ElevenLabs](references/elevenlabs.md) - Text-to-speech, music, and audio tools through ElevenLabs passthrough billing, subject to the ElevenLabs prohibited-use policy.
-- [Exa](references/exa.md) - Semantic web search through Exa passthrough billing.
 - [fal.ai](references/falai.md) - Bria RMBG background removal through fal.ai passthrough billing.
 - [Firecrawl](references/firecrawl.md) - Scrape, crawl, and search the web through Firecrawl passthrough billing.
 - [Parallel](references/parallel.md)

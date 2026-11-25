@@ -174,6 +174,9 @@ A deployment goes through these phases in order: **build** → **promote** → *
 → For **non-HTTP `vm` (bots, workers) and `scheduled` jobs**: the run command exited non-zero or crashed before becoming healthy. There is no HTTP probe — do not chase a `/` route. See "Application crashes on startup" below.
 → Either way, check runtime logs to see why the process is failing: `fetchDeploymentLogs({ message: "(?i)(error|exception|failed|crash|traceback)" })`.
 
+**Migration fails with `function … does not exist`, `type "…" does not exist`, or `role "…" does not exist`:**
+→ The schema depends on an object Publish does not carry. See "Database objects missing in production" below.
+
 **No obvious cause from build logs:**
 → Check runtime logs for post-deploy errors.
 → Check environment variables: compare `viewEnvVars({ environment: "development" })` with `viewEnvVars({ environment: "production" })`.
@@ -246,6 +249,40 @@ After making code or configuration fixes:
   - App binds to `localhost`/`127.0.0.1` instead of `0.0.0.0`, or to the wrong port.
   - App takes too long to start (slow imports, blocking startup work, large model downloads).
 - **Fix:** Check the artifact's `artifact.toml` for a custom health check path. Ensure that route returns a 200 response. If no custom path is configured, ensure `GET /` returns 200. Use `fetchDeploymentLogs()` to see whether the app is crashing or just responding incorrectly. Optimize startup time if needed.
+
+### Database objects missing in production
+
+Publish migrates tables, columns, indexes, and constraints from the Drizzle
+schema. Domains, functions, triggers, grants, roles, and `FORCE ROW LEVEL
+SECURITY` created only in development never reach production (full list in
+`.local/skills/database/references/publish-unsupported-objects.md`).
+
+- **Indicators:** two outcomes, both described on the [Production databases docs page](https://docs.replit.com/cloud-services/storage-and-databases/production-databases):
+  - **Publish stops at the migration** with `function … does not exist`,
+    `type "…" does not exist`, or `role "…" does not exist`. The migration is
+    rolled back; production is unchanged.
+  - **Publish succeeds but production behaves differently.** Usually a trigger
+    or grant that exists only in development.
+- **Look for:** first check who owns migrations. If `viewEnvVars` shows
+  `REPLIT_DATABASE_MIGRATIONS=app`, Publish skips schema changes on purpose:
+  the missing object belongs in a new committed migration per
+  `.local/skills/database/references/app-owned-migrations.md`, not in this
+  repair. Otherwise run the docs page's read-only comparison queries ("Find
+  what's missing in production") against both databases. You can read
+  production directly; the user cannot change it from chat.
+- **Fix:** the docs page's "Apply missing objects to production". Write one
+  idempotent script (`CREATE OR REPLACE`, `IF NOT EXISTS`, `DROP TRIGGER IF
+  EXISTS`), save it as `db/production-objects.sql`, and have the user run it
+  from the SQL console with Enable Editing on. Split it into two phases when
+  the publish is the one that creates the affected table:
+  1. Before publishing: roles, domains, and functions. The migration needs
+     them to exist.
+  2. After publishing: triggers, grants, and `FORCE ROW LEVEL SECURITY` on
+     the new table. Even `DROP TRIGGER IF EXISTS … ON new_table` fails while
+     the table is absent, so these cannot run earlier.
+  When the table already exists in production, one run after the fix is
+  enough. Publish does not remove these objects afterwards, so the script only
+  needs rerunning when they change.
 
 ### Missing or different environment variables
 

@@ -45,7 +45,6 @@ Prefer the latest supported model within each fleet.
 - Older models:
   - `claude-sonnet-5`
   - `claude-sonnet-4-6`
-  - `claude-sonnet-4-5`
 
 ### Haiku
 
@@ -82,7 +81,7 @@ Thinking-mode differences for the newly added models:
 - `claude-sonnet-5-5`: Adaptive thinking is on by default. To turn off up-front thinking, use `thinking: {"type": "between_tools"}` at `high` effort or below. `{"type": "disabled"}` returns a 400 error. Do not add `display`, `budget_tokens`, or `block_binding` to `between_tools`.
 - `claude-haiku-5-5`: Adaptive thinking is on by default. `thinking: {"type": "disabled"}` is accepted at `high` effort or below, but returns a 400 error at `xhigh` or `max`.
 
-For `claude-fable-5-2`, forced tool use (`tool_choice` types `any` and `tool`) returns a 400 error; use automatic tool selection instead.
+For `claude-fable-5-2`, `claude-opus-5-5`, and `claude-sonnet-5-5`, forced tool use (`tool_choice` types `any` and `tool`) returns a 400 error; use automatic tool selection (`{"type": "auto"}`) instead.
 
 IMPORTANT: Models not listed above are NOT available through AI integrations. Never use unlisted models with this integration.
 

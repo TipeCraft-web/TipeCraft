@@ -31,7 +31,7 @@ This skill gives the right first move per file type, and tells you when to hand 
 5. **Hand off to the dedicated skill** when the table names one. They cover editing, creating, and visual work that this skill does not.
 6. **Lead your reply with the answer**, not the plumbing. Say "This is a 3-page invoice; the total on page 2 is $1,845", not "Let me examine the PDF".
 
-Python, `pandas`, and `openpyxl` are not guaranteed — the repl may not even have a Python toolchain. Never use `apt-get`, `brew`, or `yum`: they are disabled stubs inside a repl and always fail. Install the Python module and system dependencies through the packager (see the `package-management` skill — system packages use nixpkgs names, not apt names); after that, plain `pip install pandas openpyxl` works.
+Python, `pandas`, and `openpyxl` are not guaranteed — the repl may not even have a Python toolchain. Never use `apt-get`, `brew`, or `yum`: they are disabled stubs inside a repl and always fail. Install the Python module and system dependencies as the package management skill in your skills list describes (system packages use nixpkgs names, not apt names); after that, plain `pip install pandas openpyxl` works.
 
 ## Dispatch table
 

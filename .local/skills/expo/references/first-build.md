@@ -1,9 +1,14 @@
 <first_build>
 When building a new Expo app for the first time, follow this sequence for speed and quality.
 
-**Scaffold** — these files are already opened in your context (do NOT re-read them). The scaffold also includes these components you won't see opened: `ErrorBoundary`, `ErrorFallback`, `KeyboardAwareScrollViewCompat`. Providers wired in `_layout.tsx`: SafeAreaProvider, ErrorBoundary, QueryClientProvider, GestureHandlerRootView, KeyboardProvider. Fonts: Inter (400/500/600/700) pre-loaded with SplashScreen gating. Packages pre-installed: expo-router, @expo/vector-icons, @tanstack/react-query, react-native-reanimated, react-native-keyboard-controller, react-native-gesture-handler, react-native-safe-area-context, expo-haptics.
+**Scaffold**. Reuse unchanged scaffold files already available in context. Read missing or changed files when needed for implementation, diagnosis or verification. The scaffold also includes these components you won't see opened: `ErrorBoundary`, `ErrorFallback`, `KeyboardAwareScrollViewCompat`. Providers wired in `_layout.tsx`: SafeAreaProvider, ErrorBoundary, QueryClientProvider, GestureHandlerRootView, KeyboardProvider. Fonts: Inter (400/500/600/700) pre-loaded with SplashScreen gating. Packages pre-installed: expo-router, @expo/vector-icons, @tanstack/react-query, react-native-reanimated, react-native-keyboard-controller, react-native-gesture-handler, react-native-safe-area-context, expo-haptics.
 
 ## Build Sequence
+
+For SDK 58+, consult `app-standard.md` once the scaffold exists and recheck
+affected criteria with focused checks when build inputs change, not a full
+doctor run for setup or readiness. Continue independent feature work;
+use the standard's conditional repairs, not an automatic full conversion.
 
 1. **Generate images FIRST** — generate images using the `media-generation` skill before writing any code. This includes:
    - App icon & splash. Copy images to `assets/images/icon.png` after generation.
@@ -23,7 +28,10 @@ When building a new Expo app for the first time, follow this sequence for speed 
    - `app/(tabs)/_layout.tsx` (add/remove tabs, or delete if not using tabs)
    - `app.json` (update name if needed)
 
-5. **Install additional packages** if any are needed beyond what's pre-installed.
+5. **Verify packages and the pnpm pin.** Wait for the initial install, then install
+   any additional packages. Verify an exact `packageManager` in the workspace
+   install root's `package.json`; preserve valid pins and use `repairs/pnpm.md`
+   to fill a missing pin without running the full doctor.
 
 6. **Restart workflow** once at the end — not before. After restarting, check logs (`refresh_all_logs`) to confirm the app is running without errors. Fix any errors before presenting.
 
@@ -31,7 +39,7 @@ When building a new Expo app for the first time, follow this sequence for speed 
 
 - **Expo apps default to frontend-only.** Unless the user explicitly asks for a backend, database, or server-side features, do NOT use the database, write an OpenAPI spec, run codegen, or create backend routes. Use AsyncStorage for all local persistence. This is the single most common mistake — avoid it.
 - Do NOT restart the workflow until all files are written.
-- When consuming a design system, grep for local theme imports and read and rewrite every matching scaffold file before deleting the local theme files. Otherwise, do NOT re-read scaffold files because their content is documented above.
+- When consuming a design system, grep for local theme imports and read and rewrite every matching scaffold file before deleting the local theme files.
 - Do NOT take screenshots while building — take exactly ONE at the very end after restarting the workflow to confirm the app is live (see Screenshot Rules below).
 - Every feature must be complete — no placeholder buttons or unfinished states.
 - Only use Expo Go compatible packages.

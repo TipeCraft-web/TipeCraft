@@ -146,7 +146,7 @@ export default function FurnaceUI({
             onTouchStart={touchAction(() => addItem(BlockType.COAL))}
             onClick={() => addItem(BlockType.COAL)}
             style={{ ...buttonStyle, opacity: canAddCoal ? 1 : 0.5 }}
-          >Kohle einlegen</button>
+          >Brennstoff einlegen</button>
           <button
             type="button"
             data-touch-btn="1"
@@ -154,7 +154,7 @@ export default function FurnaceUI({
             onTouchStart={touchAction(smelt)}
             onClick={smelt}
             style={{ ...buttonStyle, background: '#8a642a', opacity: canSmelt ? 1 : 0.5 }}
-          >Eisen schmelzen</button>
+          >Ofen</button>
           <button
             type="button"
             data-touch-btn="1"
@@ -162,11 +162,11 @@ export default function FurnaceUI({
             onTouchStart={touchAction(collectIngots)}
             onClick={collectIngots}
             style={{ ...buttonStyle, background: '#526e45', opacity: contents.ironIngots ? 1 : 0.5 }}
-          >Barren aufnehmen</button>
+          >Geschmolzenes aufnehmen</button>
         </div>
 
         <p style={{ margin: '14px 0 0', fontSize: 11, lineHeight: 1.5 }}>
-          Nur Eisenerz lässt sich schmelzen. Für jeden Eisenbarren werden ein Eisenerz und eine Kohle verbraucht.
+          Aktuell lässt sich nur Eisenerz lässt sich schmelzen. Für jeden Eisenbarren werden ein Eisenerz und eine Kohle verbraucht.
         </p>
       </section>
     </div>
